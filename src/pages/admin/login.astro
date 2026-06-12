@@ -1,0 +1,323 @@
+---
+import BaseLayout from '../../shared/layouts/BaseLayout.astro';
+import AdminLoginForm from '../../features/auth/components/AdminLoginForm.astro';
+import { Image } from 'astro:assets';
+import logo from '../../assets/images/logo.jpg';
+---
+
+<BaseLayout title="Acceso Administrativo">
+  <div class="page">
+
+    <!-- ─── LEFT PANEL ─────────────────────────────── -->
+    <aside class="left">
+      <div class="brand">
+        <div class="logo-wrap">
+          <Image src={logo} alt="Finish Line Sporting Events" width={96} height={96} quality={90} />
+        </div>
+        <div class="brand-text">
+          <span class="brand-name">FINISH LINE</span>
+          <span class="brand-sub">SPORTING EVENTS</span>
+        </div>
+      </div>
+
+      <div class="left-inner">
+        <div class="speed-lines" aria-hidden="true">
+          <div class="sl sl-1"></div>
+          <div class="sl sl-2"></div>
+          <div class="sl sl-3"></div>
+        </div>
+
+        <h2 class="headline">Cada segundo<br /><span class="headline-accent">cuenta.</span></h2>
+
+        <p class="tagline">
+          Gestiona tus eventos deportivos con precisión y velocidad.
+        </p>
+      </div>
+
+      <div class="finish-strip" aria-hidden="true"></div>
+    </aside>
+
+    <!-- ─── RIGHT PANEL ────────────────────────────── -->
+    <main class="right">
+      <div class="card">
+
+        <div class="mobile-brand">
+          <div class="mobile-logo-wrap">
+            <Image src={logo} alt="Finish Line Sporting Events" width={64} height={64} quality={90} />
+          </div>
+          <div class="brand-text">
+            <span class="brand-name">FINISH LINE</span>
+            <span class="brand-sub">SPORTING EVENTS</span>
+          </div>
+        </div>
+
+        <div class="card-header">
+          <h1 class="card-title">Acceso<br />Administrativo</h1>
+          <p class="card-sub">Ingresa tus credenciales para gestionar los eventos.</p>
+        </div>
+
+        <AdminLoginForm />
+
+      </div>
+    </main>
+
+  </div>
+</BaseLayout>
+
+<style is:global>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #f1f5f9; }
+</style>
+
+<style>
+  .page {
+    display: flex;
+    min-height: 100vh;
+    font-family: 'Barlow', sans-serif;
+  }
+
+  /* ── LEFT PANEL ── */
+  .left {
+    width: 40%;
+    background: #ffffff;
+    border-right: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    padding: 3rem 2.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* orange left accent bar */
+  .left::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: linear-gradient(to bottom, #e8461a 0%, rgba(232,70,26,0.2) 70%, transparent 100%);
+  }
+
+  /* subtle large watermark */
+  .left::after {
+    content: 'FL';
+    position: absolute;
+    bottom: -30px;
+    right: -20px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 220px;
+    color: rgba(13, 27, 62, 0.04);
+    line-height: 1;
+    pointer-events: none;
+    user-select: none;
+    letter-spacing: -8px;
+  }
+
+  .left-inner {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .logo-wrap {
+    width: 80px;
+    height: 80px;
+    border-radius: 14px;
+    overflow: hidden;
+    flex-shrink: 0;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.06);
+  }
+
+  .logo-wrap :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+
+  .brand-text {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .brand-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 32px;
+    font-weight: 800;
+    color: #0d1b3e;
+    line-height: 1;
+    letter-spacing: -0.5px;
+  }
+
+  .brand-sub {
+    font-family: 'Barlow', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    color: #94a3b8;
+    text-transform: uppercase;
+  }
+
+  /* speed lines — race timing strips */
+  .speed-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin-bottom: 28px;
+  }
+
+  .sl {
+    height: 3px;
+    border-radius: 2px;
+    background: #e8461a;
+  }
+  .sl-1 { width: 64px; opacity: 1; }
+  .sl-2 { width: 40px; opacity: 0.5; }
+  .sl-3 { width: 22px; opacity: 0.22; }
+
+  .headline {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: clamp(44px, 4.5vw, 62px);
+    font-weight: 800;
+    color: #0d1b3e;
+    line-height: 0.95;
+    letter-spacing: -1px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  .headline-accent {
+    color: #e8461a;
+  }
+
+  .tagline {
+    font-size: 15px;
+    font-weight: 400;
+    color: #64748b;
+    line-height: 1.65;
+    max-width: 300px;
+  }
+
+  /* checkered finish-line strip — static brand motif */
+  .finish-strip {
+    position: relative;
+    z-index: 1;
+    width: 132px;
+    height: 12px;
+    background: repeating-conic-gradient(#0d1b3e 0% 25%, transparent 0% 50%) 0 0 / 12px 12px;
+    opacity: 0.16;
+  }
+
+  /* ── RIGHT PANEL ── */
+  .right {
+    flex: 1;
+    background: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    position: relative;
+  }
+
+  /* subtle dot grid */
+  .right::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, rgba(0,0,0,0.055) 1px, transparent 1px);
+    background-size: 22px 22px;
+    pointer-events: none;
+  }
+
+  .card {
+    position: relative;
+    z-index: 1;
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    border-top: 3px solid #e8461a;
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 420px;
+    box-shadow:
+      0 4px 6px rgba(0,0,0,0.04),
+      0 10px 40px rgba(0,0,0,0.07);
+    animation: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .mobile-brand {
+    display: none;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 28px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .mobile-logo-wrap {
+    width: 52px;
+    height: 52px;
+    border-radius: 10px;
+    overflow: hidden;
+    flex-shrink: 0;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  }
+
+  .mobile-logo-wrap :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+
+  .card-header {
+    margin-bottom: 28px;
+  }
+
+  .card-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 34px;
+    font-weight: 700;
+    color: #0d1b3e;
+    line-height: 1.05;
+    margin-bottom: 8px;
+  }
+
+  .card-sub {
+    font-size: 14px;
+    font-weight: 400;
+    color: #64748b;
+    line-height: 1.55;
+  }
+
+  /* ── MOBILE ── */
+  @media (max-width: 768px) {
+    .page { flex-direction: column; }
+    .left { display: none; }
+    .right {
+      min-height: 100vh;
+      padding: 1.5rem;
+      align-items: flex-start;
+      padding-top: 2.5rem;
+    }
+    .card { max-width: 100%; }
+    .mobile-brand { display: flex; }
+  }
+</style>
