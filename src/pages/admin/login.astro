@@ -3,321 +3,234 @@ import BaseLayout from '../../shared/layouts/BaseLayout.astro';
 import AdminLoginForm from '../../features/auth/components/AdminLoginForm.astro';
 import { Image } from 'astro:assets';
 import logo from '../../assets/images/logo.jpg';
+
+/* ── One-point perspective track (background → foreground) ──
+   A straight running track in 1-point perspective: it is born at a
+   vanishing point near the top-center and fans out toward the bottom,
+   bleeding off the sides in the foreground. Lane stripes are tapered
+   triangles (a point at the vanishing point, a small base in front),
+   so they read as receding lines. */
+const VB_W = 1200;
+const VB_H = 1000;
+
+const VP: [number, number] = [600, 96]; // vanishing point — top center
+const BOTTOM_Y = VB_H;                   // foreground edge
+const ROAD_HALF = 760;                   // half-width at the foreground (bleeds off the sides)
+
+const leftX = VP[0] - ROAD_HALF;
+const rightX = VP[0] + ROAD_HALF;
+
+// filled road: a triangle from the vanishing point to the wide foreground
+const trackFill = `M${VP[0]} ${VP[1]} L${leftX.toFixed(1)} ${BOTTOM_Y} L${rightX.toFixed(1)} ${BOTTOM_Y} Z`;
+
+// tapered white lane stripes converging at the vanishing point
+const LANES = 9;
+const STRIPE_HALF = 7; // half-width of a stripe at the foreground
+const laneStripes: string[] = [];
+for (let i = 1; i < LANES; i++) {
+  const bx = leftX + (i / LANES) * (rightX - leftX);
+  laneStripes.push(
+    `M${VP[0]} ${VP[1]} L${(bx - STRIPE_HALF).toFixed(1)} ${BOTTOM_Y} L${(bx + STRIPE_HALF).toFixed(1)} ${BOTTOM_Y} Z`
+  );
+}
 ---
 
 <BaseLayout title="Acceso Administrativo">
-  <div class="page">
+  <main class="page">
 
-    <!-- ─── LEFT PANEL ─────────────────────────────── -->
-    <aside class="left">
-      <div class="brand">
+    <!-- ─── PERSPECTIVE TRACK (full-bleed backdrop) ──────────── -->
+    <svg
+      class="track"
+      viewBox={`0 0 ${VB_W} ${VB_H}`}
+      preserveAspectRatio="xMidYMin slice"
+      aria-hidden="true"
+    >
+      <defs>
+        <!-- pale at the far distance → vivid orange in the foreground -->
+        <linearGradient id="road" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"  stop-color="#fdeae2" />
+          <stop offset="50%" stop-color="#f4ad95" />
+          <stop offset="100%" stop-color="#e8461a" />
+        </linearGradient>
+      </defs>
+
+      <path d={trackFill} fill="url(#road)" />
+      {laneStripes.map((d) => (
+        <path d={d} fill="#ffffff" opacity="0.85" />
+      ))}
+    </svg>
+
+    <!-- ─── CENTERED CONTENT ─────────────────────────────────── -->
+    <section class="content">
+
+      <header class="brand">
         <div class="logo-wrap">
-          <Image src={logo} alt="Finish Line Sporting Events" width={96} height={96} quality={90} />
+          <Image src={logo} alt="Finish Line Sporting Events" width={120} height={120} quality={90} />
         </div>
-        <div class="brand-text">
-          <span class="brand-name">FINISH LINE</span>
-          <span class="brand-sub">SPORTING EVENTS</span>
+        <div class="wordmark">
+          <span class="brand-name">Finish</span>
+          <span class="brand-name accent">Line</span>
         </div>
-      </div>
+        <span class="brand-sub">Sporting Events</span>
+      </header>
 
-      <div class="left-inner">
-        <div class="speed-lines" aria-hidden="true">
-          <div class="sl sl-1"></div>
-          <div class="sl sl-2"></div>
-          <div class="sl sl-3"></div>
-        </div>
+      <h1 class="title">Inicia<br />sesión</h1>
 
-        <h2 class="headline">Cada segundo<br /><span class="headline-accent">cuenta.</span></h2>
+      <AdminLoginForm />
 
-        <p class="tagline">
-          Gestiona tus eventos deportivos con precisión y velocidad.
-        </p>
-      </div>
+    </section>
 
-      <div class="finish-strip" aria-hidden="true"></div>
-    </aside>
-
-    <!-- ─── RIGHT PANEL ────────────────────────────── -->
-    <main class="right">
-      <div class="card">
-
-        <div class="mobile-brand">
-          <div class="mobile-logo-wrap">
-            <Image src={logo} alt="Finish Line Sporting Events" width={64} height={64} quality={90} />
-          </div>
-          <div class="brand-text">
-            <span class="brand-name">FINISH LINE</span>
-            <span class="brand-sub">SPORTING EVENTS</span>
-          </div>
-        </div>
-
-        <div class="card-header">
-          <h1 class="card-title">Acceso<br />Administrativo</h1>
-          <p class="card-sub">Ingresa tus credenciales para gestionar los eventos.</p>
-        </div>
-
-        <AdminLoginForm />
-
-      </div>
-    </main>
-
-  </div>
+  </main>
 </BaseLayout>
 
 <style is:global>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #f1f5f9; }
+  body { background: #ffffff; }
 </style>
 
 <style>
   .page {
-    display: flex;
+    position: relative;
     min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2.5rem 1.5rem;
+    /* clip the track's horizontal bleed, but let tall content scroll */
+    overflow-x: clip;
     font-family: 'Barlow', sans-serif;
-  }
-
-  /* ── LEFT PANEL ── */
-  .left {
-    width: 40%;
     background: #ffffff;
-    border-right: 1px solid #e2e8f0;
-    display: flex;
-    flex-direction: column;
-    padding: 3rem 2.5rem;
-    position: relative;
-    overflow: hidden;
   }
 
-  /* orange left accent bar */
-  .left::before {
-    content: '';
-    position: absolute;
-    left: 0; top: 0; bottom: 0;
-    width: 4px;
-    background: linear-gradient(to bottom, #e8461a 0%, rgba(232,70,26,0.2) 70%, transparent 100%);
-  }
-
-  /* subtle large watermark */
-  .left::after {
-    content: 'FL';
-    position: absolute;
-    bottom: -30px;
-    right: -20px;
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 800;
-    font-size: 220px;
-    color: rgba(13, 27, 62, 0.04);
-    line-height: 1;
-    pointer-events: none;
-    user-select: none;
-    letter-spacing: -8px;
-  }
-
-  .left-inner {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    position: relative;
-    z-index: 1;
-  }
-
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: 18px;
-    position: relative;
-    z-index: 1;
-  }
-
-  .logo-wrap {
-    width: 80px;
-    height: 80px;
-    border-radius: 14px;
-    overflow: hidden;
-    flex-shrink: 0;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.06);
-  }
-
-  .logo-wrap :global(img) {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    display: block;
-  }
-
-  .brand-text {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-  }
-
-  .brand-name {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 32px;
-    font-weight: 800;
-    color: #0d1b3e;
-    line-height: 1;
-    letter-spacing: -0.5px;
-  }
-
-  .brand-sub {
-    font-family: 'Barlow', sans-serif;
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 3px;
-    color: #94a3b8;
-    text-transform: uppercase;
-  }
-
-  /* speed lines — race timing strips */
-  .speed-lines {
-    display: flex;
-    flex-direction: column;
-    gap: 7px;
-    margin-bottom: 28px;
-  }
-
-  .sl {
-    height: 3px;
-    border-radius: 2px;
-    background: #e8461a;
-  }
-  .sl-1 { width: 64px; opacity: 1; }
-  .sl-2 { width: 40px; opacity: 0.5; }
-  .sl-3 { width: 22px; opacity: 0.22; }
-
-  .headline {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: clamp(44px, 4.5vw, 62px);
-    font-weight: 800;
-    color: #0d1b3e;
-    line-height: 0.95;
-    letter-spacing: -1px;
-    text-transform: uppercase;
-    margin-bottom: 20px;
-  }
-
-  .headline-accent {
-    color: #e8461a;
-  }
-
-  .tagline {
-    font-size: 15px;
-    font-weight: 400;
-    color: #64748b;
-    line-height: 1.65;
-    max-width: 300px;
-  }
-
-  /* checkered finish-line strip — static brand motif */
-  .finish-strip {
-    position: relative;
-    z-index: 1;
-    width: 132px;
-    height: 12px;
-    background: repeating-conic-gradient(#0d1b3e 0% 25%, transparent 0% 50%) 0 0 / 12px 12px;
-    opacity: 0.16;
-  }
-
-  /* ── RIGHT PANEL ── */
-  .right {
-    flex: 1;
-    background: #f1f5f9;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-    position: relative;
-  }
-
-  /* subtle dot grid */
-  .right::before {
-    content: '';
+  /* perspective track — fills the whole screen, anchored to the top so the
+     vanishing point stays visible on tall screens */
+  .track {
     position: absolute;
     inset: 0;
-    background-image: radial-gradient(circle, rgba(0,0,0,0.055) 1px, transparent 1px);
-    background-size: 22px 22px;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
     pointer-events: none;
   }
 
-  .card {
+  /* ── CENTERED CONTENT ── */
+  .content {
     position: relative;
     z-index: 1;
-    background: #ffffff;
-    border-radius: 16px;
-    border: 1px solid #e2e8f0;
-    border-top: 3px solid #e8461a;
-    padding: 2.5rem;
     width: 100%;
-    max-width: 420px;
-    box-shadow:
-      0 4px 6px rgba(0,0,0,0.04),
-      0 10px 40px rgba(0,0,0,0.07);
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
     animation: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
+  /* soft white halo so the form reads cleanly over the orange road */
+  .content::before {
+    content: '';
+    position: absolute;
+    inset: -72px -96px;
+    background: radial-gradient(
+      closest-side,
+      rgba(255, 255, 255, 0.97) 62%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    z-index: -1;
+    pointer-events: none;
+  }
+
   @keyframes rise {
-    from { opacity: 0; transform: translateY(20px); }
+    from { opacity: 0; transform: translateY(16px); }
     to   { opacity: 1; transform: translateY(0); }
   }
+  @media (prefers-reduced-motion: reduce) {
+    .content { animation: none; }
+  }
 
-  .mobile-brand {
-    display: none;
+  /* ── BRAND ── */
+  .brand {
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 14px;
-    margin-bottom: 28px;
-    padding-bottom: 24px;
-    border-bottom: 1px solid #f1f5f9;
+    text-align: center;
+    margin-bottom: 30px;
   }
 
-  .mobile-logo-wrap {
-    width: 52px;
-    height: 52px;
-    border-radius: 10px;
+  .logo-wrap {
+    width: 72px;
+    height: 72px;
+    border-radius: 14px;
     overflow: hidden;
-    flex-shrink: 0;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 16px;
+    box-shadow: 0 0 0 1px rgba(13, 27, 62, 0.08);
+  }
+  .logo-wrap :global(img) {
+    width: 100%; height: 100%;
+    object-fit: contain; display: block;
   }
 
-  .mobile-logo-wrap :global(img) {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    display: block;
+  .wordmark {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
   }
-
-  .card-header {
-    margin-bottom: 28px;
-  }
-
-  .card-title {
+  .brand-name {
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 34px;
-    font-weight: 700;
+    font-size: clamp(34px, 7vw, 46px);
+    font-weight: 800;
     color: #0d1b3e;
-    line-height: 1.05;
-    margin-bottom: 8px;
+    line-height: 0.86;
+    letter-spacing: -1px;
+    text-transform: uppercase;
   }
+  .brand-name.accent { color: #e8461a; }
 
-  .card-sub {
-    font-size: 14px;
-    font-weight: 400;
+  .brand-sub {
+    font-family: 'Barlow', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 5px;
+    text-transform: uppercase;
     color: #64748b;
-    line-height: 1.55;
+    margin-top: 10px;
   }
 
-  /* ── MOBILE ── */
-  @media (max-width: 768px) {
-    .page { flex-direction: column; }
-    .left { display: none; }
-    .right {
-      min-height: 100vh;
-      padding: 1.5rem;
+  /* ── TITLE ── */
+  .title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: clamp(38px, 5vw, 50px);
+    font-weight: 800;
+    color: #0d1b3e;
+    line-height: 0.9;
+    letter-spacing: -1px;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  /* ── MOBILE — same idea, tighter ── */
+  @media (max-width: 600px) {
+    .page {
+      padding: 7vh 1.4rem 3rem;
       align-items: flex-start;
-      padding-top: 2.5rem;
     }
-    .card { max-width: 100%; }
-    .mobile-brand { display: flex; }
+    .content {
+      max-width: 420px;
+      margin: auto;
+    }
+    .content::before {
+      inset: -44px -40px;
+      background: radial-gradient(
+        closest-side,
+        rgba(255, 255, 255, 0.97) 58%,
+        rgba(255, 255, 255, 0) 100%
+      );
+    }
+    .brand { margin-bottom: 26px; }
+    .logo-wrap { width: 64px; height: 64px; }
+    .title { margin-bottom: 28px; }
+  }
+
+  @media (max-width: 380px) {
+    .content::before { inset: -32px -24px; }
   }
 </style>
