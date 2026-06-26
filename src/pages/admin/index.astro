@@ -1,0 +1,36 @@
+---
+// Placeholder del panel admin — solo para comprobar el login de punta a punta.
+// En el Paso 6 lo protegeremos con middleware y leeremos la sesión de verdad.
+export const prerender = false;
+
+import BaseLayout from '../../shared/layouts/BaseLayout.astro';
+
+const hasSession = Astro.cookies.has('session');
+---
+
+<BaseLayout title="Panel administrativo">
+  <main class="dash">
+    {hasSession ? (
+      <p class="ok">Sesión iniciada correctamente.</p>
+    ) : (
+      <p class="no">
+        No hay sesión activa. <a href="/admin/login">Inicia sesión</a>.
+      </p>
+    )}
+  </main>
+</BaseLayout>
+
+<style>
+  .dash {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    font-family: 'Barlow', sans-serif;
+    font-size: 1.1rem;
+    color: #0d1b3e;
+  }
+  .ok { font-weight: 600; }
+  a { color: #e8461a; }
+</style>
