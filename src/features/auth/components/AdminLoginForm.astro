@@ -4,8 +4,14 @@
 <form class="form" method="POST" action="/api/admin/auth" novalidate>
 
   <div class="field">
-    <label for="email" class="label"><span class="num">01</span>Correo electrónico</label>
+    <label for="email" class="label">Correo electrónico</label>
     <div class="control">
+      <span class="icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="4" width="20" height="16" rx="2"/>
+          <path d="m22 7-10 6L2 7"/>
+        </svg>
+      </span>
       <input
         type="email"
         id="email"
@@ -13,17 +19,22 @@
         class="input"
         placeholder="admin@finishline.bo"
         autocomplete="email"
+        aria-describedby="email-error"
         required
       />
     </div>
+    <p class="error-msg" id="email-error" role="alert" aria-live="polite"></p>
   </div>
 
   <div class="field">
-    <div class="label-row">
-      <label for="password" class="label"><span class="num">02</span>Contraseña</label>
-      <a href="/admin/reset" class="forgot">¿Olvidaste tu contraseña?</a>
-    </div>
+    <label for="password" class="label">Contraseña</label>
     <div class="control">
+      <span class="icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </span>
       <input
         type="password"
         id="password"
@@ -31,23 +42,25 @@
         class="input"
         placeholder="••••••••••••"
         autocomplete="current-password"
+        aria-describedby="password-error"
         required
       />
       <button type="button" id="togglePwd" class="toggle-btn" aria-label="Mostrar contraseña" aria-pressed="false">
-        <svg id="eyeShow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+        <svg id="eyeShow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
         </svg>
-        <svg id="eyeHide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="display:none" aria-hidden="true">
+        <svg id="eyeHide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none" aria-hidden="true">
           <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
           <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
           <line x1="1" y1="1" x2="23" y2="23"/>
         </svg>
       </button>
     </div>
+    <p class="error-msg" id="password-error" role="alert" aria-live="polite"></p>
   </div>
 
   <button type="submit" class="submit-btn">
-    <span>Ingresar</span>
+    <span>Ingresar al panel</span>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
       <path d="M5 12h14M12 5l7 7-7 7"/>
     </svg>
@@ -59,20 +72,20 @@
   .form {
     display: flex;
     flex-direction: column;
-    gap: 26px;
+    gap: 22px;
   }
 
-  /* staggered reveal — one orchestrated entrance */
+  /* staggered reveal — one orchestrated entrance on load */
   .field,
   .submit-btn {
     animation: field-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
-  .field:nth-of-type(1) { animation-delay: 0.06s; }
-  .field:nth-of-type(2) { animation-delay: 0.13s; }
-  .submit-btn { animation-delay: 0.2s; }
+  .field:nth-of-type(1) { animation-delay: 0.44s; }
+  .field:nth-of-type(2) { animation-delay: 0.54s; }
+  .submit-btn { animation-delay: 0.64s; }
 
   @keyframes field-in {
-    from { opacity: 0; transform: translateY(10px); }
+    from { opacity: 0; transform: translateY(12px); }
     to   { opacity: 1; transform: translateY(0); }
   }
 
@@ -83,166 +96,136 @@
   }
 
   .label {
-    display: flex;
-    align-items: center;
-    gap: 9px;
     font-family: 'Barlow', sans-serif;
     font-size: 12px;
     font-weight: 700;
-    letter-spacing: 1.5px;
+    letter-spacing: 0.8px;
     text-transform: uppercase;
-    color: #0d1b3e;
-    transition: color 0.2s;
+    color: #5b6675;
   }
 
-  .label .num {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 800;
-    color: #e8461a;
-    font-size: 14px;
-    letter-spacing: 0;
-    line-height: 1;
-  }
-
-  .label-row {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 12px;
-  }
-
-  .forgot {
-    font-family: 'Barlow', sans-serif;
-    font-size: 12px;
-    font-weight: 600;
-    color: #e8461a;
-    text-decoration: none;
-    transition: opacity 0.15s;
-  }
-  .forgot:hover { opacity: 0.65; }
-  .forgot:focus-visible,
-  .toggle-btn:focus-visible {
-    outline: 2px solid #e8461a;
-    outline-offset: 3px;
-    border-radius: 2px;
-  }
-
-  /* ── input control: flat underline + animated accent fill ── */
+  /* ── boxed input with leading icon ── */
   .control {
     position: relative;
     display: flex;
     align-items: center;
   }
 
+  .icon {
+    position: absolute;
+    left: 16px;
+    display: inline-flex;
+    color: #9aa6b6;
+    pointer-events: none;
+    transition: color 0.18s;
+  }
+  .icon svg { width: 20px; height: 20px; }
+
   .input {
     width: 100%;
-    background: transparent;
-    border: none;
-    border-bottom: 2px solid #cbd5e1;
-    border-radius: 0;
-    padding: 9px 0;
+    background: #ffffff;
+    border: 1.5px solid #d6dbe3;
+    border-radius: 8px;
+    padding: 15px 16px 15px 48px;
     font-family: 'Barlow', sans-serif;
     font-size: 16px;
     font-weight: 500;
-    color: #0d1b3e;
+    color: #0c152e;
     outline: none;
-    transition: border-color 0.2s;
+    transition: border-color 0.18s, box-shadow 0.18s;
   }
-  .input::placeholder { color: #94a3b8; font-weight: 400; }
+  .input::placeholder { color: #9aa6b6; font-weight: 400; }
 
-  /* the accent line wipes in from the left on focus */
-  .control::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    bottom: 0;
-    width: 100%;
-    height: 2px;
-    background: #e8461a;
-    transform: scaleX(0);
-    transform-origin: left;
-    transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  .input:focus {
+    border-color: #FC4C02;
+    box-shadow: 0 0 0 3px rgba(252, 76, 2, 0.14);
   }
-  .control:focus-within::after { transform: scaleX(1); }
-
-  /* lift the field heading while editing */
-  .field:focus-within .label { color: #e8461a; }
+  /* tint the leading icon while editing */
+  .control:focus-within .icon { color: #FC4C02; }
 
   /* keep room for the toggle on the password field */
-  .control:has(.toggle-btn) .input { padding-right: 36px; }
+  .control:has(.toggle-btn) .input { padding-right: 52px; }
 
   .toggle-btn {
     position: absolute;
-    right: 0;
-    bottom: 9px;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    min-width: 44px;          /* comfortable touch target (WCAG 2.5.8) */
+    min-height: 44px;
     background: none;
     border: none;
     cursor: pointer;
-    color: #94a3b8;
-    padding: 2px;
-    display: flex;
+    color: #9aa6b6;
+    padding: 0;
+    display: inline-flex;
     align-items: center;
+    justify-content: center;
     transition: color 0.15s;
   }
-  .toggle-btn:hover { color: #0d1b3e; }
-  .toggle-btn svg { width: 18px; height: 18px; }
+  .toggle-btn:hover { color: #0c152e; }
+  .toggle-btn svg { width: 20px; height: 20px; }
+  .toggle-btn:focus-visible {
+    outline: 2px solid #FC4C02;
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
 
-  /* ── flat squared button — swiss ── */
+  /* ── inline validation error ── */
+  .error-msg {
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: #ba1a1a;
+    margin-top: 2px;
+  }
+  .error-msg:empty { display: none; }
+
+  /* invalid state: red border + red icon */
+  .field.has-error .input {
+    border-color: #ba1a1a;
+  }
+  .field.has-error .input:focus {
+    box-shadow: 0 0 0 3px rgba(186, 26, 26, 0.14);
+  }
+  .field.has-error .icon { color: #ba1a1a; }
+
+  /* ── primary button (no sweep animation) ── */
   .submit-btn {
     width: 100%;
-    position: relative;
-    overflow: hidden;
-    background: #e8461a;
+    background: #FC4C02;
     color: #ffffff;
     border: none;
-    border-radius: 0;
+    border-radius: 8px;
     padding: 17px;
     margin-top: 6px;
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 22px;
+    font-size: 21px;
     font-weight: 800;
-    letter-spacing: 4px;
+    letter-spacing: 1.5px;
     text-transform: uppercase;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 12px;
-    transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+    transition: background-color 0.18s;
   }
-  .submit-btn > span,
-  .submit-btn > svg { position: relative; z-index: 1; }
-  .submit-btn svg { width: 19px; height: 19px; transition: transform 0.2s; }
-
-  /* navy sweep on hover */
-  .submit-btn::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: #0d1b3e;
-    transform: translateX(-101%);
-    transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
-    z-index: 0;
-  }
-  .submit-btn:hover::before { transform: translateX(0); }
-  .submit-btn:hover { box-shadow: 0 10px 24px -12px rgba(13, 27, 62, 0.5); }
-  .submit-btn:hover svg { transform: translateX(5px); }
-  .submit-btn:active { transform: translateY(1px); }
+  .submit-btn svg { width: 18px; height: 18px; }
+  .submit-btn:hover { background: #e8461a; }
   .submit-btn:focus-visible {
-    outline: 2px solid #0d1b3e;
+    outline: 2px solid #0c152e;
     outline-offset: 3px;
   }
 
   @media (prefers-reduced-motion: reduce) {
     .field,
-    .submit-btn,
-    .submit-btn::before,
-    .submit-btn svg,
-    .control::after { animation: none; transition: none; }
+    .submit-btn { animation: none; }
   }
 </style>
 
 <script>
+  // ── password visibility toggle ──
   const btn = document.getElementById('togglePwd') as HTMLButtonElement;
   const input = document.getElementById('password') as HTMLInputElement;
   const eyeShow = document.getElementById('eyeShow') as unknown as SVGElement;
@@ -255,5 +238,66 @@
     eyeHide.style.display = isPassword ? '' : 'none';
     btn.setAttribute('aria-pressed', String(isPassword));
     btn.setAttribute('aria-label', isPassword ? 'Ocultar contraseña' : 'Mostrar contraseña');
+  });
+
+  // ── client-side validation (backstop: el BFF revalida en el servidor) ──
+  const form = document.querySelector('.form') as HTMLFormElement;
+  const emailInput = document.getElementById('email') as HTMLInputElement;
+  const emailError = document.getElementById('email-error') as HTMLParagraphElement;
+  const passwordError = document.getElementById('password-error') as HTMLParagraphElement;
+
+  // Regex pragmática: algo@algo.dominio, sin espacios. No pretende cubrir el RFC.
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  function setError(el: HTMLInputElement, msgEl: HTMLParagraphElement, msg: string) {
+    msgEl.textContent = msg;
+    el.setAttribute('aria-invalid', 'true');
+    el.closest('.field')?.classList.add('has-error');
+  }
+
+  function clearError(el: HTMLInputElement, msgEl: HTMLParagraphElement) {
+    msgEl.textContent = '';
+    el.removeAttribute('aria-invalid');
+    el.closest('.field')?.classList.remove('has-error');
+  }
+
+  function validateEmail(): boolean {
+    const value = emailInput.value.trim();
+    if (!value) {
+      setError(emailInput, emailError, 'Ingresa tu correo electrónico.');
+      return false;
+    }
+    if (!EMAIL_RE.test(value)) {
+      setError(emailInput, emailError, 'Ingresa un correo electrónico válido.');
+      return false;
+    }
+    clearError(emailInput, emailError);
+    return true;
+  }
+
+  function validatePassword(): boolean {
+    if (!input.value) {
+      setError(input, passwordError, 'Ingresa tu contraseña.');
+      return false;
+    }
+    clearError(input, passwordError);
+    return true;
+  }
+
+  form?.addEventListener('submit', (event) => {
+    const emailOk = validateEmail();
+    const passwordOk = validatePassword();
+    if (!emailOk || !passwordOk) {
+      event.preventDefault();
+      (!emailOk ? emailInput : input).focus();
+    }
+  });
+
+  // Una vez marcado un campo como inválido, revalida mientras el usuario corrige.
+  emailInput?.addEventListener('input', () => {
+    if (emailInput.getAttribute('aria-invalid')) validateEmail();
+  });
+  input?.addEventListener('input', () => {
+    if (input.getAttribute('aria-invalid')) validatePassword();
   });
 </script>
