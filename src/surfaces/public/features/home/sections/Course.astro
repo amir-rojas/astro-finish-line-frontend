@@ -1,0 +1,192 @@
+---
+import type { EventData } from '../format';
+import { dayMonth } from '../format';
+
+interface Props {
+  event: EventData;
+}
+const { event } = Astro.props;
+
+const distance = event.distances[0] ?? '';
+const title = event.courseTitle ?? `${distance} por el centro de ${event.city ?? ''}`.trim();
+const desc = event.courseDescription ?? `Salida y meta en ${event.location}.`;
+const altitude = event.altitudeM ? new Intl.NumberFormat('es-BO').format(event.altitudeM) : null;
+
+const deadlineBadge = event.registrationDeadline
+  ? `Cierre ${dayMonth(event.registrationDeadline)}${
+      event.registrationNote ? ` · ${event.registrationNote}` : ''
+    }`
+  : null;
+
+// Perfil referencial del circuito (no son metros exactos; silueta del trazado).
+const pts = [240, 200, 220, 160, 180, 120, 150, 110, 170, 140, 200];
+const x = (km: number) => 40 + km * 48;
+const line = pts.map((y, km) => `${km === 0 ? 'M' : 'L'}${x(km)},${y}`).join(' ');
+const area = `M40,300 ${pts.map((y, km) => `L${x(km)},${y}`).join(' ')} L520,300 Z`;
+const kmMarks = [0, 2, 4, 6, 8, 10];
+---
+
+<section id="recorrido" class="course">
+  <div class="course__inner">
+    <div class="course__copy">
+      <p class="eyebrow" data-reveal>// El recorrido</p>
+      <h2 class="course__title" data-reveal data-delay="1">{title}</h2>
+      <p class="course__desc" data-reveal data-delay="2">{desc}</p>
+      <div class="course__meta" data-reveal data-delay="3">
+        {altitude && <span class="course__alt">≈ {altitude} m s.n.m.</span>}
+        {deadlineBadge && <span class="course__badge">{deadlineBadge}</span>}
+      </div>
+    </div>
+
+    <figure class="profile" data-reveal data-delay="2">
+      <svg viewBox="0 0 560 360" role="img" aria-label={`Perfil referencial del circuito de ${distance}`}>
+        <defs>
+          <linearGradient id="prof-fill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="rgba(238,83,20,0.28)"></stop>
+            <stop offset="100%" stop-color="rgba(238,83,20,0)"></stop>
+          </linearGradient>
+        </defs>
+
+        {/* baseline + km ticks */}
+        <line x1="40" y1="300" x2="520" y2="300" stroke="rgba(20,35,58,0.25)" stroke-width="1"></line>
+        {
+          kmMarks.map((km) => (
+            <g>
+              <line
+                x1={x(km)}
+                y1="300"
+                x2={x(km)}
+                y2="306"
+                stroke="rgba(20,35,58,0.35)"
+                stroke-width="1"
+              />
+              <text x={x(km)} y="324" class="profile__tick">
+                {km === 10 ? '10 KM' : km}
+              </text>
+            </g>
+          ))
+        }
+
+        {/* área + línea de elevación */}
+        <path d={area} fill="url(#prof-fill)"></path>
+        <path
+          d={line}
+          fill="none"
+          stroke="#ee5314"
+          stroke-width="3.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"></path>
+
+        {/* salida / meta */}
+        <circle cx="40" cy="240" r="7" fill="#ee5314"></circle>
+        <circle cx="520" cy="200" r="7" fill="#14233a"></circle>
+        <text x="40" y="226" class="profile__pt">Salida</text>
+        <text x="520" y="186" class="profile__pt profile__pt--end">Meta</text>
+      </svg>
+      <figcaption class="profile__cap">Perfil referencial del circuito</figcaption>
+    </figure>
+  </div>
+</section>
+
+<style>
+  .course {
+    background: var(--fl-cream-2);
+    color: var(--fl-ink);
+  }
+  .course__inner {
+    max-width: var(--fl-container);
+    margin: 0 auto;
+    padding: clamp(48px, 6vw, 88px) clamp(20px, 5vw, 56px);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: clamp(28px, 4vw, 56px);
+    align-items: center;
+  }
+  .eyebrow {
+    margin: 0;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #9a8f78;
+  }
+  .course__title {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(32px, 4.2vw, 52px);
+    margin: 14px 0 0;
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+    line-height: 0.96;
+    text-wrap: balance;
+  }
+  .course__desc {
+    font-size: 16px;
+    line-height: 1.55;
+    color: #5a5346;
+    margin: 16px 0 0;
+    max-width: 420px;
+  }
+  .course__meta {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-top: 22px;
+  }
+  .course__alt {
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--fl-orange);
+  }
+  .course__badge {
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    background: var(--fl-ink);
+    color: var(--fl-cream);
+    padding: 11px 18px;
+  }
+
+  .profile {
+    margin: 0;
+    background: var(--fl-cream-3);
+    border: 1px solid rgba(20, 35, 58, 0.1);
+    padding: 18px 18px 10px;
+  }
+  .profile svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .profile__tick {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    fill: #6b6456;
+    text-anchor: middle;
+  }
+  .profile__pt {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    fill: var(--fl-orange);
+    text-anchor: start;
+  }
+  .profile__pt--end {
+    fill: var(--fl-ink);
+    text-anchor: end;
+  }
+  .profile__cap {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #9a8f78;
+    margin-top: 6px;
+  }
+</style>

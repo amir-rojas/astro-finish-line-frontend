@@ -1,0 +1,66 @@
+---
+interface Props {
+  items: string[];
+}
+const { items } = Astro.props;
+// Duplicamos la lista para un loop continuo sin costura.
+const loop = [...items, ...items];
+---
+
+<aside class="mq" aria-hidden="true">
+  <div class="mq__track">
+    {
+      loop.map((item) => (
+        <span class="mq__item">
+          {item}
+          <span class="mq__sep">/</span>
+        </span>
+      ))
+    }
+  </div>
+</aside>
+
+<style>
+  .mq {
+    overflow: hidden;
+    background: var(--fl-navy);
+    color: var(--fl-cream);
+    border-block: 1px solid rgba(246, 240, 228, 0.1);
+    padding: 16px 0;
+  }
+  .mq__track {
+    display: flex;
+    width: max-content;
+    animation: mq-scroll 32s linear infinite;
+  }
+  .mq__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 28px;
+    padding-right: 28px;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(16px, 2vw, 24px);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .mq__sep {
+    color: var(--fl-orange);
+  }
+  .mq:hover .mq__track {
+    animation-play-state: paused;
+  }
+  @keyframes mq-scroll {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .mq__track {
+      animation: none;
+    }
+  }
+</style>

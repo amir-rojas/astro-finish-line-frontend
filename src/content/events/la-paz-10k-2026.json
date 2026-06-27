@@ -1,0 +1,33 @@
+{
+  "title": "La Paz 10K",
+  "tagline": "La Paz, la ciudad que corre",
+  "date": "2026-07-12",
+  "gatheringTime": "07:00",
+  "startTime": "08:00",
+  "timezoneOffset": "-04:00",
+  "location": "Av. Camacho, altura Banco Unión",
+  "city": "La Paz",
+  "country": "Bolivia",
+  "courseTitle": "10 KM por el centro de La Paz",
+  "courseDescription": "Salida y meta en la avenida Camacho, altura Banco Unión. Un circuito rápido y vibrante por la ciudad más alta del mundo.",
+  "altitudeM": 3640,
+  "altitudeNote": "La ciudad más alta del mundo",
+  "distances": ["10K"],
+  "price": { "amount": 15, "currency": "Bs" },
+  "includes": ["Incluye dorsal oficial", "Hidratación en ruta"],
+  "categories": [
+    { "name": "Juvenil", "ages": "15 a 19 años" },
+    { "name": "Mayores", "ages": "20 a 39 años" },
+    { "name": "Senior", "ages": "40 años en adelante" }
+  ],
+  "categoriesNote": "Las edades deberán estar cumplidas durante la gestión 2026. Damas y Varones.",
+  "registrationUrl": "https://www.eventrid.bo/evento/la-paz-10k-la-ciudad-que-corre-1",
+  "registrationDeadline": "2026-07-01",
+  "registrationNote": "o hasta agotar cupos",
+  "status": "open",
+  "description": "10 kilómetros por el corazón de la ciudad más alta del mundo. Salida y meta en la avenida Camacho, altura Banco Unión.",
+  "instagram": "@finishlinebolivia",
+  "organizer": "Finish Line Sporting Events",
+  "organizerLogo": "/assets/finishline-logo.png",
+  "featured": true
+}

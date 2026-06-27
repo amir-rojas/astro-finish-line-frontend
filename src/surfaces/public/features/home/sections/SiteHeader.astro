@@ -1,0 +1,115 @@
+---
+import type { EventData } from '../format';
+
+interface Props {
+  event: EventData;
+}
+const { event } = Astro.props;
+const reg = event.registrationUrl;
+---
+
+<header class="hd">
+  <div class="hd__inner">
+    <a href="#carrera" class="brand" aria-label="Finish Line — inicio">
+      <span class="brand__mark" aria-hidden="true"></span>
+      <span class="brand__word">FINISH LINE</span>
+    </a>
+
+    <nav class="nav" aria-label="Secciones">
+      <a href="#carrera">Carrera</a>
+      <a href="#categorias">Categorías</a>
+      <a href="#recorrido">Recorrido</a>
+      <a href="#app">App</a>
+    </nav>
+
+    {
+      reg && (
+        <a class="cta" href={reg} target="_blank" rel="noopener noreferrer">
+          Inscribirse
+        </a>
+      )
+    }
+  </div>
+</header>
+
+<style>
+  .hd {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(14, 28, 48, 0.94);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(246, 240, 228, 0.1);
+  }
+  .hd__inner {
+    max-width: var(--fl-container);
+    margin: 0 auto;
+    padding: 0 clamp(20px, 5vw, 56px);
+    min-height: 74px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+  }
+  .brand__mark {
+    width: 13px;
+    height: 13px;
+    background: var(--fl-orange);
+  }
+  .brand__word {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 22px;
+    letter-spacing: 1px;
+    color: var(--fl-cream);
+  }
+  .nav {
+    display: flex;
+    gap: 28px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+  .nav a {
+    color: #aebbcb;
+    text-decoration: none;
+    transition: color 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .nav a:hover {
+    color: var(--fl-cream);
+  }
+  .cta {
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    background: var(--fl-orange);
+    color: #fff;
+    padding: 12px 20px;
+    text-decoration: none;
+    transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .cta:active {
+    transform: scale(0.97);
+  }
+
+  @media (max-width: 640px) {
+    .nav {
+      display: none;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .nav a,
+    .cta {
+      transition: none;
+    }
+  }
+</style>

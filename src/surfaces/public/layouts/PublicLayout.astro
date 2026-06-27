@@ -1,9 +1,11 @@
 ---
 // PublicLayout — chrome de la SUPERFICIE pública (todo lo de cara al usuario:
 // home/landing, eventos, inscripción, resultados...). Compone sobre BaseLayout
-// (el shell <html> con metas y fuentes compartidas) y aplica el lenguaje visual
-// público. El panel admin usa su propio AdminLayout; nunca se mezclan.
+// (el shell <html> con metas compartidas) y aplica el lenguaje visual público:
+// fuentes Archivo / Archivo Black / Space Mono, lienzo navy y color crema.
+// El panel admin usa su propio AdminLayout; nunca se mezclan.
 import BaseLayout from '@shared/layouts/BaseLayout.astro';
+import '../styles/public.css';
 
 interface Props {
   title: string;
@@ -16,11 +18,56 @@ const { title, description, ogImage, ogUrl, canonical } = Astro.props;
 ---
 
 <BaseLayout {title} {description} {ogImage} {ogUrl} {canonical}>
-  <div data-surface="public">
-    <!-- Aquí irá el header público (nav del sitio) cuando lo necesitemos -->
-    <main>
-      <slot />
-    </main>
-    <!-- Aquí irá el footer público cuando lo necesitemos -->
+  {/* Fuentes propias del surface público, inyectadas en el <head> del shell. */}
+  <Fragment slot="head">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Archivo+Black&family=Space+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+  </Fragment>
+
+  <div data-surface="public" class="public-surface">
+    <slot />
   </div>
 </BaseLayout>
+
+<script>
+  // Revelado al entrar en viewport. Solo se activa con JS y si el usuario no
+  // pidió reducir movimiento: por defecto el contenido es visible (no-JS safe).
+  const root = document.querySelector<HTMLElement>('.public-surface');
+  const allowMotion = window.matchMedia('(prefers-reduced-motion: no-preference)').matches;
+
+  if (root && allowMotion && 'IntersectionObserver' in window) {
+    root.classList.add('reveal-ready');
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-in');
+            io.unobserve(entry.target);
+          }
+        }
+      },
+      { rootMargin: '0px 0px -10% 0px', threshold: 0.12 },
+    );
+    root.querySelectorAll<HTMLElement>('[data-reveal]').forEach((el) => io.observe(el));
+  }
+</script>
+
+<style>
+  .public-surface {
+    --fl-navy: #0e1c30;
+    --fl-ink: #14233a;
+    --fl-orange: #ee5314;
+    --fl-cream: #f6f0e4;
+    --fl-cream-2: #efe7d6;
+    --fl-cream-3: #e1d6bd;
+    --fl-surface: #ffffff;
+    --fl-container: 1180px;
+
+    background: var(--fl-navy);
+    color: var(--fl-cream);
+    font-family: 'Archivo', system-ui, sans-serif;
+    overflow-x: hidden;
+  }
+</style>

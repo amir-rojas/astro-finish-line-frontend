@@ -1,0 +1,140 @@
+---
+import type { EventData } from '../format';
+import { countdownISO, dayMonth } from '../format';
+
+interface Props {
+  event: EventData;
+}
+const { event } = Astro.props;
+const target = countdownISO(event);
+
+const deadline = event.registrationDeadline
+  ? `Inscripciones hasta el ${dayMonth(event.registrationDeadline)}${
+      event.registrationNote ? ` ${event.registrationNote}` : ''
+    }`
+  : null;
+
+const units = [
+  { key: 'd', label: 'Días' },
+  { key: 'h', label: 'Horas' },
+  { key: 'm', label: 'Min' },
+  { key: 's', label: 'Seg' },
+];
+---
+
+<section class="cd" data-countdown data-target={target}>
+  <div class="cd__inner">
+    <div class="cd__head" data-reveal>
+      <p class="cd__title">Faltan para la largada</p>
+      {deadline && <p class="cd__note">{deadline}</p>}
+    </div>
+    <div class="cd__grid" data-reveal data-delay="1">
+      {
+        units.map((u) => (
+          <div class="cd__unit">
+            <div class="cd__num" data-unit={u.key}>--</div>
+            <div class="cd__label">{u.label}</div>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .cd {
+    background: var(--fl-orange);
+    color: var(--fl-navy);
+  }
+  .cd__inner {
+    max-width: var(--fl-container);
+    margin: 0 auto;
+    padding: clamp(26px, 4vw, 40px) clamp(20px, 5vw, 56px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .cd__title {
+    margin: 0;
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .cd__note {
+    margin: 4px 0 0;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: rgba(14, 28, 48, 0.7);
+  }
+  .cd__grid {
+    display: flex;
+    gap: clamp(16px, 3vw, 38px);
+  }
+  .cd__unit {
+    text-align: center;
+  }
+  .cd__num {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(40px, 6.5vw, 68px);
+    line-height: 0.9;
+    font-variant-numeric: tabular-nums;
+  }
+  .cd__label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+</style>
+
+<script>
+  // Countdown vivo. Es información (no decoración), por eso sigue actualizando
+  // aun con prefers-reduced-motion. Una sola instancia por página.
+  function initCountdown(root: HTMLElement) {
+    const targetIso = root.dataset.target;
+    if (!targetIso) return;
+    const target = new Date(targetIso).getTime();
+    const out = {
+      d: root.querySelector<HTMLElement>('[data-unit="d"]'),
+      h: root.querySelector<HTMLElement>('[data-unit="h"]'),
+      m: root.querySelector<HTMLElement>('[data-unit="m"]'),
+      s: root.querySelector<HTMLElement>('[data-unit="s"]'),
+    };
+    const p2 = (n: number) => String(n).padStart(2, '0');
+
+    function tick() {
+      let diff = target - Date.now();
+      if (diff <= 0) {
+        out.d && (out.d.textContent = '0');
+        out.h && (out.h.textContent = '00');
+        out.m && (out.m.textContent = '00');
+        out.s && (out.s.textContent = '00');
+        clearInterval(iv);
+        return;
+      }
+      const day = Math.floor(diff / 86400000);
+      diff -= day * 86400000;
+      const hr = Math.floor(diff / 3600000);
+      diff -= hr * 3600000;
+      const mn = Math.floor(diff / 60000);
+      diff -= mn * 60000;
+      const sc = Math.floor(diff / 1000);
+      out.d && (out.d.textContent = String(day));
+      out.h && (out.h.textContent = p2(hr));
+      out.m && (out.m.textContent = p2(mn));
+      out.s && (out.s.textContent = p2(sc));
+    }
+
+    tick();
+    const iv = setInterval(tick, 1000);
+  }
+
+  document
+    .querySelectorAll<HTMLElement>('[data-countdown]')
+    .forEach((el) => initCountdown(el));
+</script>
