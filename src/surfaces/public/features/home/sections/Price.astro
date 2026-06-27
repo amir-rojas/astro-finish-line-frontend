@@ -1,4 +1,7 @@
 ---
+// Sección combinada de INSCRIPCIÓN: agrupa precio + qué incluye + CTA y, como
+// info práctica del mismo bloque, las categorías. Lleva id="categorias" para el
+// ancla del nav. Reemplaza a las antiguas secciones Price + Categories + Facts.
 import type { EventData } from '../format';
 
 interface Props {
@@ -7,86 +10,119 @@ interface Props {
 const { event } = Astro.props;
 const reg = event.registrationUrl;
 const price = event.price;
+const distance = event.distances[0] ?? '';
 ---
 
-{
-  price && (
-    <section class="price">
-      <div class="price__flag price__flag--top" aria-hidden="true" />
-      <div class="price__lines" aria-hidden="true" />
-      <div class="price__inner">
-        <p class="price__eyebrow" data-reveal>
-          Inscripciones abiertas · Costo único
-        </p>
-        <div class="price__amount" data-reveal data-delay="1">
-          {price.amount}
-          <span class="price__currency">{price.currency}</span>
+<section id="categorias" class="enroll">
+  <div class="enroll__lines" aria-hidden="true"></div>
+  <div class="enroll__inner">
+    {
+      price && (
+        <div class="enroll__top">
+          <div class="enroll__price">
+            <p class="eyebrow" data-reveal>Inscripciones abiertas · Costo único</p>
+            <div class="amount" data-reveal data-delay="1">
+              {price.amount}
+              <span class="amount__cur">{price.currency}</span>
+            </div>
+          </div>
+
+          <div class="enroll__value" data-reveal data-delay="2">
+            {event.includes.length > 0 && (
+              <>
+                <p class="includes__title">Tu inscripción incluye</p>
+                <ul class="includes">
+                  {event.includes.map((c) => (
+                    <li class="includes__item">{c}</li>
+                  ))}
+                </ul>
+              </>
+            )}
+            {reg && (
+              <a class="btn btn--primary" href={reg} target="_blank" rel="noopener noreferrer">
+                Inscribirse en Eventrid <span class="btn__arrow" aria-hidden="true">→</span>
+              </a>
+            )}
+          </div>
         </div>
-        {event.includes.length > 0 && (
-          <div class="price__chips" data-reveal data-delay="2">
-            {event.includes.map((c) => (
-              <span class="chip">{c}</span>
+      )
+    }
+
+    {
+      event.categories.length > 0 && (
+        <div class="enroll__cats">
+          <div class="cats__head" data-reveal>
+            <h2 class="cats__title">
+              Categorías {distance && <span class="cats__hl">{distance}</span>}
+            </h2>
+            <p class="cats__kicker">Damas y Varones</p>
+          </div>
+
+          <div class="cats__grid">
+            {event.categories.map((cat, i) => (
+              <article class="cat" data-reveal data-delay={String(i + 1)}>
+                <span class="cat__idx">{String(i + 1).padStart(2, '0')}</span>
+                <div class="cat__body">
+                  <h3 class="cat__name">{cat.name}</h3>
+                  <p class="cat__ages">{cat.ages}</p>
+                </div>
+              </article>
             ))}
           </div>
-        )}
-        {reg && (
-          <a
-            class="btn btn--primary"
-            href={reg}
-            target="_blank"
-            rel="noopener noreferrer"
-            data-reveal
-            data-delay="3"
-          >
-            Inscribirse en Eventrid <span class="btn__arrow" aria-hidden="true">→</span>
-          </a>
-        )}
-      </div>
-      <div class="price__flag price__flag--bottom" aria-hidden="true" />
-    </section>
-  )
-}
+
+          {event.categoriesNote && <p class="cats__note" data-reveal>{event.categoriesNote}</p>}
+        </div>
+      )
+    }
+  </div>
+</section>
 
 <style>
-  .price {
+  .enroll {
     position: relative;
     overflow: hidden;
     background: var(--fl-navy);
     color: var(--fl-cream);
-    text-align: center;
+    /* Ocupa una pantalla completa (descontando el header sticky), igual que el Hero. */
+    min-height: calc(100vh - var(--fl-header-h, 74px));
+    min-height: calc(100dvh - var(--fl-header-h, 74px));
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
-  .price__flag {
-    height: 16px;
-    background: repeating-linear-gradient(
-      135deg,
-      var(--fl-orange) 0 14px,
-      var(--fl-navy) 14px 28px
-    );
-  }
-  /* Banda de hairlines = cronómetro / timing strip detrás del número. */
-  .price__lines {
+  /* Cronómetro: hairlines verticales tenues detrás del precio. */
+  .enroll__lines {
     position: absolute;
     left: 0;
     right: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    height: clamp(150px, 26vw, 320px);
+    top: 0;
+    height: clamp(180px, 30vw, 360px);
     background: repeating-linear-gradient(
       180deg,
-      rgba(238, 83, 20, 0.07) 0 1px,
-      transparent 1px 13px
+      rgba(238, 83, 20, 0.06) 0 1px,
+      transparent 1px 14px
     );
-    -webkit-mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent);
-    mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent);
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent);
     pointer-events: none;
   }
-  .price__inner {
+  .enroll__inner {
     position: relative;
+    width: 100%;
     max-width: var(--fl-container);
     margin: 0 auto;
-    padding: clamp(50px, 8vw, 104px) clamp(20px, 5vw, 56px);
+    padding: clamp(48px, 7vw, 92px) clamp(20px, 5vw, 56px);
   }
-  .price__eyebrow {
+
+  /* --- Precio + qué incluye ---------------------------------------------- */
+  .enroll__top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: clamp(28px, 5vw, 64px);
+  }
+  .eyebrow {
     margin: 0;
     font-family: 'Space Mono', monospace;
     font-size: 13px;
@@ -94,39 +130,143 @@ const price = event.price;
     text-transform: uppercase;
     color: var(--fl-orange);
   }
-  .price__amount {
+  .amount {
     font-family: 'Archivo Black', sans-serif;
-    font-size: clamp(130px, 25vw, 310px);
-    line-height: 0.8;
+    font-size: clamp(96px, 16vw, 200px);
+    line-height: 0.82;
     letter-spacing: -0.05em;
-    margin: 14px 0 0;
+    margin: 12px 0 0;
   }
-  .price__currency {
+  .amount__cur {
     color: var(--fl-orange);
-    font-size: 0.42em;
+    font-size: 0.34em;
     letter-spacing: -0.02em;
+    margin-left: 6px;
   }
-  .price__chips {
-    display: flex;
-    gap: 12px;
-    justify-content: center;
-    flex-wrap: wrap;
-    margin-top: 18px;
+
+  .enroll__value {
+    min-width: min(100%, 280px);
   }
-  .chip {
+  .includes__title {
+    margin: 0 0 14px;
     font-family: 'Space Mono', monospace;
     font-size: 12px;
-    letter-spacing: 1px;
+    letter-spacing: 2px;
     text-transform: uppercase;
-    border: 1px solid rgba(246, 240, 228, 0.25);
-    padding: 9px 16px;
-    color: #cdd7e2;
+    color: #8295aa;
   }
+  .includes {
+    list-style: none;
+    margin: 0 0 28px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .includes__item {
+    position: relative;
+    padding-left: 24px;
+    font-size: clamp(16px, 1.8vw, 19px);
+    line-height: 1.3;
+    color: var(--fl-cream);
+  }
+  /* Marca naranja (motivo de marca) como viñeta. */
+  .includes__item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.46em;
+    width: 10px;
+    height: 10px;
+    background: var(--fl-orange);
+  }
+
+  /* --- Categorías (sub-bloque del mismo clúster) ------------------------- */
+  .enroll__cats {
+    margin-top: clamp(40px, 6vw, 72px);
+    padding-top: clamp(36px, 5vw, 56px);
+    border-top: 1px solid rgba(246, 240, 228, 0.14);
+  }
+  .cats__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+  }
+  .cats__title {
+    margin: 0;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(30px, 4vw, 50px);
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+    color: var(--fl-cream);
+  }
+  .cats__hl {
+    color: var(--fl-orange);
+  }
+  .cats__kicker {
+    margin: 0;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #8295aa;
+  }
+  .cats__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1px;
+    background: rgba(246, 240, 228, 0.14);
+    border-block: 1px solid rgba(246, 240, 228, 0.14);
+  }
+  .cat {
+    background: var(--fl-navy);
+    padding: 28px clamp(20px, 2.2vw, 28px) 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    transition: background-color 220ms var(--ease-out);
+  }
+  .cat__idx {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(36px, 4.2vw, 52px);
+    line-height: 0.8;
+    letter-spacing: -0.03em;
+    color: var(--fl-orange);
+  }
+  .cat__name {
+    margin: 0;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 26px;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    color: var(--fl-cream);
+  }
+  .cat__ages {
+    margin: 6px 0 0;
+    font-size: 16px;
+    color: #aebbcb;
+  }
+  @media (hover: hover) {
+    .cat:hover {
+      background: rgba(246, 240, 228, 0.05);
+    }
+  }
+  .cats__note {
+    margin: 18px 0 0;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    color: #8295aa;
+  }
+
+  /* --- CTA --------------------------------------------------------------- */
   .btn {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    margin-top: 30px;
     font-family: 'Space Mono', monospace;
     font-weight: 700;
     font-size: 13px;
@@ -139,7 +279,7 @@ const price = event.price;
       background-color 180ms var(--ease-out);
   }
   .btn--primary {
-    background: var(--fl-orange);
+    background: var(--fl-orange-strong);
     color: #fff;
   }
   .btn__arrow {
@@ -148,7 +288,7 @@ const price = event.price;
   @media (hover: hover) {
     .btn--primary:hover {
       transform: translateY(-2px);
-      background: #ff5e1d;
+      background: #b8380b;
     }
     .btn:hover .btn__arrow {
       transform: translateX(4px);

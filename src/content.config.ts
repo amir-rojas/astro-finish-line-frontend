@@ -3,7 +3,7 @@ import { glob } from 'astro/loaders';
 
 const events = defineCollection({
   loader: glob({ pattern: '**/*.json', base: './src/content/events' }),
-  schema: z.object({
+  schema: ({ image }) => z.object({
     title: z.string(),
     tagline: z.string().optional(),               // titular de marca, p.ej. "La Paz, la ciudad que corre"
     date: z.coerce.date(),                         // ISO string en JSON -> Date
@@ -30,7 +30,7 @@ const events = defineCollection({
     registrationDeadline: z.coerce.date().optional(),
     registrationNote: z.string().optional(),       // "o hasta agotar cupos"
     status: z.enum(['upcoming', 'open', 'closed', 'finished']).default('upcoming'),
-    heroImage: z.string().optional(),              // ruta /assets o URL externa
+    heroImage: image().optional(),                 // foto del evento (src/assets), optimizada por Astro
     description: z.string().optional(),
     instagram: z.string().optional(),              // "@finishlinebolivia"
     organizer: z.string().optional(),

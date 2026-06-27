@@ -1,6 +1,15 @@
 /* Globales de la superficie pública: easing, textura, sistema de revelado y
    foco. Cargado por PublicLayout. Los tokens de color viven en PublicLayout. */
 
+:root {
+  --fl-header-h: 74px; /* alto del header sticky; lo usan Hero (calc) y SiteHeader */
+}
+
+/* Los anclas (#carrera, #recorrido…) compensan el header sticky al saltar. */
+html {
+  scroll-padding-top: var(--fl-header-h);
+}
+
 .public-surface {
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);

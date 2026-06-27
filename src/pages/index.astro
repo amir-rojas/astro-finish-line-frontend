@@ -6,10 +6,7 @@ import PublicLayout from '@public/layouts/PublicLayout.astro';
 import { dayMonth } from '@public/features/home/format';
 import SiteHeader from '@public/features/home/sections/SiteHeader.astro';
 import Hero from '@public/features/home/sections/Hero.astro';
-import Countdown from '@public/features/home/sections/Countdown.astro';
-import Facts from '@public/features/home/sections/Facts.astro';
 import Price from '@public/features/home/sections/Price.astro';
-import Categories from '@public/features/home/sections/Categories.astro';
 import Marquee from '@public/features/home/sections/Marquee.astro';
 import Course from '@public/features/home/sections/Course.astro';
 import Organizer from '@public/features/home/sections/Organizer.astro';
@@ -32,10 +29,7 @@ const marqueeItems = [
   <SiteHeader {event} />
   <main>
     <Hero {event} />
-    <Countdown {event} />
-    <Facts {event} />
     <Price {event} />
-    <Categories {event} />
     <Marquee items={marqueeItems} />
     <Course {event} />
     <Organizer {event} />

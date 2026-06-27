@@ -6,6 +6,13 @@ interface Props {
 }
 const { event } = Astro.props;
 const reg = event.registrationUrl;
+
+const sections = [
+  { href: '#carrera', label: 'Carrera' },
+  { href: '#categorias', label: 'Categorías' },
+  { href: '#recorrido', label: 'Recorrido' },
+  { href: '#app', label: 'App' },
+];
 ---
 
 <header class="hd">
@@ -16,21 +23,61 @@ const reg = event.registrationUrl;
     </a>
 
     <nav class="nav" aria-label="Secciones">
-      <a href="#carrera">Carrera</a>
-      <a href="#categorias">Categorías</a>
-      <a href="#recorrido">Recorrido</a>
-      <a href="#app">App</a>
+      {sections.map((s) => <a href={s.href}>{s.label}</a>)}
     </nav>
 
-    {
-      reg && (
-        <a class="cta" href={reg} target="_blank" rel="noopener noreferrer">
-          Inscribirse
-        </a>
-      )
-    }
+    <div class="actions">
+      {
+        reg && (
+          <a class="cta" href={reg} target="_blank" rel="noopener noreferrer">
+            Inscribirse
+          </a>
+        )
+      }
+
+      {/* Disclosure de secciones para móvil. Funciona sin JS (details/summary);
+          el script solo lo cierra al elegir, con Escape o al tocar fuera. */}
+      <details class="menu">
+        <summary class="burger" aria-expanded="false" aria-label="Secciones">
+          <span class="burger__box" aria-hidden="true">
+            <span class="burger__bar"></span>
+          </span>
+        </summary>
+        <nav class="menu__panel" aria-label="Secciones">
+          {sections.map((s) => <a href={s.href}>{s.label}</a>)}
+        </nav>
+      </details>
+    </div>
   </div>
 </header>
+
+<script>
+  const details = document.querySelector<HTMLDetailsElement>('.hd .menu');
+  if (details) {
+    const summary = details.querySelector<HTMLElement>('summary');
+    const panel = details.querySelector<HTMLElement>('.menu__panel');
+
+    // Cerrar al elegir una sección.
+    panel?.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('a')) details.open = false;
+    });
+    // Cerrar con Escape y devolver el foco al botón.
+    details.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && details.open) {
+        details.open = false;
+        summary?.focus();
+      }
+    });
+    // Cerrar al tocar fuera.
+    document.addEventListener('click', (e) => {
+      if (details.open && !details.contains(e.target as Node)) details.open = false;
+    });
+    // Mantener aria-expanded en sintonía con el estado abierto.
+    details.addEventListener('toggle', () => {
+      summary?.setAttribute('aria-expanded', String(details.open));
+    });
+  }
+</script>
 
 <style>
   .hd {
@@ -45,18 +92,18 @@ const reg = event.registrationUrl;
     max-width: var(--fl-container);
     margin: 0 auto;
     padding: 0 clamp(20px, 5vw, 56px);
-    min-height: 74px;
+    min-height: var(--fl-header-h, 74px);
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 18px;
-    flex-wrap: wrap;
   }
   .brand {
     display: flex;
     align-items: center;
     gap: 12px;
     text-decoration: none;
+    flex-shrink: 0;
   }
   .brand__mark {
     width: 13px;
@@ -69,6 +116,8 @@ const reg = event.registrationUrl;
     letter-spacing: 1px;
     color: var(--fl-cream);
   }
+
+  /* Nav inline (desktop). */
   .nav {
     display: flex;
     gap: 28px;
@@ -80,35 +129,158 @@ const reg = event.registrationUrl;
   .nav a {
     color: #aebbcb;
     text-decoration: none;
-    transition: color 160ms cubic-bezier(0.23, 1, 0.32, 1);
+    transition: color 160ms var(--ease-out);
   }
   .nav a:hover {
     color: var(--fl-cream);
   }
+
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
   .cta {
     font-family: 'Space Mono', monospace;
     font-weight: 700;
     font-size: 12px;
     letter-spacing: 1.5px;
     text-transform: uppercase;
-    background: var(--fl-orange);
+    background: var(--fl-orange-strong);
     color: #fff;
     padding: 12px 20px;
     text-decoration: none;
-    transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+    white-space: nowrap;
+    transition:
+      background-color 160ms var(--ease-out),
+      transform 160ms var(--ease-out);
+  }
+  .cta:hover {
+    background: #b8380b;
+    transform: translateY(-1px);
   }
   .cta:active {
     transform: scale(0.97);
   }
 
-  @media (max-width: 640px) {
+  /* --- Disclosure móvil --------------------------------------------------- */
+  .menu {
+    display: none; /* se muestra solo en móvil */
+    /* Sin position propia: el panel absolute se ancla al header (.hd, sticky),
+       no al <details>, para abarcar el ancho completo y no aplastarse. */
+  }
+  .burger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    cursor: pointer;
+    list-style: none;
+    color: var(--fl-cream);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .burger::-webkit-details-marker {
+    display: none;
+  }
+  .burger:focus-visible {
+    outline: 2px solid var(--fl-orange);
+    outline-offset: 2px;
+  }
+  .burger__box {
+    position: relative;
+    width: 22px;
+    height: 14px;
+  }
+  /* Tres trazos con ::before / ::after; el del medio es .burger__bar. */
+  .burger__bar,
+  .burger__box::before,
+  .burger__box::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: currentColor;
+    transition:
+      transform 200ms var(--ease-out),
+      opacity 160ms var(--ease-out);
+  }
+  .burger__box::before {
+    top: 0;
+  }
+  .burger__bar {
+    top: 6px;
+  }
+  .burger__box::after {
+    bottom: 0;
+  }
+  /* Estado abierto: el burger se convierte en una X. */
+  .menu[open] .burger__box::before {
+    transform: translateY(6px) rotate(45deg);
+  }
+  .menu[open] .burger__bar {
+    opacity: 0;
+  }
+  .menu[open] .burger__box::after {
+    transform: translateY(-6px) rotate(-45deg);
+  }
+
+  .menu__panel {
+    position: absolute;
+    top: 100%;
+    right: clamp(20px, 5vw, 56px);
+    left: clamp(20px, 5vw, 56px);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px;
+    background: var(--fl-navy);
+    border: 1px solid rgba(246, 240, 228, 0.12);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
+  }
+  .menu__panel a {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #c4d0de;
+    text-decoration: none;
+    padding: 13px 12px;
+    transition: background-color 140ms var(--ease-out);
+  }
+  .menu__panel a:hover {
+    background: rgba(246, 240, 228, 0.06);
+    color: var(--fl-cream);
+  }
+
+  /* Colapso: bajo 860px el nav inline se reemplaza por el disclosure. */
+  @media (max-width: 859px) {
     .nav {
       display: none;
     }
+    .menu {
+      display: block;
+    }
   }
+  @media (max-width: 380px) {
+    .hd__inner {
+      gap: 10px;
+    }
+    .cta {
+      padding: 11px 14px;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .nav a,
-    .cta {
+    .cta,
+    .burger__bar,
+    .burger__box::before,
+    .burger__box::after,
+    .menu__panel a {
       transition: none;
     }
   }

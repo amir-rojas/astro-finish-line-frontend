@@ -1,6 +1,8 @@
 ---
 import type { EventData } from '../format';
 import { heroDate, placeLine } from '../format';
+import { Image } from 'astro:assets';
+import Countdown from './Countdown.astro';
 
 interface Props {
   event: EventData;
@@ -11,27 +13,44 @@ const reg = event.registrationUrl;
 const distance = event.distances[0];
 const eyebrow = `${heroDate(event.date)} — ${placeLine(event)}`;
 const altitude = event.altitudeM ? new Intl.NumberFormat('es-BO').format(event.altitudeM) : null;
-
-const logistics = [
-  event.gatheringTime && `Concentración ${event.gatheringTime}`,
-  event.startTime && `Partida ${event.startTime}`,
-  event.price && `Costo ${event.price.currency} ${event.price.amount}`,
-]
-  .filter(Boolean)
-  .join(' · ');
 ---
 
 <section id="carrera" class="hero">
-  <div class="hero__hatch" aria-hidden="true"></div>
+  {
+    event.heroImage && (
+      <Image
+        class="hero__photo"
+        src={event.heroImage}
+        alt={`Participantes de ${event.title} corriendo cuesta arriba por el centro de ${placeLine(event)}, de espaldas, al amanecer`}
+        widths={[768, 1200, 1600]}
+        sizes="100vw"
+        loading="eager"
+        fetchpriority="high"
+      />
+    )
+  }
+  <div class="hero__scrim" aria-hidden="true"></div>
+
   <div class="hero__inner">
     <div class="hero__copy">
       <p class="eyebrow" data-reveal>{eyebrow}</p>
       <h1 class="hero__title" data-reveal data-delay="1">{event.tagline ?? event.title}</h1>
 
-      <div class="hero__lead" data-reveal data-delay="2">
+      <div class="hero__stats" data-reveal data-delay="2">
         {distance && <span class="hero__distance">{distance}</span>}
-        {event.description && <p class="hero__desc">{event.description}</p>}
+        {
+          altitude && (
+            <div class="hero__alt">
+              <span class="hero__alt-num">
+                {altitude}
+                <span class="hero__alt-unit">m s. n. m.</span>
+              </span>
+            </div>
+          )
+        }
       </div>
+
+      {event.description && <p class="hero__desc" data-reveal data-delay="3">{event.description}</p>}
 
       <div class="hero__actions" data-reveal data-delay="3">
         {
@@ -43,88 +62,68 @@ const logistics = [
         }
         <a class="btn btn--ghost" href="#recorrido">Ver recorrido</a>
       </div>
-
-      {logistics && <p class="hero__logistics" data-reveal data-delay="4">{logistics}</p>}
     </div>
 
-    <div class="hero__media" data-reveal data-delay="2">
-      <div class="alt">
-        {/* Foto opcional como capa de fondo (duotono) cuando exista heroImage */}
-        {
-          event.heroImage && (
-            <img
-              class="alt__photo"
-              src={event.heroImage}
-              alt={`Corredores en ${placeLine(event)}`}
-              loading="eager"
-            />
-          )
-        }
-
-        {/* Contornos topográficos: la altitud hecha gráfica */}
-        <svg class="alt__topo" viewBox="0 0 400 500" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-          <g transform="translate(205 250)" fill="none" stroke-width="1.5">
-            <path d="M -120,-40 C -90,-110 60,-120 110,-60 C 150,-10 120,90 40,110 C -50,130 -150,60 -120,-40 Z" transform="scale(1.5)" stroke="rgba(246,240,228,0.06)"></path>
-            <path d="M -120,-40 C -90,-110 60,-120 110,-60 C 150,-10 120,90 40,110 C -50,130 -150,60 -120,-40 Z" transform="scale(1.18)" stroke="rgba(238,83,20,0.16)"></path>
-            <path d="M -120,-40 C -90,-110 60,-120 110,-60 C 150,-10 120,90 40,110 C -50,130 -150,60 -120,-40 Z" transform="scale(0.9)" stroke="rgba(246,240,228,0.1)"></path>
-            <path d="M -120,-40 C -90,-110 60,-120 110,-60 C 150,-10 120,90 40,110 C -50,130 -150,60 -120,-40 Z" transform="scale(0.62)" stroke="rgba(238,83,20,0.5)"></path>
-            <path d="M -120,-40 C -90,-110 60,-120 110,-60 C 150,-10 120,90 40,110 C -50,130 -150,60 -120,-40 Z" transform="scale(0.34)" stroke="rgba(246,240,228,0.16)"></path>
-            <circle r="4" fill="var(--fl-orange)" stroke="none"></circle>
-          </g>
-        </svg>
-
-        {/* Contenido: la historia de la altitud */}
-        {
-          altitude && (
-            <div class="alt__content">
-              <span class="alt__label">Altitud</span>
-              <div class="alt__num">
-                {altitude}
-                <span class="alt__unit">m</span>
-              </div>
-              {event.altitudeNote && <p class="alt__note">{event.altitudeNote}</p>}
-            </div>
-          )
-        }
-
-        {event.instagram && <span class="alt__handle">{event.instagram.toUpperCase()}</span>}
-        <div class="alt__flag" aria-hidden="true"></div>
-      </div>
-    </div>
+    {event.instagram && <span class="hero__handle" aria-hidden="true">{event.instagram.toUpperCase()}</span>}
   </div>
+
+  {/* El contador cierra el hero: la cuenta regresiva ES la línea de meta. */}
+  <Countdown {event} />
 </section>
 
 <style>
   .hero {
     position: relative;
+    isolation: isolate;
     overflow: hidden;
-    background:
-      radial-gradient(120% 90% at 80% 0%, rgba(238, 83, 20, 0.08) 0%, transparent 55%),
-      var(--fl-navy);
+    min-height: calc(100vh - var(--fl-header-h, 74px));
+    min-height: calc(100dvh - var(--fl-header-h, 74px));
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    background: var(--fl-navy);
   }
-  .hero__hatch {
+  .hero__photo {
     position: absolute;
-    top: 0;
-    right: 0;
-    width: 46%;
+    inset: 0;
+    z-index: -2;
+    width: 100%;
     height: 100%;
-    background: repeating-linear-gradient(
-      135deg,
-      rgba(238, 83, 20, 0.05) 0 2px,
-      transparent 2px 22px
-    );
-    pointer-events: none;
+    object-fit: cover;
+    object-position: 50% 38%;
   }
+  /* Scrim para legibilidad del copy (abajo-izquierda). */
+  .hero__scrim {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+      linear-gradient(
+        to top,
+        var(--fl-navy) 2%,
+        rgba(14, 28, 48, 0.82) 22%,
+        rgba(14, 28, 48, 0.32) 52%,
+        rgba(14, 28, 48, 0.05) 80%
+      ),
+      linear-gradient(
+        to right,
+        rgba(14, 28, 48, 0.85) 0%,
+        rgba(14, 28, 48, 0.34) 44%,
+        transparent 72%
+      );
+  }
+
   .hero__inner {
     position: relative;
+    width: 100%;
     max-width: var(--fl-container);
     margin: 0 auto;
-    padding: clamp(44px, 7vw, 92px) clamp(20px, 5vw, 56px);
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-    gap: clamp(32px, 5vw, 64px);
-    align-items: center;
+    padding: clamp(40px, 7vw, 96px) clamp(20px, 5vw, 56px) clamp(28px, 3.5vw, 48px);
   }
+  .hero__copy {
+    max-width: 760px;
+  }
+
   .eyebrow {
     margin: 0;
     font-family: 'Space Mono', monospace;
@@ -135,46 +134,69 @@ const logistics = [
   }
   .hero__title {
     font-family: 'Archivo Black', sans-serif;
-    font-size: clamp(42px, 6.6vw, 94px);
-    line-height: 0.92;
+    font-size: clamp(40px, 7.4vw, 88px);
+    line-height: 0.9;
     letter-spacing: -0.03em;
-    margin: 20px 0 0;
+    margin: 16px 0 0;
     text-transform: uppercase;
-    text-wrap: balance;
+    white-space: pre-line; /* respeta los saltos de línea del tagline */
+    color: var(--fl-cream);
   }
-  .hero__lead {
+
+  /* Fila de datos: distancia + altitud sobreimpresos sobre la foto. */
+  .hero__stats {
     display: flex;
-    align-items: baseline;
-    gap: 18px;
-    margin-top: 22px;
+    align-items: flex-end;
+    gap: clamp(22px, 4vw, 44px);
+    margin-top: 24px;
     flex-wrap: wrap;
   }
   .hero__distance {
     font-family: 'Archivo Black', sans-serif;
-    font-size: clamp(36px, 5vw, 60px);
+    font-size: clamp(40px, 6vw, 64px);
+    line-height: 0.9;
     color: var(--fl-orange);
-    line-height: 1;
   }
+  .hero__alt {
+    display: flex;
+    align-items: flex-end;
+    padding-bottom: 4px;
+    border-left: 1px solid rgba(246, 240, 228, 0.22);
+    padding-left: clamp(18px, 3vw, 28px);
+  }
+  .hero__alt-num {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(26px, 3.4vw, 38px);
+    line-height: 0.9;
+    color: var(--fl-cream);
+  }
+  .hero__alt-unit {
+    font-size: 0.5em;
+    color: var(--fl-orange);
+    margin-left: 3px;
+  }
+
   .hero__desc {
-    margin: 0;
-    max-width: 360px;
+    margin: 22px 0 0;
+    max-width: 460px;
     font-size: 16px;
-    line-height: 1.5;
-    color: #b9c6d6;
+    line-height: 1.55;
+    color: #c9d4e1;
   }
   .hero__actions {
     display: flex;
     gap: 14px;
-    margin-top: 30px;
+    margin-top: 28px;
     flex-wrap: wrap;
   }
-  .hero__logistics {
-    margin: 26px 0 0;
+  .hero__handle {
+    position: absolute;
+    top: clamp(20px, 4vw, 36px);
+    right: clamp(20px, 5vw, 56px);
     font-family: 'Space Mono', monospace;
-    font-size: 12px;
-    letter-spacing: 1px;
-    color: #8295aa;
-    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: rgba(246, 240, 228, 0.7);
   }
 
   /* Botones */
@@ -191,15 +213,18 @@ const logistics = [
     text-decoration: none;
     transition:
       transform 180ms var(--ease-out),
-      background-color 180ms var(--ease-out);
+      background-color 180ms var(--ease-out),
+      border-color 180ms var(--ease-out);
   }
   .btn--primary {
-    background: var(--fl-orange);
+    background: var(--fl-orange-strong);
     color: #fff;
   }
   .btn--ghost {
-    border: 1px solid rgba(246, 240, 228, 0.35);
+    border: 1px solid rgba(246, 240, 228, 0.45);
     color: var(--fl-cream);
+    background: rgba(14, 28, 48, 0.25);
+    backdrop-filter: blur(2px);
   }
   .btn__arrow {
     transition: transform 180ms var(--ease-out);
@@ -207,7 +232,7 @@ const logistics = [
   @media (hover: hover) {
     .btn--primary:hover {
       transform: translateY(-2px);
-      background: #ff5e1d;
+      background: #b8380b;
     }
     .btn--ghost:hover {
       transform: translateY(-2px);
@@ -221,83 +246,26 @@ const logistics = [
     transform: scale(0.97);
   }
 
-  /* Panel de altitud (graphic-led) */
-  .hero__media {
+  /* El contador, último hijo, queda como banda al pie del hero. */
+  .hero > :global(.cd) {
     position: relative;
+    z-index: 1;
   }
-  .alt {
-    position: relative;
-    aspect-ratio: 4 / 5;
-    overflow: hidden;
-    background: linear-gradient(160deg, #12243c 0%, #0b1727 100%);
-    border: 1px solid rgba(246, 240, 228, 0.12);
+
+  @media (max-width: 640px) {
+    .hero__handle {
+      display: none;
+    }
+    /* El recorrido detallado vive en su sección; en móvil el hero va liviano
+       para ocupar exactamente una pantalla sin que asome la siguiente. */
+    .hero__desc {
+      display: none;
+    }
   }
-  .alt__photo {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    filter: grayscale(1) contrast(1.05) brightness(0.7) sepia(0.3) hue-rotate(-15deg);
-    opacity: 0.5;
-  }
-  .alt__topo {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-  }
-  .alt__content {
-    position: absolute;
-    left: clamp(20px, 4vw, 32px);
-    bottom: clamp(20px, 4vw, 34px);
-  }
-  .alt__label {
-    font-family: 'Space Mono', monospace;
-    font-size: 12px;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: var(--fl-orange);
-  }
-  .alt__num {
-    font-family: 'Archivo Black', sans-serif;
-    font-size: clamp(56px, 9vw, 96px);
-    line-height: 0.86;
-    letter-spacing: -0.03em;
-    margin-top: 6px;
-    color: var(--fl-cream);
-  }
-  .alt__unit {
-    font-size: 0.4em;
-    color: var(--fl-orange);
-    margin-left: 4px;
-  }
-  .alt__note {
-    margin: 8px 0 0;
-    max-width: 220px;
-    font-family: 'Space Mono', monospace;
-    font-size: 12px;
-    letter-spacing: 1px;
-    line-height: 1.4;
-    text-transform: uppercase;
-    color: #aebbcb;
-  }
-  .alt__handle {
-    position: absolute;
-    right: 16px;
-    top: 16px;
-    font-family: 'Space Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 2px;
-    color: rgba(246, 240, 228, 0.6);
-    pointer-events: none;
-  }
-  .alt__flag {
-    position: absolute;
-    right: -6px;
-    bottom: -6px;
-    width: 130px;
-    height: 18px;
-    background: repeating-linear-gradient(135deg, var(--fl-orange) 0 12px, var(--fl-navy) 12px 24px);
+  @media (prefers-reduced-motion: reduce) {
+    .btn,
+    .btn__arrow {
+      transition: none;
+    }
   }
 </style>

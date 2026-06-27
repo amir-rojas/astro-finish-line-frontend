@@ -50,7 +50,20 @@ const { title, description, ogImage, ogUrl, canonical } = Astro.props;
       },
       { rootMargin: '0px 0px -10% 0px', threshold: 0.12 },
     );
-    root.querySelectorAll<HTMLElement>('[data-reveal]').forEach((el) => io.observe(el));
+    const els = Array.from(root.querySelectorAll<HTMLElement>('[data-reveal]'));
+    // Doble rAF: se pinta el estado oculto y recién después se revela, para que
+    // la transición corra. Lo que ya está en la primera pantalla (hero completo,
+    // incluido el contador al borde inferior) entra al cargar; el resto, al scroll.
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        for (const el of els) {
+          const rect = el.getBoundingClientRect();
+          const inView = rect.top < window.innerHeight && rect.bottom > 0;
+          if (inView) el.classList.add('is-in');
+          else io.observe(el);
+        }
+      }),
+    );
   }
 </script>
 
@@ -58,7 +71,8 @@ const { title, description, ogImage, ogUrl, canonical } = Astro.props;
   .public-surface {
     --fl-navy: #0e1c30;
     --fl-ink: #14233a;
-    --fl-orange: #ee5314;
+    --fl-orange: #ee5314; /* acento de marca: mark, motivos, foco (no texto blanco encima) */
+    --fl-orange-strong: #cf3f0d; /* naranja para superficies con texto blanco: 4.8:1 AA */
     --fl-cream: #f6f0e4;
     --fl-cream-2: #efe7d6;
     --fl-cream-3: #e1d6bd;
@@ -68,6 +82,8 @@ const { title, description, ogImage, ogUrl, canonical } = Astro.props;
     background: var(--fl-navy);
     color: var(--fl-cream);
     font-family: 'Archivo', system-ui, sans-serif;
-    overflow-x: hidden;
+    /* `clip` recorta el desborde horizontal SIN crear contenedor de scroll;
+       `hidden` forzaría overflow-y:auto y rompería el position:sticky del header. */
+    overflow-x: clip;
   }
 </style>
