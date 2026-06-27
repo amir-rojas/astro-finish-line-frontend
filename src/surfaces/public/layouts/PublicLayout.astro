@@ -1,0 +1,26 @@
+---
+// PublicLayout — chrome de la SUPERFICIE pública (todo lo de cara al usuario:
+// home/landing, eventos, inscripción, resultados...). Compone sobre BaseLayout
+// (el shell <html> con metas y fuentes compartidas) y aplica el lenguaje visual
+// público. El panel admin usa su propio AdminLayout; nunca se mezclan.
+import BaseLayout from '@shared/layouts/BaseLayout.astro';
+
+interface Props {
+  title: string;
+  description?: string;
+  ogImage?: string;
+  ogUrl?: string;
+  canonical?: string;
+}
+const { title, description, ogImage, ogUrl, canonical } = Astro.props;
+---
+
+<BaseLayout {title} {description} {ogImage} {ogUrl} {canonical}>
+  <div data-surface="public">
+    <!-- Aquí irá el header público (nav del sitio) cuando lo necesitemos -->
+    <main>
+      <slot />
+    </main>
+    <!-- Aquí irá el footer público cuando lo necesitemos -->
+  </div>
+</BaseLayout>

@@ -1,17 +1,13 @@
 ---
-
+// Ruta pública raíz "/" — la home (landing) del surface público.
+// Las páginas son THIN: solo orquestan secciones de surfaces/public/features.
+import PublicLayout from '@public/layouts/PublicLayout.astro';
+// import Hero from '@public/features/home/sections/Hero.astro';
+// import ProximoEvento from '@public/features/home/sections/ProximoEvento.astro';
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<PublicLayout title="Inicio">
+  {/* Listo para componer las secciones del mockup de la home, p.ej.: */}
+  {/* <Hero /> */}
+  {/* <ProximoEvento /> */}
+</PublicLayout>

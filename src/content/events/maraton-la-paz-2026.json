@@ -1,0 +1,11 @@
+{
+  "title": "Maratón de La Paz 2026",
+  "date": "2026-09-20",
+  "location": "Plaza del Estudiante — Av. Villazón",
+  "city": "La Paz",
+  "distances": ["10K", "21K", "42K"],
+  "registrationUrl": "https://finishlinebolivia.com/inscripcion",
+  "status": "upcoming",
+  "description": "La maratón insignia de Bolivia. Recorre el corazón de La Paz con vistas únicas de los nevados.",
+  "featured": true
+}
