@@ -23,7 +23,7 @@ const deadline = event.registrationDeadline;
       price && (
         <div class="bib" data-reveal>
           <header class="bib__head">
-            <span class="bib__tag">Inscripción</span>
+            <h2 class="bib__tag">Inscripción</h2>
             <span class="bib__event">
               {event.title} · {year}
             </span>
@@ -149,10 +149,16 @@ const deadline = event.registrationDeadline;
     text-transform: uppercase;
   }
   .bib__tag {
+    margin: 0;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 2px;
+    text-transform: uppercase;
     color: var(--fl-orange);
   }
   .bib__event {
-    color: #8295aa;
+    color: var(--fl-on-navy-muted);
   }
 
   /* Bandera de meta a cuadros: el motivo de marca, como banda fina. */
@@ -245,7 +251,7 @@ const deadline = event.registrationDeadline;
     font-size: 11px;
     letter-spacing: 2px;
     text-transform: uppercase;
-    color: #8295aa;
+    color: var(--fl-on-navy-muted);
   }
   .row__v {
     margin: 0;
@@ -254,7 +260,7 @@ const deadline = event.registrationDeadline;
     color: var(--fl-cream);
   }
   .row__sub {
-    color: #aebbcb;
+    color: var(--fl-on-navy-soft);
   }
   .incl {
     list-style: none;
@@ -314,7 +320,7 @@ const deadline = event.registrationDeadline;
     font-size: 12px;
     letter-spacing: 2px;
     text-transform: uppercase;
-    color: #8295aa;
+    color: var(--fl-on-navy-muted);
   }
   .cats__grid {
     display: grid;
@@ -349,7 +355,7 @@ const deadline = event.registrationDeadline;
   .cat__ages {
     margin: 6px 0 0;
     font-size: 16px;
-    color: #aebbcb;
+    color: var(--fl-on-navy-soft);
   }
   @media (hover: hover) {
     .cat:hover {
@@ -361,7 +367,7 @@ const deadline = event.registrationDeadline;
     font-family: 'Space Mono', monospace;
     font-size: 12px;
     letter-spacing: 0.5px;
-    color: #8295aa;
+    color: var(--fl-on-navy-muted);
   }
 
   /* --- CTA --------------------------------------------------------------- */

@@ -76,6 +76,40 @@ const sections = [
       summary?.setAttribute('aria-expanded', String(details.open));
     });
   }
+
+  // Scrollspy: marca con aria-current el enlace de la sección visible, para
+  // indicar dónde estás al navegar/scrollear. Mejora progresiva (sin JS no pasa
+  // nada). Aplica a nav desktop y al panel móvil.
+  const navLinks = Array.from(
+    document.querySelectorAll<HTMLAnchorElement>(
+      '.hd .nav a[href^="#"], .hd .menu__panel a[href^="#"]',
+    ),
+  );
+  const ids = [...new Set(navLinks.map((a) => a.getAttribute('href')!.slice(1)))];
+  const targets = ids
+    .map((id) => document.getElementById(id))
+    .filter((el): el is HTMLElement => Boolean(el));
+
+  if (targets.length && 'IntersectionObserver' in window) {
+    let active = '';
+    const setActive = (id: string) => {
+      if (id === active) return;
+      active = id;
+      for (const a of navLinks) {
+        if (a.getAttribute('href') === '#' + id) a.setAttribute('aria-current', 'true');
+        else a.removeAttribute('aria-current');
+      }
+    };
+    const spy = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) setActive((e.target as HTMLElement).id);
+        }
+      },
+      { rootMargin: '-45% 0px -50% 0px', threshold: 0 },
+    );
+    targets.forEach((t) => spy.observe(t));
+  }
 </script>
 
 <style>
@@ -126,12 +160,20 @@ const sections = [
     text-transform: uppercase;
   }
   .nav a {
-    color: #aebbcb;
+    color: var(--fl-on-navy-soft);
     text-decoration: none;
+    text-underline-offset: 6px;
+    text-decoration-thickness: 2px;
     transition: color 160ms var(--ease-out);
   }
   .nav a:hover {
     color: var(--fl-cream);
+  }
+  /* Sección actual: indica dónde estás al navegar/scrollear. */
+  .nav a[aria-current='true'] {
+    color: var(--fl-cream);
+    text-decoration: underline;
+    text-decoration-color: var(--fl-orange);
   }
 
   .actions {
@@ -174,8 +216,8 @@ const sections = [
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 42px;
-    height: 42px;
+    width: 44px;
+    height: 44px;
     cursor: pointer;
     list-style: none;
     color: var(--fl-cream);
@@ -253,6 +295,14 @@ const sections = [
   .menu__panel a:hover {
     background: rgba(246, 240, 228, 0.06);
     color: var(--fl-cream);
+  }
+  .menu__panel a[aria-current='true'] {
+    background: rgba(246, 240, 228, 0.06);
+    color: var(--fl-cream);
+    text-decoration: underline;
+    text-decoration-color: var(--fl-orange);
+    text-underline-offset: 5px;
+    text-decoration-thickness: 2px;
   }
 
   /* Colapso: bajo 860px el nav inline se reemplaza por el disclosure. */

@@ -20,6 +20,7 @@ const { title, description, ogImage, ogUrl, canonical } = Astro.props;
 <BaseLayout {title} {description} {ogImage} {ogUrl} {canonical}>
   {/* Fuentes propias del surface público, inyectadas en el <head> del shell. */}
   <Fragment slot="head">
+    {/* preconnect a fonts.googleapis.com / fonts.gstatic.com ya vive en BaseLayout */}
     <link
       href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Archivo+Black&family=Space+Mono:wght@400;700&display=swap"
       rel="stylesheet"
@@ -78,6 +79,11 @@ const { title, description, ogImage, ogUrl, canonical } = Astro.props;
     --fl-cream-2: #efe7d6;
     --fl-cream-3: #e1d6bd;
     --fl-surface: #ffffff;
+    /* Neutrales derivados (contraste verificado): texto/meta sobre navy y crema. */
+    --fl-on-navy-soft: #aebbcb;
+    --fl-on-navy-muted: #8295aa;
+    --fl-on-cream-muted: #5a5346;
+    --fl-on-cream-faint: #9a8f78;
     --fl-container: 1180px;
 
     background: var(--fl-navy);
