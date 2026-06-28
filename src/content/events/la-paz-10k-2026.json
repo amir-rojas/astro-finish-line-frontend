@@ -29,6 +29,9 @@
   "heroImage": "../../assets/images/img-event.jpeg",
   "description": "10 kilómetros por el corazón de la ciudad más alta del mundo. Salida en la avenida Camacho (altura Banco Unión) y meta en la Plaza del Estadio.",
   "instagram": "@finishlinebolivia",
+  "instagramUrl": "https://www.instagram.com/finishlinebolivia",
+  "facebookUrl": "https://www.facebook.com/FinishLineSportingEvents",
+  "whatsapp": "+591 62151410",
   "organizer": "Finish Line Sporting Events",
   "organizerLogo": "/assets/finishline-logo.png",
   "featured": true

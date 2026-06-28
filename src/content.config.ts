@@ -33,7 +33,10 @@ const events = defineCollection({
     status: z.enum(['upcoming', 'open', 'closed', 'finished']).default('upcoming'),
     heroImage: image().optional(),                 // foto del evento (src/assets), optimizada por Astro
     description: z.string().optional(),
-    instagram: z.string().optional(),              // "@finishlinebolivia"
+    instagram: z.string().optional(),              // handle "@finishlinebolivia"
+    instagramUrl: z.string().url().optional(),     // URL del perfil de Instagram
+    facebookUrl: z.string().url().optional(),      // URL de la página de Facebook
+    whatsapp: z.string().optional(),               // contacto, "+591 62151410"
     organizer: z.string().optional(),
     organizerLogo: z.string().optional(),
     featured: z.boolean().default(false),
