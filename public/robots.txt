@@ -1,0 +1,5 @@
+# Finish Line Bolivia — https://finishlinebolivia.com
+User-agent: *
+Allow: /
+
+Sitemap: https://finishlinebolivia.com/sitemap-index.xml

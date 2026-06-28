@@ -2,20 +2,40 @@
 // Ruta pública raíz "/" — la home (landing) del surface público.
 // THIN: carga el evento destacado y orquesta las secciones del feature `home`.
 import { getCollection } from 'astro:content';
+import { getImage } from 'astro:assets';
 import PublicLayout from '@public/layouts/PublicLayout.astro';
 import SiteHeader from '@public/features/home/sections/SiteHeader.astro';
 import Hero from '@public/features/home/sections/Hero.astro';
 import Price from '@public/features/home/sections/Price.astro';
 import Course from '@public/features/home/sections/Course.astro';
 import SiteFooter from '@public/features/home/sections/SiteFooter.astro';
+import { eventJsonLd } from '@public/features/home/format';
 
 const events = await getCollection('events');
 const entry = events.find((e) => e.data.featured) ?? events[0];
 if (!entry) throw new Error('No hay eventos en la colección `events` para la home.');
 const event = entry.data;
+
+// Imagen para compartir (Open Graph): render dedicado 1200×630 desde la foto
+// del evento. Se pasa relativa al layout (que la vuelve absoluta) y absoluta
+// al JSON-LD.
+const ogImage = event.heroImage
+  ? (await getImage({ src: event.heroImage, width: 1200, height: 630, format: 'jpeg' })).src
+  : undefined;
+
+const siteBase = Astro.site ?? Astro.url;
+const ogImageAbsolute = ogImage ? new URL(ogImage, siteBase).href : undefined;
+
+// Datos estructurados SportsEvent para rich results de Google.
+const jsonLd = eventJsonLd(event, {
+  url: Astro.url.href,
+  image: ogImageAbsolute,
+  organizerUrl: siteBase.href,
+});
 ---
 
-<PublicLayout title={event.title} description={event.description}>
+<PublicLayout title={event.title} description={event.description} ogImage={ogImage}>
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} is:inline />
   <SiteHeader {event} />
   <main>
     <Hero {event} />

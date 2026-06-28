@@ -15,6 +15,11 @@ const {
   ogUrl = Astro.url.href,
   canonical = Astro.url.href,
 } = Astro.props;
+
+// og:image y twitter:image deben ser URLs absolutas: muchos crawlers
+// (WhatsApp, Facebook, Twitter) descartan rutas relativas. Astro.site viene
+// del config; si ya nos pasan una URL absoluta, la respetamos.
+const absoluteOgImage = new URL(ogImage, Astro.site ?? Astro.url).href;
 ---
 
 <!doctype html>
@@ -37,13 +42,13 @@ const {
     <meta property="og:type" content="website" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:image" content={ogImage} />
+    <meta property="og:image" content={absoluteOgImage} />
     <meta property="og:url" content={ogUrl} />
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
-    <meta name="twitter:image" content={ogImage} />
+    <meta name="twitter:image" content={absoluteOgImage} />
   </head>
   <body>
     <slot />

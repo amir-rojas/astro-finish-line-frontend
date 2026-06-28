@@ -50,3 +50,67 @@ export function countdownISO(event: EventData): string {
 export function placeLine(event: EventData): string {
   return [event.city, event.country].filter(Boolean).join(', ');
 }
+
+// --- SEO: datos estructurados ---------------------------------------------
+
+// Moneda mostrada (p.ej. "Bs") -> código ISO 4217 para schema.org/Offer.
+const CURRENCY_ISO: Record<string, string> = { Bs: 'BOB' };
+
+// Estado del evento -> disponibilidad de la oferta (schema.org/ItemAvailability).
+const AVAILABILITY: Record<EventData['status'], string> = {
+  upcoming: 'https://schema.org/PreOrder',
+  open: 'https://schema.org/InStock',
+  closed: 'https://schema.org/SoldOut',
+  finished: 'https://schema.org/SoldOut',
+};
+
+/**
+ * JSON-LD `SportsEvent` para rich results de Google (listados de eventos).
+ * `image` y `url` deben ser absolutas; el llamador las construye con Astro.site.
+ */
+export function eventJsonLd(
+  event: EventData,
+  { url, image, organizerUrl }: { url: string; image?: string; organizerUrl: string },
+): Record<string, unknown> {
+  const offers = event.registrationUrl
+    ? {
+        '@type': 'Offer',
+        url: event.registrationUrl,
+        availability: AVAILABILITY[event.status],
+        ...(event.price && {
+          price: event.price.amount,
+          priceCurrency: CURRENCY_ISO[event.price.currency] ?? event.price.currency,
+        }),
+        ...(event.registrationDeadline && {
+          validThrough: event.registrationDeadline.toISOString(),
+        }),
+      }
+    : undefined;
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'SportsEvent',
+    name: event.title,
+    sport: 'Running',
+    startDate: countdownISO(event),
+    eventStatus: 'https://schema.org/EventScheduled',
+    eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+    url,
+    ...(event.description && { description: event.description }),
+    ...(image && { image: [image] }),
+    location: {
+      '@type': 'Place',
+      name: event.location,
+      address: {
+        '@type': 'PostalAddress',
+        ...(event.location && { streetAddress: event.location }),
+        ...(event.city && { addressLocality: event.city }),
+        ...(event.country && { addressCountry: event.country }),
+      },
+    },
+    ...(offers && { offers }),
+    ...(event.organizer && {
+      organizer: { '@type': 'Organization', name: event.organizer, url: organizerUrl },
+    }),
+  };
+}
