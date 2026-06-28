@@ -18,7 +18,7 @@ const copyright = `© ${year} ${organizer}`;
 const whenLine = `${dayMonth(event.date)} ${eventYear} · ${event.city ?? place}`;
 ---
 
-<footer id="app" class="ft">
+<footer class="ft">
   {/* La línea de meta: cruzás la bandera al llegar al final del scroll. */}
   <div class="ft__finish" aria-hidden="true"></div>
 
@@ -36,15 +36,6 @@ const whenLine = `${dayMonth(event.date)} ${eventYear} · ${event.city ?? place}
           )
         }
       </div>
-    </div>
-
-    {/* Teaser de la app (secundario) */}
-    <div class="ft__app">
-      <p class="eyebrow">// Próximamente</p>
-      <p class="ft__appline">
-        La app de Finish Line: inscripciones, resultados y cada carrera desde tu teléfono.
-        En construcción; por ahora la inscripción se realiza en Eventrid.
-      </p>
     </div>
 
     {/* Créditos */}
@@ -114,27 +105,6 @@ const whenLine = `${dayMonth(event.date)} ${eventYear} · ${event.city ?? place}
     letter-spacing: 1.5px;
     text-transform: uppercase;
     color: var(--fl-orange);
-  }
-
-  /* --- Teaser app (secundario) ------------------------------------------- */
-  .ft__app {
-    padding: clamp(32px, 4.5vw, 48px) 0;
-    border-bottom: 1px solid rgba(246, 240, 228, 0.12);
-  }
-  .eyebrow {
-    margin: 0;
-    font-family: 'Space Mono', monospace;
-    font-size: 12px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--fl-orange);
-  }
-  .ft__appline {
-    font-size: 15px;
-    line-height: 1.55;
-    color: #b9c6d6;
-    margin: 12px 0 0;
-    max-width: 520px;
   }
 
   /* --- CTA --------------------------------------------------------------- */
