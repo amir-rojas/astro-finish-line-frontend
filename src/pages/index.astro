@@ -3,11 +3,9 @@
 // THIN: carga el evento destacado y orquesta las secciones del feature `home`.
 import { getCollection } from 'astro:content';
 import PublicLayout from '@public/layouts/PublicLayout.astro';
-import { dayMonth } from '@public/features/home/format';
 import SiteHeader from '@public/features/home/sections/SiteHeader.astro';
 import Hero from '@public/features/home/sections/Hero.astro';
 import Price from '@public/features/home/sections/Price.astro';
-import Marquee from '@public/features/home/sections/Marquee.astro';
 import Course from '@public/features/home/sections/Course.astro';
 import Organizer from '@public/features/home/sections/Organizer.astro';
 import SiteFooter from '@public/features/home/sections/SiteFooter.astro';
@@ -16,13 +14,6 @@ const events = await getCollection('events');
 const entry = events.find((e) => e.data.featured) ?? events[0];
 if (!entry) throw new Error('No hay eventos en la colección `events` para la home.');
 const event = entry.data;
-
-const marqueeItems = [
-  event.title,
-  `${dayMonth(event.date)} ${event.date.getUTCFullYear()}`,
-  event.altitudeM ? `${new Intl.NumberFormat('es-BO').format(event.altitudeM)} m` : null,
-  'Cada segundo cuenta',
-].filter((s): s is string => Boolean(s));
 ---
 
 <PublicLayout title={event.title} description={event.description}>
@@ -30,7 +21,6 @@ const marqueeItems = [
   <main>
     <Hero {event} />
     <Price {event} />
-    <Marquee items={marqueeItems} />
     <Course {event} />
     <Organizer {event} />
   </main>
