@@ -70,17 +70,19 @@ const withDist = pts.map((p, i) => {
 });
 const totalKm = cumM / 1000;
 
-// Perfil submuestreado (~140 puntos) para un path SVG limpio y liviano.
+// Muestras submuestreadas (~140 puntos) para SVG limpio y liviano. Cada muestra
+// lleva [km, ele, lon, lat] para alinear por índice el perfil de elevación con
+// la silueta del trazado (hover sincronizado).
 const TARGET = 140;
 const step = Math.max(1, Math.floor(withDist.length / TARGET));
-const profile = [];
+const samples = [];
 for (let i = 0; i < withDist.length; i += step) {
   const p = withDist[i];
-  if (p.ele != null) profile.push([round(p.km, 4), round(p.ele, 1)]);
+  if (p.ele != null) samples.push([round(p.km, 4), round(p.ele, 1), round(p.lon, 6), round(p.lat, 6)]);
 }
 // Asegura que el último punto (la meta) esté siempre presente.
 const last = withDist[withDist.length - 1];
-if (last.ele != null) profile.push([round(last.km, 4), round(last.ele, 1)]);
+if (last.ele != null) samples.push([round(last.km, 4), round(last.ele, 1), round(last.lon, 6), round(last.lat, 6)]);
 
 function round(n, dp) {
   const f = 10 ** dp;
@@ -97,7 +99,7 @@ const geojson = {
       maxM: round(max, 1),
       gainM: Math.round(gain),
     },
-    profile,
+    samples,
   },
   geometry: {
     type: 'LineString',
@@ -111,7 +113,7 @@ const geojson = {
 
 writeFileSync(outPath, JSON.stringify(geojson, null, 2) + '\n');
 console.log(
-  `OK → ${outPath}\n  puntos: ${pts.length} (perfil: ${profile.length})` +
+  `OK → ${outPath}\n  puntos: ${pts.length} (muestras: ${samples.length})` +
     `\n  distancia: ${geojson.properties.totalKm} km` +
     `\n  elevación: ${geojson.properties.elevation.minM}–${geojson.properties.elevation.maxM} m` +
     ` (desnivel +${geojson.properties.elevation.gainM} m)`,
