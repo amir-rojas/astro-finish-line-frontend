@@ -94,7 +94,6 @@ const deadline = event.registrationDeadline;
           <div class="cats__grid">
             {event.categories.map((cat, i) => (
               <article class="cat" data-reveal data-delay={String(i + 1)}>
-                <span class="cat__idx">{String(i + 1).padStart(2, '0')}</span>
                 <div class="cat__body">
                   <h3 class="cat__name">{cat.name}</h3>
                   <p class="cat__ages">{cat.ages}</p>
@@ -336,13 +335,6 @@ const deadline = event.registrationDeadline;
     flex-direction: column;
     gap: 16px;
     transition: background-color 220ms var(--ease-out);
-  }
-  .cat__idx {
-    font-family: 'Archivo Black', sans-serif;
-    font-size: clamp(36px, 4.2vw, 52px);
-    line-height: 0.8;
-    letter-spacing: -0.03em;
-    color: var(--fl-orange);
   }
   .cat__name {
     margin: 0;

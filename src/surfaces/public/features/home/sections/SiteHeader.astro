@@ -314,12 +314,32 @@ const sections = [
       display: block;
     }
   }
-  @media (max-width: 380px) {
+  /* Teléfonos: achica marca + CTA + gaps para que marca, CTA y hamburguesa
+     quepan sin desbordar. En pantallas anchas (~412px CSS, p. ej. Galaxy S25
+     Ultra) el contenido se salía del viewport y la hamburguesa quedaba cortada
+     contra el borde derecho. */
+  @media (max-width: 480px) {
     .hd__inner {
       gap: 10px;
+      padding: 0 16px;
+    }
+    .brand__word {
+      font-size: 18px;
+    }
+    .actions {
+      gap: 8px;
     }
     .cta {
       padding: 11px 14px;
+    }
+  }
+  @media (max-width: 360px) {
+    .brand__word {
+      font-size: 16px;
+    }
+    .cta {
+      font-size: 11px;
+      padding: 10px 12px;
     }
   }
 

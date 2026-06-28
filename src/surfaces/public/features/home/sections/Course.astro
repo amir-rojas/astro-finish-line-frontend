@@ -1,9 +1,13 @@
 ---
 import type { EventData } from '../format';
 import { dayMonth } from '../format';
-// Trazado real del recorrido (fuente de verdad: GeoJSON generado del GPX con
-// scripts/gpx-to-geojson.mjs). Se proyecta a un perfil de elevación + una
-// silueta top-down del circuito, enlazados por hover.
+import { Image } from 'astro:assets';
+// Mapa oficial del recorrido (provisto por el organizador). Reemplaza la
+// silueta/perfil dibujados en SVG: el mapa ya trae calles, puntos de partida
+// y meta y la marca del evento.
+import routeMap from '../../../../../assets/images/img-route.jpeg';
+// Datos reales del recorrido (GeoJSON generado del GPX) para las cifras de
+// distancia / altitud / desnivel del encabezado.
 import routeRaw from '../data/lapaz-route.geojson?raw';
 
 interface Props {
@@ -21,90 +25,19 @@ const deadlineBadge = event.registrationDeadline
     }`
   : null;
 
-// --- Datos del recorrido -------------------------------------------------
+// --- Cifras del recorrido (del GPX) --------------------------------------
 interface RouteData {
   properties: {
     totalKm: number;
     elevation: { minM: number; maxM: number; gainM: number };
-    samples: [number, number, number, number][]; // [km, ele, lon, lat]
   };
 }
 const route = JSON.parse(routeRaw) as RouteData;
-const { samples, totalKm, elevation } = route.properties;
+const { totalKm, elevation } = route.properties;
 
 const nf = new Intl.NumberFormat('es-BO');
 const eMin = elevation.minM;
 const eMax = elevation.maxM;
-
-// --- Perfil de elevación (viewBox 560×360) -------------------------------
-const PW = 560;
-const PAD_L = 44;
-const PAD_R = 40;
-const TOP = 64;
-const BOTTOM = 290;
-const BASE = 300;
-const px = (km: number) => PAD_L + (km / totalKm) * (PW - PAD_L - PAD_R);
-const py = (e: number) => BOTTOM - ((e - eMin) / (eMax - eMin)) * (BOTTOM - TOP);
-
-const line = samples
-  .map(([km, e], i) => `${i === 0 ? 'M' : 'L'}${px(km).toFixed(1)},${py(e).toFixed(1)}`)
-  .join(' ');
-const area = `M${px(0).toFixed(1)},${BASE} ${samples
-  .map(([km, e]) => `L${px(km).toFixed(1)},${py(e).toFixed(1)}`)
-  .join(' ')} L${px(totalKm).toFixed(1)},${BASE} Z`;
-const kmMarks = [0, 2, 4, 6, 8, 10].filter((k) => k <= Math.ceil(totalKm));
-
-const pStart = samples[0];
-const pEnd = samples[samples.length - 1];
-const pLow = samples.reduce((a, b) => (b[1] < a[1] ? b : a), samples[0]);
-
-// --- Silueta del trazado (proyección equirectangular, aspecto real) ------
-const lat0 = (Math.min(...samples.map((s) => s[3])) + Math.max(...samples.map((s) => s[3]))) / 2;
-const kx = Math.cos((lat0 * Math.PI) / 180);
-const mx = (lon: number) => lon * kx;
-const xs = samples.map((s) => mx(s[2]));
-const ys = samples.map((s) => s[3]);
-const minX = Math.min(...xs);
-const maxX = Math.max(...xs);
-const minY = Math.min(...ys);
-const maxY = Math.max(...ys);
-const spanX = maxX - minX;
-const spanY = maxY - minY;
-const aspect = spanX / spanY;
-const TPAD = 26;
-let TW: number;
-let TH: number;
-if (aspect >= 1) {
-  TW = 520;
-  TH = Math.round(520 / aspect);
-} else {
-  TH = 400;
-  TW = Math.round(400 * aspect);
-}
-const sc = Math.min((TW - 2 * TPAD) / spanX, (TH - 2 * TPAD) / spanY);
-const offX = (TW - spanX * sc) / 2;
-const offY = (TH - spanY * sc) / 2;
-const tx = (lon: number) => offX + (mx(lon) - minX) * sc;
-const ty = (lat: number) => TH - offY - (lat - minY) * sc;
-const trackPath = samples
-  .map((s, i) => `${i === 0 ? 'M' : 'L'}${tx(s[2]).toFixed(1)},${ty(s[3]).toFixed(1)}`)
-  .join(' ');
-
-// Datos para el hover sincronizado: [elevX, elevY, trackX, trackY, km, ele]
-const hoverPts = samples.map((s) => [
-  +px(s[0]).toFixed(1),
-  +py(s[1]).toFixed(1),
-  +tx(s[2]).toFixed(1),
-  +ty(s[3]).toFixed(1),
-  s[0],
-  s[1],
-]);
-const vizData = JSON.stringify({ tw: TW, th: TH, pts: hoverPts });
-
-const elevAria =
-  `Perfil de elevación real: ${totalKm.toFixed(1)} km, entre ` +
-  `${nf.format(Math.round(eMin))} y ${nf.format(Math.round(eMax))} metros, ` +
-  `desnivel positivo de ${elevation.gainM} metros.`;
 ---
 
 <section id="recorrido" class="course">
@@ -135,149 +68,19 @@ const elevAria =
       </dl>
     </div>
 
-    <figure class="viz" id="course-viz" data-reveal data-delay="2">
-      <div class="viz__readout" hidden>
-        <span class="viz__km">0,0</span><span class="viz__lbl"> km</span>
-        <span class="viz__sep">·</span>
-        <span class="viz__ele">0</span><span class="viz__lbl"> m</span>
-      </div>
-
-      {/* Perfil de elevación */}
-      <div class="viz__panel viz__panel--elev">
-        <svg class="viz__elev" viewBox="0 0 560 360" role="img" aria-label={elevAria}>
-          <defs>
-            <linearGradient id="prof-fill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="rgba(238,83,20,0.26)"></stop>
-              <stop offset="100%" stop-color="rgba(238,83,20,0)"></stop>
-            </linearGradient>
-          </defs>
-
-          <line x1={PAD_L} y1={BASE} x2={PW - PAD_R} y2={BASE} stroke="rgba(20,35,58,0.25)" stroke-width="1"></line>
-          {
-            kmMarks.map((km) => (
-              <g>
-                <line x1={px(km)} y1={BASE} x2={px(km)} y2={BASE + 6} stroke="rgba(20,35,58,0.35)" stroke-width="1" />
-                <text x={px(km)} y={BASE + 24} class="t-tick">
-                  {km === 10 ? '10 KM' : km}
-                </text>
-              </g>
-            ))
-          }
-
-          <path d={area} fill="url(#prof-fill)"></path>
-          <path d={line} fill="none" stroke="#ee5314" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
-
-          {/* punto más bajo */}
-          <line x1={px(pLow[0])} y1={py(pLow[1])} x2={px(pLow[0])} y2={BASE} stroke="rgba(20,35,58,0.18)" stroke-width="1" stroke-dasharray="2 4"></line>
-          <circle cx={px(pLow[0])} cy={py(pLow[1])} r="3.5" fill="var(--fl-ink)"></circle>
-          <text x={px(pLow[0])} y={py(pLow[1]) - 10} class="t-low">{nf.format(Math.round(pLow[1]))} m</text>
-
-          {/* salida / meta */}
-          <circle cx={px(pStart[0])} cy={py(pStart[1])} r="6" fill="#ee5314"></circle>
-          <circle cx={px(pEnd[0])} cy={py(pEnd[1])} r="6" fill="var(--fl-ink)"></circle>
-          <text x={px(pStart[0])} y={py(pStart[1]) - 14} class="t-pt">Salida</text>
-          <text x={px(pEnd[0])} y={py(pEnd[1]) - 14} class="t-pt t-pt--end">Meta</text>
-
-          {/* marcador de hover */}
-          <circle class="dot dot--elev" r="5.5" fill="#ee5314" stroke="var(--fl-cream-3)" stroke-width="2" hidden></circle>
-        </svg>
-        <figcaption class="viz__cap">Perfil de elevación · datos GPS</figcaption>
-      </div>
-
-      {/* Silueta del trazado */}
-      <div class="viz__panel viz__panel--track">
-        <svg class="viz__track" viewBox={`0 0 ${TW} ${TH}`} role="img" aria-label={`Silueta del circuito de ${distance} por La Paz`}>
-          <path d={trackPath} fill="none" stroke="rgba(20,35,58,0.22)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path>
-          <path d={trackPath} fill="none" stroke="#ee5314" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
-          <circle cx={tx(pStart[2])} cy={ty(pStart[3])} r="6" fill="#ee5314"></circle>
-          <circle cx={tx(pEnd[2])} cy={ty(pEnd[3])} r="6" fill="var(--fl-ink)"></circle>
-          <circle class="dot dot--track" r="5.5" fill="#ee5314" stroke="var(--fl-cream-3)" stroke-width="2" hidden></circle>
-        </svg>
-        <figcaption class="viz__cap">Trazado del circuito</figcaption>
-      </div>
-
-      <script type="application/json" class="viz__data" set:html={vizData}></script>
+    <figure class="route" data-reveal data-delay="2">
+      <Image
+        class="route__img"
+        src={routeMap}
+        alt={`Mapa del recorrido oficial de ${title}: partida en Av. Camacho esq. Loayza y meta en Plaza Hernando Siles, por el centro de ${event.city ?? 'La Paz'}.`}
+        widths={[600, 900, 1000]}
+        sizes="(max-width: 980px) 100vw, 920px"
+        loading="lazy"
+      />
+      <figcaption class="route__cap">Recorrido oficial · {totalKm.toFixed(1)} km</figcaption>
     </figure>
   </div>
 </section>
-
-<script>
-  // Hover sincronizado perfil ↔ trazado. Mejora progresiva: sin JS todo es
-  // visible y legible; el hover solo añade la lectura interactiva.
-  const root = document.getElementById('course-viz');
-  if (root) {
-    type Viz = { tw: number; th: number; pts: number[][] };
-    const data = JSON.parse(root.querySelector('.viz__data')!.textContent!) as Viz;
-    const elev = root.querySelector<SVGSVGElement>('.viz__elev')!;
-    const track = root.querySelector<SVGSVGElement>('.viz__track')!;
-    const dotE = root.querySelector<SVGCircleElement>('.dot--elev')!;
-    const dotT = root.querySelector<SVGCircleElement>('.dot--track')!;
-    const out = root.querySelector<HTMLElement>('.viz__readout')!;
-    const outKm = root.querySelector<HTMLElement>('.viz__km')!;
-    const outEle = root.querySelector<HTMLElement>('.viz__ele')!;
-    const pts = data.pts;
-    const N = pts.length;
-
-    const show = (i: number) => {
-      const d = pts[i];
-      dotE.setAttribute('cx', String(d[0]));
-      dotE.setAttribute('cy', String(d[1]));
-      dotE.removeAttribute('hidden');
-      dotT.setAttribute('cx', String(d[2]));
-      dotT.setAttribute('cy', String(d[3]));
-      dotT.removeAttribute('hidden');
-      outKm.textContent = d[4].toLocaleString('es-BO', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-      outEle.textContent = Math.round(d[5]).toLocaleString('es-BO');
-      out.removeAttribute('hidden');
-    };
-    const hide = () => {
-      dotE.setAttribute('hidden', '');
-      dotT.setAttribute('hidden', '');
-      out.setAttribute('hidden', '');
-    };
-
-    // Scrub por distancia sobre el perfil.
-    const onElev = (e: PointerEvent) => {
-      const r = elev.getBoundingClientRect();
-      const vbx = ((e.clientX - r.left) / r.width) * 560;
-      let best = 0;
-      let bd = Infinity;
-      for (let i = 0; i < N; i++) {
-        const dd = Math.abs(pts[i][0] - vbx);
-        if (dd < bd) {
-          bd = dd;
-          best = i;
-        }
-      }
-      show(best);
-    };
-    // Punto más cercano sobre el trazado.
-    const onTrack = (e: PointerEvent) => {
-      const r = track.getBoundingClientRect();
-      const vx = ((e.clientX - r.left) / r.width) * data.tw;
-      const vy = ((e.clientY - r.top) / r.height) * data.th;
-      let best = 0;
-      let bd = Infinity;
-      for (let i = 0; i < N; i++) {
-        const dx = pts[i][2] - vx;
-        const dy = pts[i][3] - vy;
-        const dd = dx * dx + dy * dy;
-        if (dd < bd) {
-          bd = dd;
-          best = i;
-        }
-      }
-      show(best);
-    };
-
-    elev.addEventListener('pointermove', onElev, { passive: true });
-    elev.addEventListener('pointerdown', onElev, { passive: true });
-    track.addEventListener('pointermove', onTrack, { passive: true });
-    track.addEventListener('pointerdown', onTrack, { passive: true });
-    elev.addEventListener('pointerleave', hide);
-    track.addEventListener('pointerleave', hide);
-  }
-</script>
 
 <style>
   .course {
@@ -363,106 +166,27 @@ const elevAria =
     margin-left: 2px;
   }
 
-  /* --- Visualización: perfil + trazado ----------------------------------- */
-  .viz {
-    position: relative;
+  /* --- Mapa del recorrido oficial ---------------------------------------- */
+  .route {
     margin: 0;
-    display: grid;
-    grid-template-columns: 1.15fr 1fr;
-    gap: clamp(14px, 2vw, 26px);
-    align-items: center;
     background: var(--fl-cream-3);
     border: 1px solid rgba(20, 35, 58, 0.1);
     padding: clamp(14px, 2vw, 22px);
   }
-  @media (max-width: 640px) {
-    .viz {
-      grid-template-columns: 1fr;
-    }
-  }
-  .viz__panel {
-    min-width: 0;
-  }
-  .viz__panel--track {
-    border-left: 1px solid rgba(20, 35, 58, 0.1);
-    padding-left: clamp(14px, 2vw, 24px);
-  }
-  @media (max-width: 640px) {
-    .viz__panel--track {
-      border-left: 0;
-      border-top: 1px solid rgba(20, 35, 58, 0.1);
-      padding-left: 0;
-      padding-top: 16px;
-    }
-  }
-  .viz__elev,
-  .viz__track {
+  .route__img {
     width: 100%;
     height: auto;
-    display: block;
-    touch-action: pan-y;
-  }
-  .viz__track {
-    max-height: 480px;
+    max-width: 920px;
     margin: 0 auto;
+    display: block;
   }
-  .dot {
-    pointer-events: none;
-  }
-
-  .viz__readout {
-    position: absolute;
-    top: clamp(14px, 2vw, 22px);
-    right: clamp(14px, 2vw, 22px);
-    z-index: 1;
-    font-family: 'Space Mono', monospace;
-    font-weight: 700;
-    font-size: 12px;
-    letter-spacing: 1px;
-    color: var(--fl-cream);
-    background: var(--fl-ink);
-    padding: 7px 12px;
-  }
-  .viz__lbl {
-    color: var(--fl-orange);
-  }
-  .viz__sep {
-    opacity: 0.5;
-    margin: 0 6px;
-  }
-
-  .t-tick {
-    font-family: 'Space Mono', monospace;
-    font-size: 13px;
-    fill: var(--fl-on-cream-muted);
-    text-anchor: middle;
-  }
-  .t-pt {
-    font-family: 'Space Mono', monospace;
-    font-size: 12px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    fill: var(--fl-orange);
-    text-anchor: start;
-  }
-  .t-pt--end {
-    fill: var(--fl-ink);
-    text-anchor: end;
-  }
-  .t-low {
-    font-family: 'Space Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 0.5px;
-    fill: var(--fl-on-cream-muted);
-    text-anchor: middle;
-  }
-  .viz__cap {
+  .route__cap {
     font-family: 'Space Mono', monospace;
     font-size: 11px;
     letter-spacing: 1px;
     text-transform: uppercase;
     color: var(--fl-on-cream-muted);
-    margin-top: 6px;
+    margin-top: 10px;
     text-align: center;
   }
 </style>
