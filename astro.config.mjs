@@ -1,12 +1,12 @@
 // @ts-check
 import { defineConfig, envField } from 'astro/config';
-import node from '@astrojs/node';
+import vercel from '@astrojs/vercel';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
   site: 'https://finishlinebolivia.com',
   output: 'static',
-  adapter: node({ mode: 'standalone' }),
+  adapter: vercel(),
   env: {
     schema: {
       // Base URL del backend (solo server-side BFF). No es secreto.
