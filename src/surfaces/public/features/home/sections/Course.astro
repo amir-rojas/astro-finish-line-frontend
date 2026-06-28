@@ -1,6 +1,5 @@
 ---
 import type { EventData } from '../format';
-import { dayMonth } from '../format';
 import { Image } from 'astro:assets';
 // Mapa oficial del recorrido (provisto por el organizador). Reemplaza la
 // silueta/perfil dibujados en SVG: el mapa ya trae calles, puntos de partida
@@ -21,12 +20,6 @@ const title = event.courseTitle ?? `${distance} por el centro de ${event.city ??
 // Logística que el mapa no detalla legible: concentración, partida y meta.
 const partida = [event.startTime, event.location].filter(Boolean).join(' · ');
 const meta = event.finishLocation;
-
-const deadlineBadge = event.registrationDeadline
-  ? `Cierre ${dayMonth(event.registrationDeadline)}${
-      event.registrationNote ? ` · ${event.registrationNote}` : ''
-    }`
-  : null;
 
 // --- Cifras del recorrido (del GPX) --------------------------------------
 interface RouteData {
@@ -87,8 +80,6 @@ const eMax = elevation.maxM;
             <dd class="stat__v">+{elevation.gainM} <span class="stat__u">m</span></dd>
           </div>
         </dl>
-
-        {deadlineBadge && <p class="course__badge" data-reveal data-delay="3">{deadlineBadge}</p>}
       </div>
 
       <figure class="route" data-reveal data-delay="2">
@@ -184,18 +175,6 @@ const eMax = elevation.maxM;
     font-size: 15px;
     line-height: 1.4;
     color: var(--fl-ink);
-  }
-  .course__badge {
-    display: inline-block;
-    font-family: 'Space Mono', monospace;
-    font-weight: 700;
-    font-size: 12px;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    background: var(--fl-ink);
-    color: var(--fl-cream);
-    padding: 11px 18px;
-    margin: 22px 0 0;
   }
   .course__stats {
     display: flex;
