@@ -1,6 +1,9 @@
 ---
 import type { EventData } from '../format';
 import { dayMonth } from '../format';
+// Trazado real del recorrido (fuente de verdad: GeoJSON generado del GPX con
+// scripts/gpx-to-geojson.mjs). Se proyecta a un perfil de elevación en SVG.
+import routeRaw from '../data/lapaz-route.geojson?raw';
 
 interface Props {
   event: EventData;
@@ -10,7 +13,6 @@ const { event } = Astro.props;
 const distance = event.distances[0] ?? '';
 const title = event.courseTitle ?? `${distance} por el centro de ${event.city ?? ''}`.trim();
 const desc = event.courseDescription ?? `Salida y meta en ${event.location}.`;
-const altitude = event.altitudeM ? new Intl.NumberFormat('es-BO').format(event.altitudeM) : null;
 
 const deadlineBadge = event.registrationDeadline
   ? `Cierre ${dayMonth(event.registrationDeadline)}${
@@ -18,12 +20,50 @@ const deadlineBadge = event.registrationDeadline
     }`
   : null;
 
-// Perfil referencial del circuito (no son metros exactos; silueta del trazado).
-const pts = [240, 200, 220, 160, 180, 120, 150, 110, 170, 140, 200];
-const x = (km: number) => 40 + km * 48;
-const line = pts.map((y, km) => `${km === 0 ? 'M' : 'L'}${x(km)},${y}`).join(' ');
-const area = `M40,300 ${pts.map((y, km) => `L${x(km)},${y}`).join(' ')} L520,300 Z`;
-const kmMarks = [0, 2, 4, 6, 8, 10];
+// --- Perfil de elevación real -------------------------------------------
+interface RouteData {
+  properties: {
+    totalKm: number;
+    elevation: { minM: number; maxM: number; gainM: number };
+    profile: [number, number][]; // [km, ele]
+  };
+}
+const route = JSON.parse(routeRaw) as RouteData;
+const { profile, totalKm, elevation } = route.properties;
+
+const nf = new Intl.NumberFormat('es-BO');
+const eMin = elevation.minM;
+const eMax = elevation.maxM;
+
+// Geometría del gráfico (viewBox 560×360).
+const W = 560;
+const PAD_L = 44;
+const PAD_R = 40;
+const TOP = 64; // techo del trazo (deja aire para la etiqueta de cima)
+const BOTTOM = 290; // piso del trazo
+const BASE = 300; // línea base / eje de km
+
+const px = (km: number) => PAD_L + (km / totalKm) * (W - PAD_L - PAD_R);
+const py = (e: number) => BOTTOM - ((e - eMin) / (eMax - eMin)) * (BOTTOM - TOP);
+
+const line = profile
+  .map(([km, e], i) => `${i === 0 ? 'M' : 'L'}${px(km).toFixed(1)},${py(e).toFixed(1)}`)
+  .join(' ');
+const area = `M${px(0).toFixed(1)},${BASE} ${profile
+  .map(([km, e]) => `L${px(km).toFixed(1)},${py(e).toFixed(1)}`)
+  .join(' ')} L${px(totalKm).toFixed(1)},${BASE} Z`;
+
+const kmMarks = [0, 2, 4, 6, 8, 10].filter((k) => k <= Math.ceil(totalKm));
+
+const start = profile[0];
+const end = profile[profile.length - 1];
+// Punto más bajo (el fondo del valle): el momento característico del trazado.
+const low = profile.reduce((a, b) => (b[1] < a[1] ? b : a), profile[0]);
+
+const ariaLabel =
+  `Perfil de elevación real del recorrido de ${distance}: ${totalKm.toFixed(1)} km, ` +
+  `entre ${nf.format(Math.round(eMin))} y ${nf.format(Math.round(eMax))} metros, ` +
+  `desnivel positivo de ${elevation.gainM} metros.`;
 ---
 
 <section id="recorrido" class="course">
@@ -32,58 +72,85 @@ const kmMarks = [0, 2, 4, 6, 8, 10];
       <p class="eyebrow" data-reveal>// El recorrido</p>
       <h2 class="course__title" data-reveal data-delay="1">{title}</h2>
       <p class="course__desc" data-reveal data-delay="2">{desc}</p>
-      <div class="course__meta" data-reveal data-delay="3">
-        {altitude && <span class="course__alt">≈ {altitude} m s.n.m.</span>}
-        {deadlineBadge && <span class="course__badge">{deadlineBadge}</span>}
-      </div>
+      <dl class="course__stats" data-reveal data-delay="3">
+        <div class="stat">
+          <dt class="stat__k">Distancia</dt>
+          <dd class="stat__v">{totalKm.toFixed(1)} <span class="stat__u">km</span></dd>
+        </div>
+        <div class="stat">
+          <dt class="stat__k">Altitud</dt>
+          <dd class="stat__v">
+            {nf.format(Math.round(eMin))}–{nf.format(Math.round(eMax))} <span class="stat__u">m</span>
+          </dd>
+        </div>
+        <div class="stat">
+          <dt class="stat__k">Desnivel</dt>
+          <dd class="stat__v">+{elevation.gainM} <span class="stat__u">m</span></dd>
+        </div>
+      </dl>
+      {deadlineBadge && <p class="course__badge" data-reveal data-delay="3">{deadlineBadge}</p>}
     </div>
 
     <figure class="profile" data-reveal data-delay="2">
-      <svg viewBox="0 0 560 360" role="img" aria-label={`Perfil referencial del circuito de ${distance}`}>
+      <svg viewBox="0 0 560 360" role="img" aria-label={ariaLabel}>
         <defs>
           <linearGradient id="prof-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="rgba(238,83,20,0.28)"></stop>
+            <stop offset="0%" stop-color="rgba(238,83,20,0.26)"></stop>
             <stop offset="100%" stop-color="rgba(238,83,20,0)"></stop>
           </linearGradient>
         </defs>
 
         {/* baseline + km ticks */}
-        <line x1="40" y1="300" x2="520" y2="300" stroke="rgba(20,35,58,0.25)" stroke-width="1"></line>
+        <line x1={PAD_L} y1={BASE} x2={W - PAD_R} y2={BASE} stroke="rgba(20,35,58,0.25)" stroke-width="1"></line>
         {
           kmMarks.map((km) => (
             <g>
               <line
-                x1={x(km)}
-                y1="300"
-                x2={x(km)}
-                y2="306"
+                x1={px(km)}
+                y1={BASE}
+                x2={px(km)}
+                y2={BASE + 6}
                 stroke="rgba(20,35,58,0.35)"
                 stroke-width="1"
               />
-              <text x={x(km)} y="324" class="profile__tick">
+              <text x={px(km)} y={BASE + 24} class="profile__tick">
                 {km === 10 ? '10 KM' : km}
               </text>
             </g>
           ))
         }
 
-        {/* área + línea de elevación */}
+        {/* área + línea de elevación real */}
         <path d={area} fill="url(#prof-fill)"></path>
         <path
           d={line}
           fill="none"
           stroke="#ee5314"
-          stroke-width="3.5"
+          stroke-width="3"
           stroke-linecap="round"
           stroke-linejoin="round"></path>
 
+        {/* punto más bajo (fondo del valle) */}
+        <line
+          x1={px(low[0])}
+          y1={py(low[1])}
+          x2={px(low[0])}
+          y2={BASE}
+          stroke="rgba(20,35,58,0.18)"
+          stroke-width="1"
+          stroke-dasharray="2 4"></line>
+        <circle cx={px(low[0])} cy={py(low[1])} r="3.5" fill="var(--fl-ink)"></circle>
+        <text x={px(low[0])} y={py(low[1]) - 10} class="profile__low">
+          {nf.format(Math.round(low[1]))} m
+        </text>
+
         {/* salida / meta */}
-        <circle cx="40" cy="240" r="7" fill="#ee5314"></circle>
-        <circle cx="520" cy="200" r="7" fill="#14233a"></circle>
-        <text x="40" y="226" class="profile__pt">Salida</text>
-        <text x="520" y="186" class="profile__pt profile__pt--end">Meta</text>
+        <circle cx={px(start[0])} cy={py(start[1])} r="6" fill="#ee5314"></circle>
+        <circle cx={px(end[0])} cy={py(end[1])} r="6" fill="var(--fl-ink)"></circle>
+        <text x={px(start[0])} y={py(start[1]) - 14} class="profile__pt">Salida</text>
+        <text x={px(end[0])} y={py(end[1]) - 14} class="profile__pt profile__pt--end">Meta</text>
       </svg>
-      <figcaption class="profile__cap">Perfil referencial del circuito</figcaption>
+      <figcaption class="profile__cap">Perfil de elevación · datos GPS del circuito</figcaption>
     </figure>
   </div>
 </section>
@@ -126,22 +193,39 @@ const kmMarks = [0, 2, 4, 6, 8, 10];
     margin: 16px 0 0;
     max-width: 420px;
   }
-  .course__meta {
+
+  /* Estadísticas reales del trazado. */
+  .course__stats {
     display: flex;
-    align-items: center;
-    gap: 14px;
     flex-wrap: wrap;
-    margin-top: 22px;
+    gap: clamp(20px, 4vw, 40px);
+    margin: 26px 0 0;
   }
-  .course__alt {
+  .stat {
+    margin: 0;
+  }
+  .stat__k {
     font-family: 'Space Mono', monospace;
-    font-weight: 700;
-    font-size: 12px;
-    letter-spacing: 1.5px;
+    font-size: 11px;
+    letter-spacing: 2px;
     text-transform: uppercase;
-    color: var(--fl-orange);
+    color: #9a8f78;
   }
+  .stat__v {
+    margin: 6px 0 0;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(22px, 2.6vw, 30px);
+    letter-spacing: -0.02em;
+    color: var(--fl-ink);
+  }
+  .stat__u {
+    font-size: 0.5em;
+    color: var(--fl-orange);
+    margin-left: 2px;
+  }
+
   .course__badge {
+    display: inline-block;
     font-family: 'Space Mono', monospace;
     font-weight: 700;
     font-size: 12px;
@@ -150,6 +234,7 @@ const kmMarks = [0, 2, 4, 6, 8, 10];
     background: var(--fl-ink);
     color: var(--fl-cream);
     padding: 11px 18px;
+    margin: 24px 0 0;
   }
 
   .profile {
@@ -180,6 +265,13 @@ const kmMarks = [0, 2, 4, 6, 8, 10];
   .profile__pt--end {
     fill: var(--fl-ink);
     text-anchor: end;
+  }
+  .profile__low {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    fill: #6b6456;
+    text-anchor: middle;
   }
   .profile__cap {
     font-family: 'Space Mono', monospace;
