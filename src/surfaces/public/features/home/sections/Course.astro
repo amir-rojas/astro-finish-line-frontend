@@ -17,7 +17,10 @@ const { event } = Astro.props;
 
 const distance = event.distances[0] ?? '';
 const title = event.courseTitle ?? `${distance} por el centro de ${event.city ?? ''}`.trim();
-const desc = event.courseDescription ?? `Salida y meta en ${event.location}.`;
+
+// Logística que el mapa no detalla legible: concentración, partida y meta.
+const partida = [event.startTime, event.location].filter(Boolean).join(' · ');
+const meta = event.finishLocation;
 
 const deadlineBadge = event.registrationDeadline
   ? `Cierre ${dayMonth(event.registrationDeadline)}${
@@ -42,43 +45,64 @@ const eMax = elevation.maxM;
 
 <section id="recorrido" class="course">
   <div class="course__inner">
-    <div class="course__head">
-      <div class="course__copy">
+    <div class="course__grid">
+      <div class="course__aside">
         <p class="eyebrow" data-reveal>// El recorrido</p>
         <h2 class="course__title" data-reveal data-delay="1">{title}</h2>
-        <p class="course__desc" data-reveal data-delay="2">{desc}</p>
+
+        <dl class="logi" data-reveal data-delay="2">
+          {event.gatheringTime && (
+            <div class="logi__row">
+              <dt class="logi__k">Concentración</dt>
+              <dd class="logi__v">{event.gatheringTime}</dd>
+            </div>
+          )}
+          {partida && (
+            <div class="logi__row">
+              <dt class="logi__k">Partida</dt>
+              <dd class="logi__v">{partida}</dd>
+            </div>
+          )}
+          {meta && (
+            <div class="logi__row">
+              <dt class="logi__k">Meta</dt>
+              <dd class="logi__v">{meta}</dd>
+            </div>
+          )}
+        </dl>
+
+        <dl class="course__stats" data-reveal data-delay="3">
+          <div class="stat">
+            <dt class="stat__k">Distancia</dt>
+            <dd class="stat__v">{totalKm.toFixed(1)} <span class="stat__u">km</span></dd>
+          </div>
+          <div class="stat">
+            <dt class="stat__k">Altitud</dt>
+            <dd class="stat__v">
+              {nf.format(Math.round(eMin))}–{nf.format(Math.round(eMax))} <span class="stat__u">m</span>
+            </dd>
+          </div>
+          <div class="stat">
+            <dt class="stat__k">Desnivel</dt>
+            <dd class="stat__v">+{elevation.gainM} <span class="stat__u">m</span></dd>
+          </div>
+        </dl>
+
         {deadlineBadge && <p class="course__badge" data-reveal data-delay="3">{deadlineBadge}</p>}
       </div>
 
-      <dl class="course__stats" data-reveal data-delay="2">
-        <div class="stat">
-          <dt class="stat__k">Distancia</dt>
-          <dd class="stat__v">{totalKm.toFixed(1)} <span class="stat__u">km</span></dd>
-        </div>
-        <div class="stat">
-          <dt class="stat__k">Altitud</dt>
-          <dd class="stat__v">
-            {nf.format(Math.round(eMin))}–{nf.format(Math.round(eMax))} <span class="stat__u">m</span>
-          </dd>
-        </div>
-        <div class="stat">
-          <dt class="stat__k">Desnivel</dt>
-          <dd class="stat__v">+{elevation.gainM} <span class="stat__u">m</span></dd>
-        </div>
-      </dl>
+      <figure class="route" data-reveal data-delay="2">
+        <Image
+          class="route__img"
+          src={routeMap}
+          alt={`Mapa del recorrido oficial de ${title}: partida en ${event.location} y meta en ${meta ?? 'el centro de La Paz'}.`}
+          widths={[600, 900, 1000]}
+          sizes="(max-width: 899px) 100vw, 560px"
+          loading="lazy"
+        />
+        <figcaption class="route__cap">Recorrido oficial · {totalKm.toFixed(1)} km</figcaption>
+      </figure>
     </div>
-
-    <figure class="route" data-reveal data-delay="2">
-      <Image
-        class="route__img"
-        src={routeMap}
-        alt={`Mapa del recorrido oficial de ${title}: partida en Av. Camacho esq. Loayza y meta en Plaza Hernando Siles, por el centro de ${event.city ?? 'La Paz'}.`}
-        widths={[600, 900, 1000]}
-        sizes="(max-width: 980px) 100vw, 920px"
-        loading="lazy"
-      />
-      <figcaption class="route__cap">Recorrido oficial · {totalKm.toFixed(1)} km</figcaption>
-    </figure>
   </div>
 </section>
 
@@ -93,13 +117,25 @@ const eMax = elevation.maxM;
     padding: clamp(48px, 6vw, 88px) clamp(20px, 5vw, 56px);
   }
 
-  /* --- Encabezado: copy + stats ------------------------------------------ */
-  .course__head {
+  /* --- Composición: texto+logística | mapa ------------------------------- */
+  /* Móvil: apilado (texto arriba, mapa a ancho completo abajo). */
+  .course__grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: clamp(24px, 4vw, 48px);
-    align-items: end;
-    margin-bottom: clamp(28px, 4vw, 48px);
+    grid-template-columns: 1fr;
+    gap: clamp(28px, 5vw, 52px);
+    align-items: start;
+  }
+  /* Desktop: dos columnas; el mapa cuadrado llena su columna y se va la banda
+     muerta que dejaba el cuadrado centrado en un marco más ancho. */
+  @media (min-width: 900px) {
+    .course__grid {
+      grid-template-columns: minmax(0, 0.82fr) minmax(0, 1fr);
+      gap: clamp(40px, 5vw, 72px);
+      align-items: center;
+    }
+  }
+  .course__aside {
+    min-width: 0;
   }
   .eyebrow {
     margin: 0;
@@ -118,12 +154,36 @@ const eMax = elevation.maxM;
     line-height: 0.96;
     text-wrap: balance;
   }
-  .course__desc {
-    font-size: 16px;
-    line-height: 1.55;
-    color: var(--fl-on-cream-muted);
-    margin: 16px 0 0;
-    max-width: 440px;
+  /* Logística (concentración / partida / meta): filas etiqueta → valor que
+     complementan el mapa con los datos exactos que en él no se leen. */
+  .logi {
+    margin: clamp(20px, 3vw, 28px) 0 0;
+    display: flex;
+    flex-direction: column;
+    max-width: 460px;
+  }
+  .logi__row {
+    display: grid;
+    grid-template-columns: 116px 1fr;
+    gap: 16px;
+    padding: 13px 0;
+    align-items: baseline;
+  }
+  .logi__row + .logi__row {
+    border-top: 1px solid rgba(20, 35, 58, 0.1);
+  }
+  .logi__k {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--fl-on-cream-faint);
+  }
+  .logi__v {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.4;
+    color: var(--fl-ink);
   }
   .course__badge {
     display: inline-block;
@@ -141,7 +201,7 @@ const eMax = elevation.maxM;
     display: flex;
     flex-wrap: wrap;
     gap: clamp(20px, 4vw, 40px);
-    margin: 0;
+    margin: clamp(24px, 3vw, 32px) 0 0;
   }
   .stat {
     margin: 0;
@@ -167,18 +227,16 @@ const eMax = elevation.maxM;
   }
 
   /* --- Mapa del recorrido oficial ---------------------------------------- */
+  /* El mapa llena su columna; borde fino directamente sobre la imagen (sin mat
+     crema, que se leía como passepartout heredado del placeholder). */
   .route {
     margin: 0;
-    background: var(--fl-cream-3);
-    border: 1px solid rgba(20, 35, 58, 0.1);
-    padding: clamp(14px, 2vw, 22px);
   }
   .route__img {
     width: 100%;
     height: auto;
-    max-width: 920px;
-    margin: 0 auto;
     display: block;
+    border: 1px solid rgba(20, 35, 58, 0.14);
   }
   .route__cap {
     font-family: 'Space Mono', monospace;
@@ -186,7 +244,7 @@ const eMax = elevation.maxM;
     letter-spacing: 1px;
     text-transform: uppercase;
     color: var(--fl-on-cream-muted);
-    margin-top: 10px;
+    margin-top: 12px;
     text-align: center;
   }
 </style>

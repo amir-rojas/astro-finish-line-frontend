@@ -11,6 +11,7 @@ const events = defineCollection({
     startTime: z.string().optional(),             // partida, "08:00"
     timezoneOffset: z.string().default('-04:00'), // para el countdown (Bolivia)
     location: z.string(),                          // sede / punto de partida
+    finishLocation: z.string().optional(),         // punto de meta (si difiere de la partida)
     city: z.string().optional(),
     country: z.string().optional(),
     courseTitle: z.string().optional(),            // titular de la sección recorrido
