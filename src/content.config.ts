@@ -36,6 +36,8 @@ const events = defineCollection({
     instagram: z.string().optional(),              // handle "@finishlinebolivia"
     instagramUrl: z.string().url().optional(),     // URL del perfil de Instagram
     facebookUrl: z.string().url().optional(),      // URL de la página de Facebook
+    tiktokUrl: z.string().url().optional(),        // URL del perfil de TikTok
+    youtubeUrl: z.string().url().optional(),       // URL del canal de YouTube
     whatsapp: z.string().optional(),               // contacto, "+591 62151410"
     organizer: z.string().optional(),
     organizerLogo: z.string().optional(),
