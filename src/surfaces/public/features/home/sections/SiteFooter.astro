@@ -125,7 +125,7 @@ const whenLine = `${dayMonth(event.date)} ${eventYear} · ${event.city ?? place}
       background-color 180ms var(--ease-out);
   }
   .btn--primary {
-    background: var(--fl-orange);
+    background: var(--fl-orange-strong);
     color: #fff;
   }
   .btn__arrow {
@@ -134,7 +134,7 @@ const whenLine = `${dayMonth(event.date)} ${eventYear} · ${event.city ?? place}
   @media (hover: hover) {
     .btn--primary:hover {
       transform: translateY(-2px);
-      background: #ff5e1d;
+      background: var(--fl-orange-hover);
     }
     .btn:hover .btn__arrow {
       transform: translateX(4px);
