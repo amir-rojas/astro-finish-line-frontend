@@ -1,6 +1,8 @@
 ---
 import type { EventData } from '../format';
 import { placeLine } from '../format';
+import { Image } from 'astro:assets';
+import logo from '../../../../../assets/images/logo.png';
 
 interface Props {
   event: EventData;
@@ -10,7 +12,8 @@ const reg = event.registrationUrl;
 const year = new Date().getFullYear();
 const place = placeLine(event);
 const social = [event.instagram, place].filter(Boolean).join(' · ');
-const copyright = `© ${year} ${event.organizer ?? 'Finish Line Sporting Events'}`;
+const organizer = event.organizer ?? 'Finish Line Sporting Events';
+const copyright = `© ${year} ${organizer}`;
 ---
 
 <footer id="app" class="ft">
@@ -41,12 +44,16 @@ const copyright = `© ${year} ${event.organizer ?? 'Finish Line Sporting Events'
     </div>
 
     <div class="ft__bar">
-      <div class="brand">
-        <span class="brand__mark" aria-hidden="true"></span>
-        <span class="brand__word">FINISH LINE</span>
+      <div class="ft__org">
+        <span class="ft__orglabel">Organiza</span>
+        <span class="ft__plaque">
+          <Image class="ft__logo" src={logo} alt={organizer} width={420} height={380} loading="lazy" />
+        </span>
       </div>
-      {social && <div class="ft__social">{social}</div>}
-      <div class="ft__legal">{copyright}</div>
+      <div class="ft__meta">
+        {social && <span class="ft__social">{social}</span>}
+        <span class="ft__legal">{copyright}</span>
+      </div>
     </div>
   </div>
 </footer>
@@ -129,28 +136,43 @@ const copyright = `© ${year} ${event.organizer ?? 'Finish Line Sporting Events'
     transform: scale(0.97);
   }
 
+  /* --- Barra inferior: organizador + meta -------------------------------- */
   .ft__bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 20px;
+    gap: clamp(20px, 4vw, 40px);
     flex-wrap: wrap;
-    padding-top: 30px;
+    padding-top: clamp(28px, 4vw, 40px);
   }
-  .brand {
+  .ft__org {
     display: flex;
     align-items: center;
-    gap: 11px;
+    gap: clamp(14px, 2vw, 20px);
   }
-  .brand__mark {
-    width: 12px;
-    height: 12px;
-    background: var(--fl-orange);
+  .ft__orglabel {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #8295aa;
   }
-  .brand__word {
-    font-family: 'Archivo Black', sans-serif;
-    font-size: 20px;
-    letter-spacing: 1px;
+  /* Placa clara: el logo tiene partes navy; sobre ella se mantienen legibles. */
+  .ft__plaque {
+    display: inline-flex;
+    background: var(--fl-cream);
+    padding: clamp(10px, 1.5vw, 14px) clamp(14px, 2vw, 20px);
+  }
+  .ft__logo {
+    height: clamp(48px, 6vw, 68px);
+    width: auto;
+    display: block;
+  }
+  .ft__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    text-align: right;
   }
   .ft__social {
     font-family: 'Space Mono', monospace;
@@ -170,6 +192,11 @@ const copyright = `© ${year} ${event.organizer ?? 'Finish Line Sporting Events'
   @media (min-width: 720px) {
     .ft__app .btn {
       justify-self: end;
+    }
+  }
+  @media (max-width: 520px) {
+    .ft__meta {
+      text-align: left;
     }
   }
   @media (prefers-reduced-motion: reduce) {

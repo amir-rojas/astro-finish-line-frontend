@@ -7,7 +7,6 @@ import SiteHeader from '@public/features/home/sections/SiteHeader.astro';
 import Hero from '@public/features/home/sections/Hero.astro';
 import Price from '@public/features/home/sections/Price.astro';
 import Course from '@public/features/home/sections/Course.astro';
-import Organizer from '@public/features/home/sections/Organizer.astro';
 import SiteFooter from '@public/features/home/sections/SiteFooter.astro';
 
 const events = await getCollection('events');
@@ -22,7 +21,6 @@ const event = entry.data;
     <Hero {event} />
     <Price {event} />
     <Course {event} />
-    <Organizer {event} />
   </main>
   <SiteFooter {event} />
 </PublicLayout>
