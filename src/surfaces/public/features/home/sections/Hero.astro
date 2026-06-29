@@ -34,7 +34,10 @@ const altitude = event.altitudeM ? new Intl.NumberFormat('es-BO').format(event.a
   <div class="hero__inner">
     <div class="hero__copy">
       <p class="eyebrow" data-reveal>{eyebrow}</p>
-      <h1 class="hero__title" data-reveal data-delay="1">{event.tagline ?? event.title}</h1>
+      <h1 class="hero__title" data-reveal data-delay="1">
+        {event.tagline && <span class="hero__name">{event.title}</span>}
+        <span class="hero__tagline">{event.tagline ?? event.title}</span>
+      </h1>
 
       <div class="hero__stats" data-reveal data-delay="2">
         {distance && <span class="hero__distance">{distance}</span>}
@@ -132,12 +135,28 @@ const altitude = event.altitudeM ? new Intl.NumberFormat('es-BO').format(event.a
     text-transform: uppercase;
     color: var(--fl-orange);
   }
+  /* El H1 envuelve el nombre de la carrera (kicker) + el tagline display. */
   .hero__title {
+    margin: 16px 0 0;
+    display: flex;
+    flex-direction: column;
+  }
+  /* Kicker: nombre oficial de la carrera. Lleva la keyword principal al H1
+     sin robarle protagonismo al tagline. */
+  .hero__name {
+    font-family: 'Archivo', sans-serif;
+    font-weight: 700;
+    font-size: clamp(15px, 1.8vw, 20px);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--fl-cream);
+    margin-bottom: clamp(8px, 1.2vw, 12px);
+  }
+  .hero__tagline {
     font-family: 'Archivo Black', sans-serif;
     font-size: clamp(40px, 7.4vw, 88px);
     line-height: 0.9;
     letter-spacing: -0.03em;
-    margin: 16px 0 0;
     text-transform: uppercase;
     white-space: pre-line; /* respeta los saltos de línea del tagline */
     color: var(--fl-cream);

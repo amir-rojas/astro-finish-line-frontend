@@ -9,7 +9,7 @@ import Hero from '@public/features/home/sections/Hero.astro';
 import Price from '@public/features/home/sections/Price.astro';
 import Course from '@public/features/home/sections/Course.astro';
 import SiteFooter from '@public/features/home/sections/SiteFooter.astro';
-import { eventJsonLd } from '@public/features/home/format';
+import { eventJsonLd, seoTitle } from '@public/features/home/format';
 
 const events = await getCollection('events');
 const entry = events.find((e) => e.data.featured) ?? events[0];
@@ -34,7 +34,7 @@ const jsonLd = eventJsonLd(event, {
 });
 ---
 
-<PublicLayout title={event.title} description={event.description} ogImage={ogImage}>
+<PublicLayout title={seoTitle(event)} description={event.description} ogImage={ogImage}>
   <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} is:inline />
   <SiteHeader {event} />
   <main>

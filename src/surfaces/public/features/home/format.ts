@@ -51,6 +51,11 @@ export function placeLine(event: EventData): string {
   return [event.city, event.country].filter(Boolean).join(', ');
 }
 
+/** Título SEO con año, p.ej. "La Paz 10K 2026". El brand lo añade el layout. */
+export function seoTitle(event: EventData): string {
+  return `${event.title} ${event.date.getUTCFullYear()}`;
+}
+
 // --- SEO: datos estructurados ---------------------------------------------
 
 // Moneda mostrada (p.ej. "Bs") -> código ISO 4217 para schema.org/Offer.
