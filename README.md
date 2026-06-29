@@ -1,10 +1,13 @@
-# Astro Starter Kit: Minimal
+# Finish Line — Frontend
 
-```sh
-npm create astro@latest -- --template minimal
-```
+Frontend en Astro de Finish Line (inscripciones y resultados de carreras). Sitio
+público en producción: [www.finishlinebolivia.com](https://www.finishlinebolivia.com).
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+## 🔀 Flujo de trabajo
+
+Este repo usa entornos `develop` (staging) → `main` (producción). Antes de tocar
+ramas o abrir un PR, leé **[CONTRIBUTING.md](CONTRIBUTING.md)** — explica los
+entornos, el modelo de ramas y el flujo diario.
 
 ## 🚀 Project Structure
 
