@@ -14,9 +14,12 @@ yarn-error.log*
 pnpm-debug.log*
 
 
-# environment variables
+# environment variables — se ignoran TODOS los .env locales (incluye
+# .env.local, .env.development, .env.staging, .env.production y sus *.local),
+# salvo .env.example que sí se versiona como plantilla.
 .env
-.env.production
+.env.*
+!.env.example
 
 # macOS-specific files
 .DS_Store
