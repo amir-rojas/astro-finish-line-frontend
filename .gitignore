@@ -32,3 +32,6 @@ skills-lock.json
 .claude/
 .codex/
 .impeccable/
+
+# caché de registro de skills (autogenerado, no se versiona)
+.atl/
