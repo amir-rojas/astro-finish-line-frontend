@@ -8,11 +8,12 @@ interface Props {
 const { event } = Astro.props;
 const target = countdownISO(event);
 
+// Sin fecha de cierre (carrera gratis con cupos limitados): cae al aviso de cupos.
 const deadline = event.registrationDeadline
   ? `Inscripciones hasta el ${dayMonth(event.registrationDeadline)}${
       event.registrationNote ? ` ${event.registrationNote}` : ''
     }`
-  : null;
+  : (event.registrationNote ?? null);
 
 const units = [
   { key: 'd', label: 'Días' },
