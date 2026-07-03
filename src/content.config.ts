@@ -27,7 +27,7 @@ const events = defineCollection({
       .array(z.object({ name: z.string(), ages: z.string() }))
       .default([]),
     categoriesNote: z.string().optional(),
-    registrationUrl: z.string().url().optional(),  // Eventrid (enlace saliente)
+    registrationUrl: z.string().url().optional(),  // inscripción externa (enlace saliente)
     registrationDeadline: z.coerce.date().optional(),
     registrationNote: z.string().optional(),       // "o hasta agotar cupos"
     status: z.enum(['upcoming', 'open', 'closed', 'finished']).default('upcoming'),

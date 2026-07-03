@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1140 700" width="1140" height="700" font-family="Arial, Helvetica, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#122144"/>
+    </marker>
+    <marker id="arrowDash" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6B7280"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1140" height="700" fill="#FFFFFF"/>
+
+  <!-- Título -->
+  <text x="40" y="46" font-size="27" font-weight="bold" fill="#122144">Finish Line — Arquitectura Frontend</text>
+  <text x="42" y="72" font-size="13" fill="#6B7280">Flujo: clientes (web y móvil) → Astro (public · admin) → Strapi · Eventrid · Backend Go</text>
+
+  <!-- Clientes -->
+  <rect x="40" y="298" width="180" height="138" rx="10" fill="#FFFFFF" stroke="#122144" stroke-width="2"/>
+  <!-- icono monitor -->
+  <rect x="72" y="324" width="58" height="40" rx="4" fill="#F3F4F6" stroke="#122144" stroke-width="2"/>
+  <rect x="79" y="330" width="44" height="22" rx="2" fill="#2563EB"/>
+  <rect x="94" y="366" width="14" height="5" fill="#122144"/>
+  <!-- icono celular -->
+  <rect x="146" y="328" width="26" height="42" rx="5" fill="#F3F4F6" stroke="#122144" stroke-width="2"/>
+  <rect x="150" y="333" width="18" height="29" rx="1" fill="#2563EB"/>
+  <text x="130" y="394" font-size="15" font-weight="bold" fill="#122144" text-anchor="middle">Clientes</text>
+  <text x="130" y="412" font-size="12" fill="#374151" text-anchor="middle">Web y móvil</text>
+  <text x="130" y="427" font-size="10" fill="#6B7280" text-anchor="middle">navegador desktop y celular</text>
+
+  <!-- Contenedor Astro -->
+  <rect x="296" y="148" width="456" height="486" rx="14" fill="#FFF7F2" stroke="#FF5A1F" stroke-width="2.5"/>
+  <text x="316" y="178" font-size="16" font-weight="bold" fill="#122144">Astro Frontend · Vercel</text>
+  <text x="316" y="195" font-size="10.5" fill="#9A7B66">output: static — público estático / CDN</text>
+
+  <!-- shared -->
+  <rect x="320" y="202" width="408" height="50" rx="8" fill="#EEF2F7" stroke="#9AA7B5" stroke-width="1.5"/>
+  <text x="524" y="223" font-size="11.5" font-weight="bold" fill="#1F2937" text-anchor="middle">shared/ · BaseLayout (SEO/OG) · getEvents() · UI</text>
+  <text x="524" y="239" font-size="10" fill="#6B7280" text-anchor="middle">usado por public y admin</text>
+
+  <!-- surface public -->
+  <rect x="320" y="266" width="408" height="156" rx="10" fill="#E9F2FF" stroke="#2563EB" stroke-width="2"/>
+  <text x="336" y="289" font-size="13" font-weight="bold" fill="#1D4ED8">surface  public</text>
+  <text x="712" y="289" font-size="10.5" fill="#2563EB" text-anchor="end">estático · sin sesión · CDN</text>
+  <rect x="340" y="300" width="368" height="106" rx="8" fill="#FFFFFF" stroke="#BBD3F5" stroke-width="1.5"/>
+  <text x="356" y="324" font-size="11" font-weight="bold" fill="#122144">features/</text>
+  <text x="356" y="346" font-size="11" fill="#374151">home · events · registration · results</text>
+  <text x="356" y="370" font-size="11" fill="#374151">datos vía getEvents()</text>
+  <text x="356" y="390" font-size="11" fill="#374151">CTA inscripción → Eventrid</text>
+
+  <!-- surface admin -->
+  <rect x="320" y="438" width="408" height="160" rx="10" fill="#ECEAF7" stroke="#2E2A6B" stroke-width="2"/>
+  <text x="336" y="461" font-size="13" font-weight="bold" fill="#2E2A6B">surface  admin</text>
+  <text x="712" y="461" font-size="10.5" fill="#2E2A6B" text-anchor="end">SSR · BFF · cookie httpOnly</text>
+  <rect x="340" y="472" width="368" height="110" rx="8" fill="#FFFFFF" stroke="#C7BFEA" stroke-width="1.5"/>
+  <text x="356" y="496" font-size="11" font-weight="bold" fill="#122144">features/</text>
+  <text x="356" y="518" font-size="11" fill="#374151">auth · dashboard · registrations · events</text>
+  <text x="356" y="542" font-size="11" fill="#374151">sesión staff (organizadores)</text>
+  <text x="356" y="562" font-size="10.5" font-style="italic" fill="#8B8B8B">parkeado — rama admin-login-auth</text>
+
+  <!-- Vercel Deploy Hook -->
+  <rect x="806" y="158" width="288" height="70" rx="10" fill="#000000"/>
+  <text x="950" y="188" font-size="12.5" font-weight="bold" fill="#FFFFFF" text-anchor="middle">▲ Vercel — Deploy Hook</text>
+  <text x="950" y="208" font-size="10.5" fill="#D1D5DB" text-anchor="middle">rebuild on content change</text>
+
+  <!-- Strapi -->
+  <rect x="806" y="280" width="288" height="92" rx="10" fill="#4945FF"/>
+  <text x="950" y="309" font-size="13" font-weight="bold" fill="#FFFFFF" text-anchor="middle">Strapi — Headless CMS</text>
+  <text x="950" y="331" font-size="11" fill="#E5E4FF" text-anchor="middle">contenido editorial</text>
+  <text x="950" y="349" font-size="11" fill="#E5E4FF" text-anchor="middle">+ panel de edición admin</text>
+
+  <!-- Eventrid -->
+  <rect x="806" y="404" width="288" height="82" rx="10" fill="#EEEEEE" stroke="#9CA3AF" stroke-width="1.5"/>
+  <text x="950" y="434" font-size="13" font-weight="bold" fill="#1F2937" text-anchor="middle">Eventrid  (externo)</text>
+  <text x="950" y="457" font-size="11" fill="#374151" text-anchor="middle">inscripción / pago — Fase 1</text>
+
+  <!-- Backend Go -->
+  <rect x="806" y="520" width="288" height="96" rx="10" fill="#E6FAFF" stroke="#00ADD8" stroke-width="2" stroke-dasharray="7 4"/>
+  <text x="950" y="549" font-size="13" font-weight="bold" fill="#0B6B82" text-anchor="middle">Backend Go — Fase 2</text>
+  <text x="950" y="571" font-size="11" fill="#155E6B" text-anchor="middle">pagos propios · resultados</text>
+  <text x="950" y="591" font-size="10" font-style="italic" fill="#6B7280" text-anchor="middle">(se desarrolla en otro entorno)</text>
+
+  <!-- Leyenda -->
+  <rect x="40" y="472" width="200" height="150" rx="8" fill="#FFFFFF" stroke="#CCCCCC" stroke-width="1.5"/>
+  <text x="56" y="494" font-size="12" font-weight="bold" fill="#122144">Leyenda</text>
+  <line x1="56" y1="513" x2="88" y2="513" stroke="#122144" stroke-width="2"/>
+  <text x="96" y="517" font-size="11" fill="#374151">Fase 1 (hoy)</text>
+  <line x1="56" y1="535" x2="88" y2="535" stroke="#6B7280" stroke-width="2" stroke-dasharray="6 4"/>
+  <text x="96" y="539" font-size="11" fill="#374151">Fase 2 / futuro</text>
+  <line x1="56" y1="554" x2="224" y2="554" stroke="#E5E7EB" stroke-width="1"/>
+  <text x="56" y="574" font-size="10.5" font-weight="bold" fill="#122144">Frontera</text>
+  <text x="56" y="592" font-size="10.5" fill="#374151">contenido → Strapi</text>
+  <text x="56" y="608" font-size="10.5" fill="#374151">dominio → Backend Go</text>
+
+  <!-- Flechas -->
+  <!-- Request / Response -->
+  <line x1="220" y1="346" x2="294" y2="346" stroke="#122144" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="257" y="339" font-size="11" fill="#122144" text-anchor="middle">Request</text>
+  <line x1="294" y1="392" x2="220" y2="392" stroke="#122144" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="257" y="407" font-size="11" fill="#122144" text-anchor="middle">Response</text>
+
+  <!-- public -> Strapi -->
+  <line x1="728" y1="332" x2="804" y2="324" stroke="#122144" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="766" y="312" font-size="10.5" fill="#374151" text-anchor="middle">fetch contenido (build/SSR)</text>
+
+  <!-- public -> Eventrid -->
+  <line x1="728" y1="390" x2="804" y2="428" stroke="#122144" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="762" y="402" font-size="10.5" fill="#374151" text-anchor="middle">CTA inscripción</text>
+
+  <!-- admin -> Go -->
+  <line x1="728" y1="516" x2="804" y2="556" stroke="#6B7280" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrowDash)"/>
+  <text x="760" y="528" font-size="10.5" fill="#4B5563" text-anchor="middle">BFF · Fase 2</text>
+
+  <!-- Strapi -> Vercel -->
+  <line x1="950" y1="280" x2="950" y2="230" stroke="#122144" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="986" y="258" font-size="10.5" fill="#374151">webhook</text>
+
+  <!-- Vercel -> Astro (rebuild) -->
+  <line x1="806" y1="200" x2="744" y2="166" stroke="#122144" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="772" y="180" font-size="10.5" fill="#374151" text-anchor="middle">rebuild</text>
+</svg>

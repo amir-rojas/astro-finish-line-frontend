@@ -1,0 +1,108 @@
+<mxfile host="VSCode" agent="Claude" version="24.0.0">
+  <diagram name="Arquitectura Frontend" id="finishline-frontend">
+    <mxGraphModel dx="1100" dy="850" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="850" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Título -->
+        <mxCell id="title" value="Finish Line — Arquitectura Frontend" style="text;html=1;fontSize=26;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="520" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="Flujo: clientes (web y móvil) → Astro (public / admin) → Strapi · Eventrid · Backend Go" style="text;html=1;fontSize=12;fontColor=#666666;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="58" width="560" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Dispositivos -->
+        <mxCell id="devices" value="Clientes — Web y móvil&lt;br&gt;&lt;br&gt;Navegador en desktop&lt;br&gt;y celular" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#122144;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="360" width="160" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- Contenedor Astro -->
+        <mxCell id="astro" value="Astro Frontend  ·  Vercel  (output: static)" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=14;align=left;spacingLeft=12;spacingTop=10;fillColor=#FFF8F2;strokeColor=#FF5D01;" vertex="1" parent="1">
+          <mxGeometry x="300" y="150" width="430" height="490" as="geometry" />
+        </mxCell>
+
+        <!-- shared -->
+        <mxCell id="shared" value="shared/  —  BaseLayout (SEO/OG)  ·  getEvents()  ·  UI primitivos" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EEF2F7;strokeColor=#90A4AE;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="325" y="200" width="380" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- surface public -->
+        <mxCell id="public" value="surface  public  —  estático / CDN  (sin sesión)" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8;fontStyle=1;fontSize=12;fillColor=#E6F4FF;strokeColor=#1A73E8;" vertex="1" parent="1">
+          <mxGeometry x="325" y="275" width="380" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="public-feat" value="features/   home · events · registration · results&lt;br&gt;&lt;br&gt;datos vía getEvents()  ·  CTA inscripción → Eventrid" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#90CAF9;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="345" y="320" width="340" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- surface admin -->
+        <mxCell id="admin" value="surface  admin  —  SSR · BFF · cookie httpOnly  (staff)" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8;fontStyle=1;fontSize=12;fillColor=#F0ECFF;strokeColor=#2E2A6B;" vertex="1" parent="1">
+          <mxGeometry x="325" y="445" width="380" height="135" as="geometry" />
+        </mxCell>
+        <mxCell id="admin-feat" value="features/   auth · dashboard · registrations · events&lt;br&gt;&lt;br&gt;(parkeado — rama admin-login-auth)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C5B8EE;fontSize=11;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="345" y="490" width="340" height="75" as="geometry" />
+        </mxCell>
+
+        <!-- Vercel Deploy Hook -->
+        <mxCell id="deploy" value="▲ Vercel Deploy Hook&lt;br&gt;&lt;br&gt;Rebuild on content change" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#000000;fontColor=#FFFFFF;strokeColor=#000000;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="820" y="165" width="210" height="75" as="geometry" />
+        </mxCell>
+
+        <!-- Strapi CMS -->
+        <mxCell id="strapi" value="Strapi — Headless CMS&lt;br&gt;&lt;br&gt;Contenido editorial + panel de edición" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4945FF;fontColor=#FFFFFF;strokeColor=#2B27B5;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="820" y="290" width="210" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- Eventrid -->
+        <mxCell id="eventrid" value="Eventrid  (externo)&lt;br&gt;&lt;br&gt;Inscripción / pago — Fase 1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECECEC;strokeColor=#999999;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="820" y="410" width="210" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Backend Go -->
+        <mxCell id="go" value="Backend Go — Fase 2&lt;br&gt;&lt;br&gt;Pagos propios · Resultados&lt;br&gt;(otro entorno)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6FBFF;strokeColor=#00ADD8;fontSize=11;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="820" y="520" width="210" height="95" as="geometry" />
+        </mxCell>
+
+        <!-- Leyenda -->
+        <mxCell id="legend" value="Leyenda&lt;br&gt;━━  Fase 1 (hoy)&lt;br&gt;┈ ┈  Fase 2 / futuro&lt;br&gt;&lt;br&gt;Frontera:&lt;br&gt;contenido = Strapi · dominio = Go" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fillColor=#FFFFFF;strokeColor=#BBBBBB;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="540" width="200" height="110" as="geometry" />
+        </mxCell>
+
+        <!-- Edges -->
+        <mxCell id="e-req" value="Request" style="endArrow=classic;html=1;fontSize=11;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.45;entryDx=0;entryDy=0;" edge="1" parent="1" source="devices" target="astro">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-res" value="Response" style="endArrow=classic;html=1;fontSize=11;dashed=0;exitX=0;exitY=0.6;exitDx=0;exitDy=0;entryX=1;entryY=0.75;entryDx=0;entryDy=0;" edge="1" parent="1" source="astro" target="devices">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e-public-strapi" value="fetch contenido&#10;(build / SSR)" style="endArrow=classic;html=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="public" target="strapi">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-public-eventrid" value="CTA inscripción" style="endArrow=classic;html=1;fontSize=11;exitX=1;exitY=0.85;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="public" target="eventrid">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e-admin-go" value="BFF (Fase 2)" style="endArrow=classic;html=1;fontSize=11;dashed=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="admin" target="go">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e-strapi-deploy" value="webhook" style="endArrow=classic;html=1;fontSize=11;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="strapi" target="deploy">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-deploy-astro" value="rebuild" style="endArrow=classic;html=1;fontSize=11;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.05;entryDx=0;entryDy=0;" edge="1" parent="1" source="deploy" target="astro">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e-shared-public" value="" style="endArrow=none;html=1;dashed=1;strokeColor=#B0B0B0;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="shared" target="public">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-shared-admin" value="" style="endArrow=none;html=1;dashed=1;strokeColor=#B0B0B0;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="shared" target="admin">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
