@@ -9,7 +9,6 @@ interface Props {
 }
 const { event } = Astro.props;
 
-const reg = event.registrationUrl;
 const distance = event.distances[0];
 const eyebrow = `${heroDate(event.date)} — ${placeLine(event)}`;
 const altitude = event.altitudeM ? new Intl.NumberFormat('es-BO').format(event.altitudeM) : null;
@@ -56,13 +55,9 @@ const altitude = event.altitudeM ? new Intl.NumberFormat('es-BO').format(event.a
       {event.description && <p class="hero__desc" data-reveal data-delay="3">{event.description}</p>}
 
       <div class="hero__actions" data-reveal data-delay="3">
-        {
-          reg && (
-            <a class="btn btn--primary" href={reg} target="_blank" rel="noopener noreferrer">
-              Inscribirse ahora <span class="btn__arrow" aria-hidden="true">→</span>
-            </a>
-          )
-        }
+        <a class="btn btn--primary" href="#categorias">
+          Inscríbete <span class="btn__arrow" aria-hidden="true">→</span>
+        </a>
         <a class="btn btn--ghost" href="#recorrido">Ver recorrido</a>
       </div>
     </div>

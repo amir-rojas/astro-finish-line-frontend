@@ -21,8 +21,25 @@ const events = defineCollection({
     distances: z.array(z.string()).default([]),    // ["5K", "10K", "21K", "42K"]
     price: z
       .object({ amount: z.number(), currency: z.string().default('Bs') })
-      .optional(),
-    includes: z.array(z.string()).default([]),     // ["Incluye dorsal oficial", ...]
+      .optional(),                                  // legacy: precio único (fallback si no hay registrationOptions)
+    // Vías de inscripción de la carrera. Una carrera puede tener varias: p.ej.
+    // una GRATIS (cupo cubierto) y otra de pago con kit. El dorsal las renderiza
+    // en orden; `featured` marca la resaltada. Deriva "gratis" del dato real
+    // (amount === 0), sin flags inventados. Si está vacío, el dorsal cae al
+    // modelo legacy (price + registrationUrl único).
+    registrationOptions: z
+      .array(
+        z.object({
+          label: z.string(),                                                   // "Gratis", "Con kit"
+          price: z.object({ amount: z.number(), currency: z.string().default('Bs') }),
+          url: z.string().url(),                                               // inscripción externa de esta vía
+          includes: z.array(z.string()).default([]),                          // qué incluye esta vía
+          note: z.string().optional(),                                         // "Hasta agotar cupos", "Incluye kit"
+          featured: z.boolean().default(false),                               // vía resaltada (primaria)
+        }),
+      )
+      .default([]),
+    includes: z.array(z.string()).default([]),     // legacy: qué incluye (fallback del modelo de precio único)
     categories: z
       .array(z.object({ name: z.string(), ages: z.string() }))
       .default([]),
