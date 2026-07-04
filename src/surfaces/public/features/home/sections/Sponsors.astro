@@ -1,0 +1,180 @@
+---
+// Sección PATROCINADORES: tira (marquee) de logos que corre en loop infinito,
+// CSS puro (sin JS). Cierra la landing con credibilidad, justo antes del footer,
+// sin robar foco al CTA de inscripción.
+//
+// Los logos vienen dispares: unos con fondo transparente (conitzer, runa-run) y
+// otros con fondo NEGRO opaco que es parte de su marca (cronos, GAML). Para que
+// convivan sin retocar logos ajenos, cada uno va sobre un recuadro claro
+// uniforme (--fl-surface): así todos quedan en el contexto para el que fueron
+// diseñados y la fila se lee ordenada sobre el navy.
+import { Image } from 'astro:assets';
+import runaRun from '../../../../../assets/sponsors-logos/runa-run.png';
+import cronos from '../../../../../assets/sponsors-logos/cronos.png';
+import conitzer from '../../../../../assets/sponsors-logos/conitzer.png';
+import gaml from '../../../../../assets/sponsors-logos/GAML.png';
+
+// Orden: institucional/co-organizador primero (GAML = alcaldía), luego el resto.
+// Al ser un loop no hay "primero" real, pero define el punto de entrada visual.
+const sponsors = [
+  { name: 'GAML · Dirección de Deportes', logo: gaml },
+  { name: 'Cronos Eventos Deportivos', logo: cronos },
+  { name: 'Runa Run', logo: runaRun },
+  { name: 'Conitzer Running', logo: conitzer },
+];
+---
+
+<section id="patrocinadores" class="sponsors">
+  <div class="sponsors__inner">
+    <h2 class="sponsors__label" data-reveal>Con el apoyo de</h2>
+
+    <!-- El track lleva DOS copias idénticas de la lista: la animación desplaza
+         exactamente el ancho de una copia (-50%), así el loop es continuo. La
+         segunda copia es decorativa (aria-hidden) para no duplicar la lectura. -->
+    <div class="marquee" data-reveal data-delay="1">
+      <div class="marquee__track">
+        <ul class="marquee__group">
+          {
+            sponsors.map((s) => (
+              <li class="sponsor">
+                <Image
+                  class="sponsor__img"
+                  src={s.logo}
+                  alt={s.name}
+                  widths={[160, 260, 388]}
+                  sizes="160px"
+                  loading="lazy"
+                />
+              </li>
+            ))
+          }
+        </ul>
+        <ul class="marquee__group" aria-hidden="true">
+          {
+            sponsors.map((s) => (
+              <li class="sponsor">
+                <Image
+                  class="sponsor__img"
+                  src={s.logo}
+                  alt=""
+                  widths={[160, 260, 388]}
+                  sizes="160px"
+                  loading="lazy"
+                />
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .sponsors {
+    background: var(--fl-navy);
+    color: var(--fl-cream);
+  }
+  .sponsors__inner {
+    max-width: var(--fl-container);
+    margin: 0 auto;
+    padding: clamp(44px, 6vw, 76px) clamp(20px, 5vw, 56px);
+  }
+
+  .sponsors__label {
+    margin: 0 0 clamp(24px, 3vw, 34px);
+    text-align: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--fl-on-navy-soft);
+  }
+
+  /* --- Marquee ------------------------------------------------------------ */
+  /* El contenedor recorta el desborde y difumina los bordes (aparición/salida
+     suave de los logos) en vez de un corte duro. */
+  .marquee {
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(
+      90deg,
+      transparent 0,
+      #000 8%,
+      #000 92%,
+      transparent 100%
+    );
+    mask-image: linear-gradient(90deg, transparent 0, #000 8%, #000 92%, transparent 100%);
+  }
+  .marquee__track {
+    display: flex;
+    width: max-content;
+    animation: sponsors-marquee 32s linear infinite;
+    will-change: transform;
+  }
+  /* Pausa al pasar el puntero: deja leer un logo puntual sin perseguirlo. */
+  .marquee:hover .marquee__track {
+    animation-play-state: paused;
+  }
+  .marquee__group {
+    display: flex;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* Cada logo en su recuadro claro uniforme. La separación va como margin (no
+     gap) para que las dos copias concatenen sin costura y el -50% sea exacto. */
+  .sponsor {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: clamp(150px, 20vw, 194px);
+    height: clamp(80px, 10vw, 104px);
+    padding: clamp(14px, 2vw, 20px);
+    margin-right: clamp(16px, 2.4vw, 26px);
+    background: var(--fl-surface);
+  }
+  .sponsor__img {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+  }
+
+  @keyframes sponsors-marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  /* Sin movimiento: la tira no corre. Se muestra una sola copia, centrada y
+     envolviendo si no entra, para que los logos sigan visibles y legibles. */
+  @media (prefers-reduced-motion: reduce) {
+    .marquee {
+      -webkit-mask-image: none;
+      mask-image: none;
+    }
+    .marquee__track {
+      animation: none;
+      width: 100%;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .marquee__group {
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .marquee__group[aria-hidden='true'] {
+      display: none;
+    }
+    .sponsor {
+      margin: clamp(8px, 1.5vw, 14px);
+    }
+  }
+</style>
