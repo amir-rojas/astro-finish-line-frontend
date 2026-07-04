@@ -237,7 +237,8 @@ const sharedIncludes =
      comprobante, coherente con el motivo del dorsal. */
   .opts {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    /* 60/40: la vía de pago (con kit, primera) manda; la gratis acompaña. */
+    grid-template-columns: 3fr 2fr;
   }
   .opts--single {
     grid-template-columns: 1fr;
@@ -284,8 +285,10 @@ const sharedIncludes =
     margin-left: 8px;
   }
   /* "Gratis" ocupa el lugar del monto: la palabra ES el dorsal. */
+  /* "Gratis" es la vía secundaria y vive en la columna angosta (40%): más chico
+     que el número de pago, sin desbordar su contenedor. */
   .opt__amount--free {
-    font-size: clamp(46px, 7vw, 78px);
+    font-size: clamp(34px, 4.6vw, 54px);
     text-transform: uppercase;
     color: var(--fl-orange);
   }
@@ -318,16 +321,29 @@ const sharedIncludes =
   /* Ítem exclusivo de una vía (el diferenciador, p.ej. el kit): reemplaza la
      viñeta por un ícono de kit y engrosa el texto, para que se lea de un vistazo
      qué obtiene de más quien elige esta vía. */
+  /* El diferenciador (el kit) es el titular visual de la tarjeta de pago: la
+     única razón para elegir esta vía sobre la gratis. Sube de tamaño respecto
+     al resto de la lista y separa con aire para que se lea de un vistazo. */
   .opt__incl-item--key {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-left: 0;
+    margin-bottom: 6px;
+    font-size: clamp(17px, 2vw, 20px);
     font-weight: 700;
+    letter-spacing: 0.005em;
+    color: var(--fl-cream);
   }
   .opt__incl-item--key::before {
     display: none;
   }
+  /* Ícono del kit: comparte el riel de las demás viñetas (borde izquierdo en 0)
+     y el texto arranca a 22px como el resto (16px ícono + 6px gap). El centrado
+     vertical lo resuelve flex sobre su propia línea — sin position:absolute ni
+     nudges de `top` que lo desalineaban. */
   .opt__incl-ico {
-    position: absolute;
-    left: -1px;
-    top: 0.02em;
+    flex: none;
     width: 16px;
     height: 16px;
     color: var(--fl-orange);
@@ -348,6 +364,7 @@ const sharedIncludes =
     align-items: center;
     justify-content: center;
     gap: 8px;
+    box-sizing: border-box;
     margin-top: clamp(24px, 3vw, 34px);
     padding: 16px 24px;
     background: var(--fl-orange-strong);
@@ -383,6 +400,19 @@ const sharedIncludes =
   .opt__cta:focus-visible {
     outline: 2px solid var(--fl-cream);
     outline-offset: 3px;
+  }
+  /* Vía secundaria (gratis): CTA fantasma. La vía con kit es la acción sólida y
+     dominante; la gratis sigue clara y clickeable, pero se lee secundaria. */
+  .opt:not(.opt--featured) .opt__cta {
+    background: transparent;
+    color: var(--fl-cream);
+    border: 1.5px solid var(--fl-orange-strong);
+  }
+  @media (hover: hover) {
+    .opt:not(.opt--featured) .opt__cta:hover {
+      background: var(--fl-orange-hover);
+      color: #fff;
+    }
   }
 
   /* Móvil: las vías se apilan. El separador pasa a una banda a cuadros de meta
