@@ -77,20 +77,32 @@ export function eventJsonLd(
   event: EventData,
   { url, image, organizerUrl }: { url: string; image?: string; organizerUrl: string },
 ): Record<string, unknown> {
-  const offers = event.registrationUrl
-    ? {
-        '@type': 'Offer',
-        url: event.registrationUrl,
-        availability: AVAILABILITY[event.status],
-        ...(event.price && {
-          price: event.price.amount,
-          priceCurrency: CURRENCY_ISO[event.price.currency] ?? event.price.currency,
-        }),
-        ...(event.registrationDeadline && {
-          validThrough: event.registrationDeadline.toISOString(),
-        }),
-      }
-    : undefined;
+  // `offers` refleja las vías de inscripción reales: si hay varias
+  // (registrationOptions: gratis + pago) se emite un array de ofertas; si no,
+  // cae al modelo legacy de precio único. schema.org acepta ambas formas.
+  const validThrough = event.registrationDeadline?.toISOString();
+  const offers =
+    event.registrationOptions.length > 0
+      ? event.registrationOptions.map((o) => ({
+          '@type': 'Offer',
+          url: o.url,
+          availability: AVAILABILITY[event.status],
+          price: o.price.amount,
+          priceCurrency: CURRENCY_ISO[o.price.currency] ?? o.price.currency,
+          ...(validThrough && { validThrough }),
+        }))
+      : event.registrationUrl
+        ? {
+            '@type': 'Offer',
+            url: event.registrationUrl,
+            availability: AVAILABILITY[event.status],
+            ...(event.price && {
+              price: event.price.amount,
+              priceCurrency: CURRENCY_ISO[event.price.currency] ?? event.price.currency,
+            }),
+            ...(validThrough && { validThrough }),
+          }
+        : undefined;
 
   return {
     '@context': 'https://schema.org',
