@@ -6,6 +6,7 @@ import { getImage } from 'astro:assets';
 import PublicLayout from '@public/layouts/PublicLayout.astro';
 import SiteHeader from '@public/features/home/sections/SiteHeader.astro';
 import Hero from '@public/features/home/sections/Hero.astro';
+import RunTour from '@public/features/home/sections/RunTour.astro';
 import Price from '@public/features/home/sections/Price.astro';
 import Course from '@public/features/home/sections/Course.astro';
 import Sponsors from '@public/features/home/sections/Sponsors.astro';
@@ -46,6 +47,7 @@ const jsonLd = eventJsonLd(event, {
   <SiteHeader {event} />
   <main>
     <Hero race={nextRace} />
+    <RunTour />
     <Price {event} />
     <Course {event} />
     <Sponsors />
