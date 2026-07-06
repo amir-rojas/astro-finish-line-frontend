@@ -1,0 +1,105 @@
+---
+// CalendarHeader — header SLIM y sticky para las páginas del calendario
+// (/calendario/[slug] y, a futuro, /calendario). Simétrico a CalendarFooter:
+// NO es event-driven ni depende del SiteHeader de la home (ese tiene nav de
+// anclas #carrera/#categorias, muertas fuera de la home). Marca → home + un
+// link de vuelta al inicio. Sin CTA de inscripción (esa vive en el detalle) ni
+// badges decorativos.
+//
+// `back` permite apuntar el link de vuelta a donde corresponda; por defecto la
+// home, porque el listado /calendario aún no existe en esta superficie.
+interface Props {
+  back?: { href: string; label: string };
+}
+const { back = { href: '/', label: 'Inicio' } } = Astro.props;
+---
+
+<header class="chd">
+  <div class="chd__inner">
+    <a href="/" class="chd__brand" aria-label="Finish Line — inicio">
+      <span class="chd__mark" aria-hidden="true"></span>
+      <span class="chd__word">FINISH LINE</span>
+    </a>
+
+    <nav class="chd__nav" aria-label="Navegación">
+      <a class="chd__back" href={back.href}>
+        <span class="chd__back-arrow" aria-hidden="true">←</span>
+        <span>{back.label}</span>
+      </a>
+    </nav>
+  </div>
+</header>
+
+<style>
+  .chd {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: color-mix(in srgb, var(--fl-navy) 92%, transparent);
+    backdrop-filter: saturate(140%) blur(10px);
+    border-bottom: 1px solid rgba(246, 240, 228, 0.1);
+  }
+  .chd__inner {
+    max-width: var(--fl-container);
+    margin: 0 auto;
+    padding: 16px clamp(20px, 5vw, 56px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .chd__brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    flex-shrink: 0;
+  }
+  .chd__mark {
+    width: 11px;
+    height: 11px;
+    background: var(--fl-orange);
+  }
+  .chd__word {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 16px;
+    letter-spacing: 1px;
+    color: var(--fl-cream);
+  }
+
+  .chd__nav {
+    display: flex;
+    align-items: center;
+  }
+  .chd__back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--fl-on-navy-soft);
+    text-decoration: none;
+    transition: color 160ms var(--ease-out);
+  }
+  .chd__back-arrow {
+    transition: transform 160ms var(--ease-out);
+  }
+  @media (hover: hover) {
+    .chd__back:hover {
+      color: var(--fl-cream);
+    }
+    .chd__back:hover .chd__back-arrow {
+      transform: translateX(-3px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .chd__back,
+    .chd__back-arrow {
+      transition: none;
+    }
+  }
+</style>

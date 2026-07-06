@@ -1,0 +1,103 @@
+---
+// Ruta pública "/calendario/[slug]" — detalle de una carrera de Strapi.
+// SSG: `getStaticPaths` genera una página por carrera publicada a partir del
+// mismo `getEvents()` (fetch único enriquecido, sin N+1 por-slug). El `event`
+// completo viaja como prop; un slug inexistente no se genera → Astro sirve 404.
+// THIN: solo orquesta el chrome del surface y las secciones del feature.
+import PublicLayout from '@public/layouts/PublicLayout.astro';
+import CalendarHeader from '@public/features/calendar/sections/CalendarHeader.astro';
+import CalendarFooter from '@public/features/calendar/sections/CalendarFooter.astro';
+import DetailHero from '@public/features/calendar/sections/DetailHero.astro';
+import Description from '@public/features/calendar/sections/Description.astro';
+import Modalities from '@public/features/calendar/sections/Modalities.astro';
+import DetailSidebar from '@public/features/calendar/sections/DetailSidebar.astro';
+import { getEvents } from '@shared/lib/server/strapi-client';
+import { calendarEventJsonLd } from '@public/features/calendar/format';
+import type { CalendarEvent } from '@shared/lib/server/strapi-client';
+
+export async function getStaticPaths() {
+  const events = await getEvents();
+  return events.map((event) => ({ params: { slug: event.slug }, props: { event } }));
+}
+
+interface Props {
+  event: CalendarEvent;
+}
+const { event } = Astro.props;
+
+const pageUrl = Astro.url.href;
+const description =
+  `${event.title} — ${event.location}. ` +
+  (event.distances.length > 0
+    ? `Distancias: ${[...new Set(event.distances)].join(', ')}.`
+    : 'Inscripciones y detalles de la carrera.');
+
+const jsonLd = calendarEventJsonLd(event, pageUrl);
+---
+
+<PublicLayout
+  title={event.title}
+  description={description}
+  ogImage={event.heroImage?.url}
+  canonical={pageUrl}
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} is:inline />
+  </Fragment>
+
+  <CalendarHeader />
+
+  <main>
+    <DetailHero {event} />
+
+    <div class="detail">
+      <div class="detail__inner">
+        <div class="detail__main">
+          {event.descriptionRaw && <Description markdown={event.descriptionRaw} />}
+          {event.modalities.length > 0 && <Modalities modalities={event.modalities} />}
+        </div>
+        <div class="detail__side">
+          <DetailSidebar {event} />
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <CalendarFooter />
+</PublicLayout>
+
+<style>
+  .detail {
+    background: var(--fl-cream);
+  }
+  .detail__inner {
+    max-width: var(--fl-container);
+    margin: 0 auto;
+    padding: clamp(40px, 6vw, 80px) clamp(20px, 5vw, 56px);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+    gap: clamp(32px, 5vw, 72px);
+    align-items: start;
+  }
+  .detail__main {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(36px, 5vw, 56px);
+    min-width: 0;
+  }
+  /* La sidebar acompaña el scroll en pantallas amplias (contenido largo de
+     descripción/modalidades); en móvil se apila debajo, sin sticky. */
+  .detail__side {
+    position: sticky;
+    top: 96px;
+  }
+
+  @media (max-width: 900px) {
+    .detail__inner {
+      grid-template-columns: 1fr;
+    }
+    .detail__side {
+      position: static;
+    }
+  }
+</style>

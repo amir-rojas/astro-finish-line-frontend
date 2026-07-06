@@ -1,0 +1,69 @@
+---
+// Description — bloque de descripción del detalle. Renderiza el markdown de
+// Strapi ya sanitizado (`renderMarkdown` es la única frontera de sanitización;
+// nunca pasar `descripcion` cruda a set:html). El caller decide si montar este
+// componente: acá se asume que `markdown` viene con contenido.
+import { renderMarkdown } from '../format';
+
+interface Props {
+  markdown: string;
+}
+const { markdown } = Astro.props;
+const html = renderMarkdown(markdown);
+---
+
+<section class="desc">
+  <h2 class="desc__label">Descripción</h2>
+  <div class="desc__body" set:html={html} />
+</section>
+
+<style>
+  .desc__label {
+    margin: 0 0 18px;
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--fl-navy);
+  }
+  .desc__body {
+    font-family: 'Archivo', sans-serif;
+    font-size: clamp(15px, 1.9vw, 17px);
+    line-height: 1.7;
+    color: var(--fl-on-cream-muted);
+  }
+  /* El HTML sanitizado no lleva clases; se estiliza por selector de descendiente. */
+  .desc__body :global(p) {
+    margin: 0 0 1em;
+  }
+  .desc__body :global(p:last-child) {
+    margin-bottom: 0;
+  }
+  .desc__body :global(h2),
+  .desc__body :global(h3),
+  .desc__body :global(h4) {
+    font-family: 'Archivo', sans-serif;
+    font-weight: 800;
+    color: var(--fl-navy);
+    margin: 1.4em 0 0.5em;
+  }
+  .desc__body :global(a) {
+    color: var(--fl-orange-strong);
+    text-underline-offset: 3px;
+  }
+  .desc__body :global(ul),
+  .desc__body :global(ol) {
+    margin: 0 0 1em;
+    padding-left: 1.3em;
+  }
+  .desc__body :global(li) {
+    margin: 0.3em 0;
+  }
+  .desc__body :global(blockquote) {
+    margin: 1em 0;
+    padding-left: 1em;
+    border-left: 2px solid var(--fl-cream-3);
+    color: var(--fl-navy);
+    font-style: italic;
+  }
+</style>

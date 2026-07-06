@@ -1,0 +1,144 @@
+---
+// Modalities — bloque "MODALIDADES DISPONIBLES" del detalle. Una fila por
+// modalidad real de Strapi (distancia + label, precio, estado propio). El
+// estado sale del dato real (`modalityStatus`), nunca de lógica de UI simulada.
+// Si la carrera no tiene modalidades, el caller no monta este componente.
+import type { CalendarModality } from '@shared/lib/server/strapi-client';
+import { formatPrice, modalityStatus } from '../format';
+
+interface Props {
+  modalities: CalendarModality[];
+}
+const { modalities } = Astro.props;
+---
+
+<section class="mods">
+  <h2 class="mods__label">Modalidades disponibles</h2>
+
+  <ul class="mods__list">
+    {
+      modalities.map((m) => {
+        const status = modalityStatus(m.status);
+        return (
+          <li class="mod">
+            <div class="mod__id">
+              <span class="mod__distance">{m.distance}</span>
+              {m.label !== m.distance && <span class="mod__name">{m.label}</span>}
+            </div>
+            <span class="mod__price">{formatPrice(m.price)}</span>
+            <div class="mod__status">
+              <span class="mod__status-label">Status</span>
+              <span class={`mod__status-value mod__status-value--${status.tone}`}>{status.label}</span>
+            </div>
+          </li>
+        );
+      })
+    }
+  </ul>
+</section>
+
+<style>
+  .mods__label {
+    margin: 0 0 18px;
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--fl-navy);
+  }
+
+  .mods__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .mod {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: clamp(16px, 4vw, 40px);
+    padding: clamp(18px, 2.4vw, 24px) clamp(18px, 2.4vw, 26px);
+    background: var(--fl-surface);
+  }
+
+  .mod__distance {
+    display: block;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(17px, 2.2vw, 21px);
+    text-transform: uppercase;
+    color: var(--fl-navy);
+    line-height: 1;
+  }
+  .mod__name {
+    display: block;
+    margin-top: 6px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--fl-on-cream-faint);
+  }
+
+  .mod__price {
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(14px, 1.8vw, 16px);
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--fl-navy);
+    white-space: nowrap;
+  }
+
+  .mod__status {
+    text-align: right;
+    min-width: 120px;
+  }
+  .mod__status-label {
+    display: block;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--fl-on-cream-faint);
+  }
+  .mod__status-value {
+    display: block;
+    margin-top: 4px;
+    font-family: 'Archivo', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  /* Tonos alineados con los del listado; texto sobre superficie clara con
+     contraste AA. El label textual siempre acompaña al color (nunca color-only). */
+  .mod__status-value--open {
+    color: #1f7a4d;
+  }
+  .mod__status-value--warning {
+    color: #a15c00;
+  }
+  .mod__status-value--closed {
+    color: #b23b2e;
+  }
+
+  @media (max-width: 560px) {
+    .mod {
+      grid-template-columns: 1fr auto;
+      row-gap: 14px;
+    }
+    .mod__status {
+      grid-column: 1 / -1;
+      text-align: left;
+    }
+    .mod__status-label {
+      display: inline;
+    }
+    .mod__status-value {
+      display: inline;
+      margin-top: 0;
+      margin-left: 8px;
+    }
+  }
+</style>

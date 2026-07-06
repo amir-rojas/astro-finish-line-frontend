@@ -1,0 +1,161 @@
+---
+// DetailSidebar — columna lateral del detalle: cierre de inscripción (si Strapi
+// lo trae), CTA único de inscripción hacia `registrationUrl` (único link de
+// registro externo del detalle → RunSignup) y categorías por edad. El copy del
+// CTA es gratis-aware ("Inscribirse gratis" si la carrera es gratis), misma
+// convención que la landing. Cada bloque se omite si su dato está ausente —
+// sin placeholders vacíos (spec: campos opcionales).
+import type { CalendarEvent } from '@shared/lib/server/strapi-client';
+import { longDate, isFreeEvent } from '../format';
+
+interface Props {
+  event: CalendarEvent;
+}
+const { event } = Astro.props;
+const { registrationDeadline, registrationUrl, categories } = event;
+const isFree = isFreeEvent(event.modalities);
+---
+
+<aside class="sb">
+  {
+    registrationDeadline && (
+      <div class="sb__deadline">
+        <span class="sb__deadline-label">Cierre de inscripción</span>
+        <span class="sb__deadline-date">{longDate(registrationDeadline)}</span>
+      </div>
+    )
+  }
+
+  {
+    registrationUrl && (
+      <a
+        class="sb__cta"
+        href={registrationUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span class="sb__cta-text">{isFree ? 'Inscribirse gratis' : 'Iniciar inscripción'}</span>
+        <span class="sb__cta-arrow" aria-hidden="true">→</span>
+      </a>
+    )
+  }
+
+  {
+    categories.length > 0 && (
+      <div class="sb__cats">
+        <h2 class="sb__cats-label">Categorías por edad</h2>
+        <dl class="sb__cats-list">
+          {categories.map((c) => (
+            <div class="sb__cat">
+              <dt>{c.name}</dt>
+              <dd>{c.range}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    )
+  }
+</aside>
+
+<style>
+  .sb {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .sb__deadline {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: clamp(18px, 2.2vw, 22px);
+    background: var(--fl-surface);
+  }
+  .sb__deadline-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--fl-on-cream-faint);
+  }
+  .sb__deadline-date {
+    font-family: 'Archivo', sans-serif;
+    font-size: clamp(16px, 2vw, 18px);
+    font-weight: 800;
+    color: var(--fl-navy);
+  }
+
+  .sb__cta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: clamp(20px, 2.4vw, 26px);
+    background: var(--fl-orange-strong);
+    color: #fff;
+    text-decoration: none;
+    font-family: 'Archivo', sans-serif;
+    font-weight: 800;
+    font-size: clamp(15px, 1.9vw, 17px);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    line-height: 1.15;
+    transition: background 160ms var(--ease-out);
+  }
+  .sb__cta-arrow {
+    font-size: 22px;
+    flex-shrink: 0;
+    transition: transform 160ms var(--ease-out);
+  }
+  @media (hover: hover) {
+    .sb__cta:hover {
+      background: var(--fl-orange-hover);
+    }
+    .sb__cta:hover .sb__cta-arrow {
+      transform: translateX(4px);
+    }
+  }
+
+  .sb__cats-label {
+    margin: 0 0 4px;
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--fl-navy);
+  }
+  .sb__cats-list {
+    margin: 0;
+  }
+  .sb__cat {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid rgba(14, 28, 48, 0.12);
+  }
+  .sb__cat:last-child {
+    border-bottom: none;
+  }
+  .sb__cat dt {
+    font-family: 'Archivo', sans-serif;
+    font-size: 15px;
+    color: var(--fl-on-cream-muted);
+  }
+  .sb__cat dd {
+    margin: 0;
+    font-family: 'Archivo', sans-serif;
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--fl-navy);
+    white-space: nowrap;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sb__cta,
+    .sb__cta-arrow {
+      transition: none;
+    }
+  }
+</style>
