@@ -1,26 +1,57 @@
 ---
-import type { EventData } from '../format';
-import { heroDate, placeLine } from '../format';
+// Hero de la home (Módulo 1) — data-driven desde Strapi: muestra la PRÓXIMA
+// carrera (la más cercana por fecha). Base del hero con foto a sangre completa +
+// countdown (fortalezas del diseño anterior), con las mejoras del modelo hub:
+// framing "Próxima carrera", chips de estado/gratis/co-organización y CTA hacia
+// la página de detalle de la carrera. Los campos net-new de Strapi (tagline,
+// altitud, hora, estado, coorganizador) son opcionales: el hero degrada elegante
+// mientras el editor no los cargue.
+import type { RaceEvent } from '@shared/lib/server/strapi-client';
+import { heroDate, shortDate, dayMonth, countdownISOFrom } from '../format';
 import { Image } from 'astro:assets';
 import Countdown from './Countdown.astro';
 
 interface Props {
-  event: EventData;
+  race: RaceEvent;
 }
-const { event } = Astro.props;
+const { race } = Astro.props;
 
-const distance = event.distances[0];
-const eyebrow = `${heroDate(event.date)} — ${placeLine(event)}`;
-const altitude = event.altitudeM ? new Intl.NumberFormat('es-BO').format(event.altitudeM) : null;
+// Titular display: tagline si existe; si no, cae al nombre. El kicker con el
+// nombre oficial solo se muestra cuando hay tagline (para no duplicarlo).
+const displayTitle = race.tagline ?? race.title;
+
+const distances = [...new Set(race.distances)];
+const distanceLine = distances.join(' · ');
+const altitude = race.altitudeM ? new Intl.NumberFormat('es-BO').format(race.altitudeM) : null;
+
+// "Gratis" se deriva del dato real: alguna modalidad con precio 0.
+const isFree = race.modalities.some((m) => m.price === 0);
+
+const STATUS_LABEL: Record<NonNullable<RaceEvent['status']>, string> = {
+  proximo: 'Próximamente',
+  inscripciones_abiertas: 'Inscripciones abiertas',
+  cerrado: 'Inscripciones cerradas',
+  finalizado: 'Finalizada',
+};
+const statusLabel = race.status ? STATUS_LABEL[race.status] : null;
+
+const detailUrl = `/calendario/${race.slug}`;
+const ctaLabel = isFree ? 'Inscribirse gratis' : 'Inscribirse';
+
+const countdownTarget = countdownISOFrom(race.date, race.startTime);
+const countdownNote = race.registrationDeadline
+  ? `Inscripciones hasta el ${dayMonth(race.registrationDeadline)}`
+  : undefined;
 ---
 
 <section id="carrera" class="hero">
   {
-    event.heroImage && (
+    race.heroImage && (
       <Image
         class="hero__photo"
-        src={event.heroImage}
-        alt={`Participantes de ${event.title} corriendo cuesta arriba por el centro de ${placeLine(event)}, de espaldas, al amanecer`}
+        src={race.heroImage.url}
+        alt={race.heroImage.alt}
+        inferSize
         widths={[768, 1200, 1600]}
         sizes="100vw"
         loading="eager"
@@ -32,14 +63,38 @@ const altitude = event.altitudeM ? new Intl.NumberFormat('es-BO').format(event.a
 
   <div class="hero__inner">
     <div class="hero__copy">
-      <p class="eyebrow" data-reveal>{eyebrow}</p>
+      <p class="eyebrow" data-reveal>Próxima carrera</p>
+      <p class="hero__date" data-reveal data-delay="1">{heroDate(race.date)}</p>
+
       <h1 class="hero__title" data-reveal data-delay="1">
-        {event.tagline && <span class="hero__name">{event.title}</span>}
-        <span class="hero__tagline">{event.tagline ?? event.title}</span>
+        {race.tagline && <span class="hero__name">{race.title}</span>}
+        <span class="hero__tagline">{displayTitle}</span>
       </h1>
 
+      <p class="hero__loc" data-reveal data-delay="2">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M12 21s-7-5.686-7-11a7 7 0 1114 0c0 5.314-7 11-7 11z" />
+          <circle cx="12" cy="10" r="2.5" />
+        </svg>
+        {race.location}
+      </p>
+
+      {
+        (statusLabel || isFree || race.coorganizer) && (
+          <div class="hero__chips" data-reveal data-delay="2">
+            {statusLabel && (
+              <span class:list={['chip', { 'chip--open': race.status === 'inscripciones_abiertas' }]}>
+                {statusLabel}
+              </span>
+            )}
+            {isFree && <span class="chip chip--tag">Gratis</span>}
+            {race.coorganizer && <span class="chip chip--tag">Co-organizada · {race.coorganizer}</span>}
+          </div>
+        )
+      }
+
       <div class="hero__stats" data-reveal data-delay="2">
-        {distance && <span class="hero__distance">{distance}</span>}
+        {distanceLine && <span class="hero__distance">{distanceLine}</span>}
         {
           altitude && (
             <div class="hero__alt">
@@ -52,21 +107,16 @@ const altitude = event.altitudeM ? new Intl.NumberFormat('es-BO').format(event.a
         }
       </div>
 
-      {event.description && <p class="hero__desc" data-reveal data-delay="3">{event.description}</p>}
-
       <div class="hero__actions" data-reveal data-delay="3">
-        <a class="btn btn--primary" href="#categorias">
-          Inscríbete <span class="btn__arrow" aria-hidden="true">→</span>
+        <a class="btn btn--primary" href={detailUrl}>
+          {ctaLabel} <span class="btn__arrow" aria-hidden="true">→</span>
         </a>
-        <a class="btn btn--ghost" href="#recorrido">Ver recorrido</a>
       </div>
     </div>
-
-    {event.instagram && <span class="hero__handle" aria-hidden="true">{event.instagram.toUpperCase()}</span>}
   </div>
 
   {/* El contador cierra el hero: la cuenta regresiva ES la línea de meta. */}
-  <Countdown {event} />
+  <Countdown targetISO={countdownTarget} largada={shortDate(race.date)} note={countdownNote} />
 </section>
 
 <style>
@@ -130,6 +180,15 @@ const altitude = event.altitudeM ? new Intl.NumberFormat('es-BO').format(event.a
     text-transform: uppercase;
     color: var(--fl-orange);
   }
+  .hero__date {
+    margin: 14px 0 0;
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(13px, 1.8vw, 15px);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--fl-on-navy-soft, #c4d0de);
+  }
+
   /* El H1 envuelve el nombre de la carrera (kicker) + el tagline display. */
   .hero__title {
     margin: 16px 0 0;
@@ -157,6 +216,48 @@ const altitude = event.altitudeM ? new Intl.NumberFormat('es-BO').format(event.a
     color: var(--fl-cream);
   }
 
+  /* Ubicación con pin. */
+  .hero__loc {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 18px 0 0;
+    font-size: clamp(15px, 1.8vw, 17px);
+    color: var(--fl-on-navy-soft, #c4d0de);
+  }
+  .hero__loc svg {
+    width: 17px;
+    height: 17px;
+    color: var(--fl-orange);
+    flex-shrink: 0;
+  }
+
+  /* Chips: estado / gratis / co-organización. */
+  .hero__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 22px;
+  }
+  .chip {
+    font-family: 'Space Mono', monospace;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    border: 1px solid rgba(246, 240, 228, 0.22);
+    color: var(--fl-cream);
+  }
+  .chip--open {
+    border-color: rgba(90, 200, 140, 0.5);
+    color: #8ee0ac;
+  }
+  .chip--tag {
+    border-color: rgba(242, 102, 31, 0.5);
+    color: #ffb98f;
+  }
+
   /* Fila de datos: distancia + altitud sobreimpresos sobre la foto. */
   .hero__stats {
     display: flex;
@@ -167,7 +268,7 @@ const altitude = event.altitudeM ? new Intl.NumberFormat('es-BO').format(event.a
   }
   .hero__distance {
     font-family: 'Archivo Black', sans-serif;
-    font-size: clamp(40px, 6vw, 64px);
+    font-size: clamp(38px, 6vw, 64px);
     line-height: 0.9;
     color: var(--fl-orange);
   }
@@ -190,27 +291,11 @@ const altitude = event.altitudeM ? new Intl.NumberFormat('es-BO').format(event.a
     margin-left: 3px;
   }
 
-  .hero__desc {
-    margin: 22px 0 0;
-    max-width: 460px;
-    font-size: 16px;
-    line-height: 1.55;
-    color: #c9d4e1;
-  }
   .hero__actions {
     display: flex;
     gap: 14px;
     margin-top: 28px;
     flex-wrap: wrap;
-  }
-  .hero__handle {
-    position: absolute;
-    top: clamp(20px, 4vw, 36px);
-    right: clamp(20px, 5vw, 56px);
-    font-family: 'Space Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 2px;
-    color: rgba(246, 240, 228, 0.7);
   }
 
   /* Botones */
@@ -234,12 +319,6 @@ const altitude = event.altitudeM ? new Intl.NumberFormat('es-BO').format(event.a
     background: var(--fl-orange-strong);
     color: #fff;
   }
-  .btn--ghost {
-    border: 1px solid rgba(246, 240, 228, 0.45);
-    color: var(--fl-cream);
-    background: rgba(14, 28, 48, 0.25);
-    backdrop-filter: blur(2px);
-  }
   .btn__arrow {
     transition: transform 180ms var(--ease-out);
   }
@@ -247,10 +326,6 @@ const altitude = event.altitudeM ? new Intl.NumberFormat('es-BO').format(event.a
     .btn--primary:hover {
       transform: translateY(-2px);
       background: var(--fl-orange-hover);
-    }
-    .btn--ghost:hover {
-      transform: translateY(-2px);
-      border-color: var(--fl-cream);
     }
     .btn:hover .btn__arrow {
       transform: translateX(4px);
@@ -266,16 +341,6 @@ const altitude = event.altitudeM ? new Intl.NumberFormat('es-BO').format(event.a
     z-index: 1;
   }
 
-  @media (max-width: 640px) {
-    .hero__handle {
-      display: none;
-    }
-    /* El recorrido detallado vive en su sección; en móvil el hero va liviano
-       para ocupar exactamente una pantalla sin que asome la siguiente. */
-    .hero__desc {
-      display: none;
-    }
-  }
   @media (prefers-reduced-motion: reduce) {
     .btn,
     .btn__arrow {

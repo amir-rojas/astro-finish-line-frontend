@@ -38,12 +38,17 @@ export function dayMonth(date: Date): string {
   return `${day} ${mon}`;
 }
 
-/** ISO con offset del evento, p.ej. "2026-07-12T08:00:00-04:00" para el countdown. */
-export function countdownISO(event: EventData): string {
-  const ymd = event.date.toISOString().slice(0, 10);
-  const time = event.startTime ?? '00:00';
-  const tz = event.timezoneOffset ?? '-04:00';
+/** ISO con offset, p.ej. "2026-07-12T08:00:00-04:00" para el countdown.
+ *  Decoplado de EventData para que también lo use el hero data-driven (RaceEvent). */
+export function countdownISOFrom(date: Date, startTime?: string, tz = '-04:00'): string {
+  const ymd = date.toISOString().slice(0, 10);
+  const time = startTime ?? '00:00';
   return `${ymd}T${time}:00${tz}`;
+}
+
+/** ISO del countdown a partir de un evento de la colección local. */
+export function countdownISO(event: EventData): string {
+  return countdownISOFrom(event.date, event.startTime, event.timezoneOffset);
 }
 
 /** Ubicación corta: "La Paz, Bolivia" */

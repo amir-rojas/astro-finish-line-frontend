@@ -58,6 +58,18 @@ const raceSchema = z.object({
   cierreInscripcion: z.coerce.date().nullable().optional(),
   modalidades: z.array(modalitySchema).default([]),
   categoriasEdad: z.array(ageCategorySchema).default([]),
+  // Campos net-new para el hero de la home (Strapi los devuelve null hasta que
+  // el editor los carga). Todos opcionales: el hero degrada elegante sin ellos.
+  tagline: z.string().nullable().optional(),
+  altitud: z.number().int().nullable().optional(),
+  altitudNota: z.string().nullable().optional(),
+  // Strapi `time` → "HH:mm:ss.SSS". Alimenta el countdown junto con `fecha`.
+  horaLargada: z.string().nullable().optional(),
+  estado: z
+    .enum(['proximo', 'inscripciones_abiertas', 'cerrado', 'finalizado'])
+    .nullable()
+    .optional(),
+  coorganizador: z.string().nullable().optional(),
 });
 
 const strapiListResponseSchema = z.object({
@@ -87,6 +99,18 @@ export interface RaceEvent {
   location: string;
   /** Distancias derivadas de `modalidades[].distancia` (no hay campo propio en Strapi). */
   distances: string[];
+  /** Titular display multilínea del hero. Si falta, el hero cae al `title`. */
+  tagline?: string;
+  /** Altitud en metros s.n.m. (hilo conductor visual del hero). */
+  altitudeM?: number;
+  /** Nota de altitud, p.ej. "La ciudad más alta del mundo". */
+  altitudeNote?: string;
+  /** Hora de largada normalizada a "HH:mm". Alimenta el countdown junto con `date`. */
+  startTime?: string;
+  /** Estado de la carrera (chip del hero). */
+  status?: 'proximo' | 'inscripciones_abiertas' | 'cerrado' | 'finalizado';
+  /** Co-organizador, p.ej. "Alcaldía de La Paz" (chip del hero). */
+  coorganizer?: string;
   heroImage?: { url: string; alt: string };
   /** Markdown crudo tal cual viene de Strapi. Renderizar en la superficie que lo use. */
   descriptionRaw?: string;
@@ -95,6 +119,16 @@ export interface RaceEvent {
   modalities: RaceModality[];
   categories: RaceAgeCategory[];
 }
+
+// --- Alias de la superficie de calendario/detalle ---------------------------
+// El calendario y el detalle son otra VISTA de la misma carrera: consumen la
+// MISMA capa de datos (una carrera = un registro, sin duplicar). `RaceEvent` es
+// el tipo canónico (superset con los campos del hero); estos alias dejan que el
+// feature `calendar/` lea el mismo dato con su vocabulario, sin un segundo fetch
+// ni un schema paralelo.
+export type CalendarEvent = RaceEvent;
+export type CalendarModality = RaceModality;
+export type CalendarAgeCategory = RaceAgeCategory;
 
 // --- Config / fail-fast ------------------------------------------------------
 
@@ -120,6 +154,13 @@ function mapRace(raw: RawRace, strapiUrl: string): RaceEvent {
     date: raw.fecha,
     location: raw.ubicacion,
     distances: raw.modalidades.map((m) => m.distancia),
+    tagline: raw.tagline ?? undefined,
+    altitudeM: raw.altitud ?? undefined,
+    altitudeNote: raw.altitudNota ?? undefined,
+    // "08:00:00.000" → "08:00" (el countdown solo necesita hora y minuto).
+    startTime: raw.horaLargada ? raw.horaLargada.slice(0, 5) : undefined,
+    status: raw.estado ?? undefined,
+    coorganizer: raw.coorganizador ?? undefined,
     heroImage: raw.heroImage
       ? {
           url: toAbsoluteUrl(raw.heroImage.url, strapiUrl),
@@ -208,4 +249,19 @@ export function getEvents(): Promise<RaceEvent[]> {
 export async function getEvent(slug: string): Promise<RaceEvent | null> {
   const events = await getEvents();
   return events.find((event) => event.slug === slug) ?? null;
+}
+
+/**
+ * La "próxima carrera" para el hero de la home: la primera con fecha >= hoy
+ * (la lista viene ordenada por fecha asc). Si no hay ninguna futura, cae a la
+ * más reciente (última). Devuelve null solo si no hay carreras publicadas.
+ *
+ * Nota (staleness SSG): se resuelve en build. Cuando pase la fecha de la carrera
+ * elegida, el hero queda viejo hasta el próximo rebuild — pendiente conocido.
+ */
+export async function getNextRace(): Promise<RaceEvent | null> {
+  const events = await getEvents();
+  if (events.length === 0) return null;
+  const now = Date.now();
+  return events.find((event) => event.date.getTime() >= now) ?? events[events.length - 1];
 }

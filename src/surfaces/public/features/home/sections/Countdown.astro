@@ -1,19 +1,17 @@
 ---
-import type { EventData } from '../format';
-import { countdownISO, dayMonth, shortDate } from '../format';
-
+// Countdown a la largada. Props primitivas (desacoplado de EventData) para que
+// lo alimente tanto la landing local como el hero data-driven de Strapi.
 interface Props {
-  event: EventData;
+  /** Instante objetivo en ISO con offset, p.ej. "2026-08-16T08:00:00-04:00". */
+  targetISO: string;
+  /** Ancla legible de la fecha, p.ej. "Dom 16 Ago". */
+  largada: string;
+  /** Concentración, p.ej. "Concentración 07:00" (opcional). */
+  call?: string;
+  /** Aviso de cierre/cupos, p.ej. "Inscripciones hasta el 09 Ago" (opcional). */
+  note?: string;
 }
-const { event } = Astro.props;
-const target = countdownISO(event);
-
-// Sin fecha de cierre (carrera gratis con cupos limitados): cae al aviso de cupos.
-const deadline = event.registrationDeadline
-  ? `Inscripciones hasta el ${dayMonth(event.registrationDeadline)}${
-      event.registrationNote ? ` ${event.registrationNote}` : ''
-    }`
-  : (event.registrationNote ?? null);
+const { targetISO, largada, call, note } = Astro.props;
 
 const units = [
   { key: 'd', label: 'Días' },
@@ -23,13 +21,13 @@ const units = [
 ];
 ---
 
-<section class="cd" data-countdown data-target={target}>
+<section class="cd" data-countdown data-target={targetISO}>
   <div class="cd__inner">
     <div class="cd__head" data-reveal>
       <p class="cd__label">Faltan para la largada</p>
-      <p class="cd__largada">{shortDate(event.date)}</p>
-      {event.gatheringTime && <p class="cd__call">Concentración {event.gatheringTime}</p>}
-      {deadline && <p class="cd__note">{deadline}</p>}
+      <p class="cd__largada">{largada}</p>
+      {call && <p class="cd__call">{call}</p>}
+      {note && <p class="cd__note">{note}</p>}
     </div>
     <div class="cd__grid" data-reveal data-delay="1">
       {
