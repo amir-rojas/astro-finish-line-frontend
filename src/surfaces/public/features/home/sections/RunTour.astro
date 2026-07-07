@@ -2,25 +2,25 @@
 // RunTour — MÓDULO 2 de la home: banda de la serie "Run Tour Finish Line".
 //
 // Concepto ("la medalla que se arma"): la recompensa del tour son 3 MEDALLONES
-// circulares que se enganchan en VERTICAL (una medalla por etapa; al correr las
-// tres, encajan en una cadena). Ref. física: design-reference/medalle-reference.png
-// y medalla-1.png. Convierte el objetivo de negocio (correr las 3 fechas) en una
-// recompensa visible. *Mostrar, no afirmar.*
+// circulares que se enganchan en HORIZONTAL (una medalla por etapa; al completar
+// las tres, se unen en el símbolo del tour). Ref. física: design-reference/
+// medalle-reference.png y medalla-1.png. Vuelve visible el objetivo de negocio
+// (correr las 3 fechas). *Mostrar, no afirmar.* La MEDALLA es la protagonista:
+// el número manda dentro de cada moneda, la escena de montaña es sólo un acento.
 //
 // Registro FILOSO fiel a DESIGN.md (elección de Amir): sin glow/glass/metal falso.
-// Los medallones son un EMBLEMA vectorial de marca (navy/crema/naranja + aro a
-// cuadros de meta + montaña/ruta de La Paz en line-art). Es placeholder + fallback
-// permanente; cuando llegue la foto real (metálica), entra en esta misma estructura
-// de cadena de 3 sin re-diseñar el resto.
+// Emblema vectorial de marca (navy/crema/naranja + aro a cuadros de meta). Es
+// placeholder + fallback permanente; cuando llegue la foto real (metálica) entra
+// en esta misma cadena de 3 sin re-diseñar el resto.
 //
-// Etapas HARDCODEADAS (decisión Amir 2026-07-06): Strapi aún no modela la serie.
-// Estado honesto con el dato: 1 y 2 tienen fecha (medallón sólido); 3 "por definir"
-// (medallón en contorno + eslabón abierto = aún por desbloquear).
+// Estado (decisión Amir 2026-07-06): sólo la ETAPA 1 desbloqueada; 2 y 3 por
+// desbloquear (moneda en contorno + candado). Etapas hardcodeadas: Strapi aún no
+// modela la serie.
 
 const stages = [
-  { n: 1, name: 'Run Tour Finish Line · Etapa 1', when: '16 AGO 2026', tbd: false },
-  { n: 2, name: 'Run Tour Finish Line · Etapa 2', when: '25 OCT 2026', tbd: false },
-  { n: 3, name: 'Run Tour Finish Line · Gran Final', when: 'Por definir', tbd: true },
+  { n: 1, when: '16 AGO 2026', locked: false },
+  { n: 2, when: '25 OCT 2026', locked: true },
+  { n: 3, when: 'Por definir', locked: true },
 ];
 ---
 
@@ -46,74 +46,67 @@ const stages = [
       <span class="tour__badge" data-reveal data-delay="1">1ª edición · 3 etapas</span>
     </header>
 
-    <div class="tour__body">
-      {/* Cadena vertical de medallones — el objeto-héroe. */}
-      <div
-        class="chain"
-        role="img"
-        aria-label="Medalla del Run Tour: tres medallones circulares que se enganchan al correr las tres etapas. Etapa 1 y 2 confirmadas; etapa 3 por definir."
-      >
-        {
-          stages.map((s, i) => (
-            <>
-              {i > 0 && (
-                <span class:list={['link', { 'link--open': stages[i].tbd }]} aria-hidden="true" />
+    {/* Cadena horizontal de medallones — el objeto-héroe. Grid de 5 columnas:
+        monedas en 1/3/5 y eslabones en 2/4 (fila 1); captions bajo cada moneda
+        (fila 2, mismas columnas) para que queden alineadas. */}
+    <div class="chain">
+      {
+        stages.map((s, i) => (
+          <Fragment>
+            {i > 0 && <span class="link" style={`grid-column:${i * 2};grid-row:1`} aria-hidden="true" />}
+            <div class:list={['coin', { 'coin--locked': s.locked }]} style={`grid-column:${i * 2 + 1};grid-row:1`}>
+              <svg class="coin__svg" viewBox="0 0 200 200" aria-hidden="true">
+                <circle class="coin__rim" cx="100" cy="100" r="84" />
+                <circle class="coin__field" cx="100" cy="100" r="77" />
+                <text class="coin__arc">
+                  <textPath href="#rt-arc" startOffset="50%">RUN TOUR</textPath>
+                </text>
+                {/* Acento La Paz: cresta de cordillera (secundaria, no compite con el nº). */}
+                <path class="coin__crest" d="M72,80 L86,62 L98,72 L112,58 L128,80 Z" />
+                <text class="coin__num" x="100" y="126">{s.n}</text>
+              </svg>
+            </div>
+          </Fragment>
+        ))
+      }
+      {
+        stages.map((s, i) => (
+          <p class:list={['cap', { 'cap--locked': s.locked }]} style={`grid-column:${i * 2 + 1};grid-row:2`}>
+            <span class="cap__stage">{`Etapa ${s.n}`}</span>
+            <span class="cap__when">{s.when}</span>
+            <span class="cap__state">
+              {s.locked ? (
+                <>
+                  <svg class="cap__ico" viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="4.5" y="10.5" width="15" height="10" rx="0" />
+                    <path class="cap__ico-sh" d="M8,10.5 V7.5 a4,4 0 0 1 8,0 V10.5" />
+                  </svg>
+                  Por desbloquear
+                </>
+              ) : (
+                <>
+                  <span class="cap__dot" aria-hidden="true" />
+                  Desbloqueada
+                </>
               )}
-              <div class:list={['coin', { 'coin--tbd': s.tbd }]}>
-                <svg class="coin__svg" viewBox="0 0 200 200" aria-hidden="true">
-                  <circle class="coin__rim" cx="100" cy="100" r="84" />
-                  <circle class="coin__field" cx="100" cy="100" r="77" />
-
-                  <text class="coin__arc">
-                    <textPath href="#rt-arc" startOffset="50%">RUN TOUR</textPath>
-                  </text>
-
-                  {/* Escena La Paz: cordillera + ruta (line-art filoso). */}
-                  <g class="coin__scene">
-                    <path class="mtn" d="M52,104 L74,70 L88,86 L104,60 L120,84 L134,72 L150,104 Z" />
-                    <path class="route" d="M66,104 C86,116 112,110 134,120" />
-                  </g>
-
-                  <text class="coin__num" x="100" y="140">
-                    {s.n}
-                  </text>
-                  <text class="coin__label" x="100" y="164">
-                    ETAPA {s.n}
-                  </text>
-                </svg>
-              </div>
-            </>
-          ))
-        }
-      </div>
-
-      {/* Relato + tablero de etapas (secuencia real de 3). */}
-      <div class="tour__side">
-        <p class="tour__lead">
-          Tres carreras, una historia. <b>Cada medalla es una pieza</b>: al correr las tres etapas,
-          se enganchan en una sola cadena. La primera vez que Finish Line arma un tour.
-        </p>
-
-        <ol class="board" data-reveal data-delay="2">
-          {
-            stages.map((s) => (
-              <li class:list={['board__item', { 'board__item--tbd': s.tbd }]}>
-                <span class="board__n">{`Etapa ${s.n}`}</span>
-                <p class="board__name">{s.name}</p>
-                <p class="board__when">{s.when}</p>
-              </li>
-            ))
-          }
-        </ol>
-      </div>
+            </span>
+          </p>
+        ))
+      }
     </div>
+
+    <p class="tour__lead" data-reveal data-delay="2">
+      Completá las tres etapas para ensamblar una medalla única. Cada carrera desbloquea una pieza
+      y, al cruzar la meta final, las tres se unen para formar el símbolo del
+      <b> Run Tour Finish Line</b>.
+    </p>
   </div>
 </section>
 
 <script>
-  // Ensamblado vertical al entrar en viewport: mejora progresiva sobre el estado
-  // por defecto (cadena YA armada). Sin JS o con reduced-motion, se ve completa;
-  // el movimiento nunca bloquea contenido.
+  // Ensamblado al entrar en viewport: mejora progresiva sobre el estado por
+  // defecto (cadena YA armada). Sin JS o con reduced-motion se ve completa; el
+  // movimiento nunca bloquea contenido.
   const chain = document.querySelector<HTMLElement>('.chain');
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -138,10 +131,9 @@ const stages = [
   .tour {
     position: relative;
     overflow: hidden;
-    /* Escenario limpio (se quitaron las rayas diagonales del mockup). Viñeteado
-       central sutilísimo para asentar el objeto — es luz de escenario, no glow. */
-    background:
-      radial-gradient(120% 80% at 50% 34%, var(--fl-navy-2), var(--fl-navy) 78%);
+    /* Escenario limpio (se quitaron las rayas del mockup). Viñeteado radial
+       sutilísimo para asentar el objeto — luz de escenario, no glow. */
+    background: radial-gradient(120% 82% at 50% 40%, var(--fl-navy-2), var(--fl-navy) 80%);
     color: var(--fl-cream);
   }
   .rt-defs {
@@ -190,32 +182,25 @@ const stages = [
     align-self: center;
   }
 
-  /* ---- Cuerpo: cadena (objeto) + relato/tablero ---- */
-  .tour__body {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: clamp(36px, 6vw, 84px);
-    align-items: center;
-    margin-top: clamp(34px, 5vw, 56px);
-  }
-
-  /* ---- Cadena vertical de medallones ---- */
+  /* ---- Cadena horizontal de medallones (protagonista) ---- */
   .chain {
-    justify-self: center;
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-auto-columns: max-content;
+    justify-content: center;
     align-items: center;
+    column-gap: clamp(2px, 1vw, 10px);
+    row-gap: clamp(16px, 2.4vw, 26px);
+    margin-top: clamp(40px, 6vw, 72px);
   }
   .coin {
-    width: clamp(132px, 19vw, 184px);
+    width: clamp(96px, 21vw, 212px);
   }
   .coin__svg {
     display: block;
     width: 100%;
     height: auto;
     overflow: visible;
-    /* Sombra de contacto muy tenue: profundidad de una pieza física, no glow. */
-    filter: drop-shadow(0 14px 22px rgba(0, 0, 0, 0.3));
+    filter: drop-shadow(0 16px 26px rgba(0, 0, 0, 0.32));
   }
 
   .coin__rim {
@@ -234,59 +219,43 @@ const stages = [
     fill: var(--fl-navy);
     text-anchor: middle;
   }
-  .mtn {
+  .coin__crest {
     fill: var(--fl-navy);
-  }
-  .route {
-    fill: none;
-    stroke: var(--fl-orange-strong);
-    stroke-width: 3;
-    stroke-linecap: round;
-    stroke-dasharray: 2 6;
+    opacity: 0.5;
   }
   .coin__num {
     font-family: 'Archivo Black', sans-serif;
-    font-size: 46px;
+    font-size: 62px;
     text-anchor: middle;
     dominant-baseline: central;
     fill: var(--fl-navy);
   }
-  .coin__label {
-    font-family: 'Space Mono', monospace;
-    font-size: 10.5px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    text-anchor: middle;
-    fill: var(--fl-orange-strong);
-  }
 
-  /* Medallón "por definir": moneda vacía en contorno. */
-  .coin--tbd .coin__field {
+  /* Medallón bloqueado: moneda vacía en contorno, contenido apagado. */
+  .coin--locked {
+    opacity: 0.68;
+  }
+  .coin--locked .coin__svg {
+    filter: none;
+  }
+  .coin--locked .coin__field {
     fill: none;
-    stroke: rgba(246, 240, 228, 0.28);
+    stroke: rgba(246, 240, 228, 0.3);
     stroke-width: 2;
     stroke-dasharray: 7 7;
   }
-  .coin--tbd .coin__rim {
+  .coin--locked .coin__rim {
     opacity: 0.4;
   }
-  .coin--tbd .coin__num,
-  .coin--tbd .coin__arc {
+  .coin--locked .coin__arc,
+  .coin--locked .coin__num {
     fill: var(--fl-on-navy-soft);
   }
-  .coin--tbd .coin__label {
-    fill: var(--fl-on-navy-soft);
-  }
-  .coin--tbd .mtn {
+  .coin--locked .coin__crest {
     fill: none;
     stroke: var(--fl-on-navy-soft);
     stroke-width: 2;
-  }
-  .coin--tbd .route {
-    stroke: var(--fl-on-navy-soft);
-  }
-  .coin--tbd .coin__svg {
-    filter: none;
+    opacity: 0.5;
   }
 
   .ck-o {
@@ -296,146 +265,141 @@ const stages = [
     fill: var(--fl-navy);
   }
 
-  /* Eslabones tipo bisagra entre medallones. */
+  /* Eslabón tipo bisagra (subordinado: la medalla es la protagonista). */
   .link {
-    width: 15px;
-    height: clamp(16px, 2.4vw, 26px);
-    margin: -3px 0;
-    background: var(--fl-orange);
-    z-index: 2;
-  }
-  .link--open {
-    background: transparent;
-    width: 11px;
-    border-left: 2px dashed rgba(246, 240, 228, 0.3);
-    border-right: 2px dashed rgba(246, 240, 228, 0.3);
+    width: clamp(16px, 3vw, 30px);
+    height: 12px;
+    background: var(--fl-on-navy-muted);
+    align-self: center;
   }
 
-  /* ---- Relato + tablero ---- */
-  .tour__lead {
-    font-size: clamp(16px, 2vw, 19px);
-    line-height: 1.5;
-    color: var(--fl-on-navy-soft);
-    max-width: 42ch;
-    text-wrap: pretty;
+  /* ---- Caption bajo cada medallón ---- */
+  .cap {
     margin: 0;
-  }
-  .tour__lead b {
-    color: var(--fl-cream);
-  }
-
-  .board {
-    list-style: none;
-    margin: clamp(26px, 3.5vw, 40px) 0 0;
-    padding: 0;
     display: flex;
     flex-direction: column;
-    gap: clamp(14px, 2vw, 20px);
+    align-items: center;
+    gap: 5px;
+    text-align: center;
+    max-width: clamp(96px, 21vw, 212px);
   }
-  .board__item {
-    padding-top: 15px;
-    border-top: 2px solid var(--fl-orange);
-  }
-  .board__item--tbd {
-    border-top-color: rgba(246, 240, 228, 0.22);
-  }
-  .board__n {
-    display: inline-block;
-    font-family: 'Space Mono', monospace;
-    font-size: 10.5px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    color: var(--fl-navy-3);
-    background: var(--fl-orange);
-    padding: 6px 9px;
-  }
-  .board__item--tbd .board__n {
-    background: transparent;
-    color: var(--fl-on-navy-soft);
-    border: 1px solid rgba(246, 240, 228, 0.28);
-  }
-  .board__name {
-    margin: 12px 0 0;
+  .cap__stage {
     font-family: 'Archivo', sans-serif;
     font-weight: 800;
-    font-size: clamp(15px, 2vw, 18px);
+    font-size: clamp(14px, 1.8vw, 17px);
     color: var(--fl-cream);
+    text-transform: uppercase;
   }
-  .board__when {
-    margin: 5px 0 0;
+  .cap__when {
     font-family: 'Space Mono', monospace;
     font-size: 12px;
     letter-spacing: 1px;
     color: var(--fl-on-navy-soft);
   }
-
-  @media (max-width: 860px) {
-    .tour__body {
-      grid-template-columns: 1fr;
-      gap: clamp(32px, 7vw, 48px);
-      justify-items: center;
-    }
-    .tour__side {
-      width: 100%;
-      max-width: 520px;
-    }
-    .tour__lead {
-      text-align: center;
-      max-width: none;
-    }
+  .cap__state {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 2px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--fl-orange);
+  }
+  .cap--locked .cap__state {
+    color: var(--fl-on-navy-soft);
+  }
+  .cap__dot {
+    width: 8px;
+    height: 8px;
+    background: var(--fl-orange);
+  }
+  .cap__ico {
+    width: 13px;
+    height: 13px;
+    fill: none;
+    stroke: var(--fl-on-navy-soft);
+    stroke-width: 1.8;
+  }
+  .cap__ico rect {
+    fill: var(--fl-on-navy-soft);
+    stroke: none;
+  }
+  .cap__ico-sh {
+    fill: none;
   }
 
-  /* ================= MOTION: ensamblado vertical al entrar ================= */
+  /* ---- Relato ---- */
+  .tour__lead {
+    margin: clamp(40px, 6vw, 68px) auto 0;
+    max-width: 54ch;
+    text-align: center;
+    font-size: clamp(16px, 2vw, 19px);
+    line-height: 1.55;
+    color: var(--fl-on-navy-soft);
+    text-wrap: pretty;
+  }
+  .tour__lead b {
+    color: var(--fl-cream);
+  }
+
+  /* ================= MOTION: ensamblado al entrar ================= */
   /* Estado inicial sólo con JS (`.motion-armed`); sin JS = cadena ya armada. */
   .chain.motion-armed .coin {
     opacity: 0;
-    transform: translateY(-26px) scale(0.92);
+    transform: scale(0.88);
   }
   .chain.motion-armed .link {
     opacity: 0;
-    transform: scaleY(0);
-    transform-origin: top;
+    transform: scaleX(0);
   }
-
   .chain.motion-armed.is-in .coin {
     opacity: 1;
     transform: none;
     transition:
-      transform 0.6s var(--ease-out),
+      transform 0.55s var(--ease-out),
       opacity 0.5s var(--ease-out);
   }
-  .chain.motion-armed.is-in .coin--tbd {
-    opacity: 0.55;
+  .chain.motion-armed.is-in .coin--locked {
+    opacity: 0.68;
   }
   .chain.motion-armed.is-in .link {
     opacity: 1;
-    transform: scaleY(1);
+    transform: none;
     transition:
-      transform 0.35s var(--ease-out),
+      transform 0.3s var(--ease-out),
       opacity 0.3s var(--ease-out);
   }
-  /* Caen y encajan de arriba hacia abajo; los eslabones traban después del
-     medallón de arriba. nth-of-type cuenta por tag: .coin son <div>, .link son
-     <span>, cada uno con su propio índice de tipo. */
+  /* Encaje de izquierda a derecha (nth-of-type cuenta por tag: .coin=div, .link=span). */
   .chain.motion-armed.is-in .coin:nth-of-type(1) {
     transition-delay: 0s;
   }
   .chain.motion-armed.is-in .link:nth-of-type(1) {
-    transition-delay: 0.2s;
+    transition-delay: 0.22s;
   }
   .chain.motion-armed.is-in .coin:nth-of-type(2) {
-    transition-delay: 0.28s;
+    transition-delay: 0.3s;
   }
   .chain.motion-armed.is-in .link:nth-of-type(2) {
-    transition-delay: 0.48s;
+    transition-delay: 0.5s;
   }
   .chain.motion-armed.is-in .coin:nth-of-type(3) {
-    transition-delay: 0.56s;
+    transition-delay: 0.58s;
   }
 
-  .coin--tbd {
-    opacity: 0.55;
+  .coin--locked {
+    opacity: 0.68;
+  }
+
+  @media (max-width: 640px) {
+    .cap__stage {
+      font-size: 13px;
+    }
+    .cap__when {
+      font-size: 11px;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -445,8 +409,8 @@ const stages = [
       transform: none;
       transition: none;
     }
-    .chain.motion-armed .coin--tbd {
-      opacity: 0.55;
+    .chain.motion-armed .coin--locked {
+      opacity: 0.68;
     }
   }
 </style>
