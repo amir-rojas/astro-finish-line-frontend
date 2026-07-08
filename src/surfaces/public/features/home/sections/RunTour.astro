@@ -1,152 +1,180 @@
 ---
 // RunTour — MÓDULO 2 de la home: banda de la serie "Run Tour Finish Line".
 //
-// Concepto ("la medalla que se arma"): la recompensa del tour son 3 MEDALLONES
-// circulares que se enganchan en HORIZONTAL (una medalla por etapa; al completar
-// las tres, se unen en el símbolo del tour). Ref. física: design-reference/
-// medalle-reference.png y medalla-1.png. Vuelve visible el objetivo de negocio
-// (correr las 3 fechas). *Mostrar, no afirmar.* La MEDALLA es la protagonista:
-// el número manda dentro de cada moneda, la escena de montaña es sólo un acento.
+// Concepto (rediseño 2026-07-06, tras ver la medalla REAL en
+// design-reference/renacer-medalla.png): NO es una medalla partida en piezas. Cada
+// carrera del tour entrega su PROPIA medalla completa (una placa vertical:
+// banner-nombre arriba, escena grabada al centro, "RUN TOUR FINISH LINE" abajo) y
+// las medallas traen DIENTES DE ENCASTRE en el costado: al completar las tres,
+// encajan lateralmente y forman una sola pieza. Ese es el meta-logro real.
 //
-// Registro FILOSO fiel a DESIGN.md (elección de Amir): sin glow/glass/metal falso.
-// Emblema vectorial de marca (navy/crema/naranja + aro a cuadros de meta). Es
-// placeholder + fallback permanente; cuando llegue la foto real (metálica) entra
-// en esta misma cadena de 3 sin re-diseñar el resto.
+// Dirección elegida por Amir: HÍBRIDO Tour de los Elementos (una card de identidad
+// por etapa, con estado de avance) + runDisney (galería donde la MEDALLA real es el
+// objeto-héroe de cada card). Ref: design-reference/tour-elementos.png +
+// disney-medals-reference.jpeg.
 //
-// Estado (decisión Amir 2026-07-06): sólo la ETAPA 1 desbloqueada; 2 y 3 por
-// desbloquear (moneda en contorno + candado). Etapas hardcodeadas: Strapi aún no
-// modela la serie.
+// Estado de datos (hardcodeado; Strapi aún no modela la serie):
+//  - Etapa 1 = RENACER, DESBLOQUEADA, con foto de la medalla real y link al detalle
+//    (`/calendario/renacer` — la Carrera en Strapi debe existir con ese slug).
+//  - Etapa 2 = fecha firme, nombre por revelar. Etapa 3 = todo por revelar.
+//    Las siluetas llevan los dientes según su posición en la cadena: la del medio
+//    encastra por AMBOS lados; la tercera, por la izquierda.
+//
+// Sin progreso "personal" ("Tu avance"): el visitante puede no estar inscrito y no
+// hay cuentas — el estado es de la SERIE, y lo cuentan el badge y los candados.
+//
+// Registro FILOSO fiel a DESIGN.md: sin glow/glass. Sección CREMA a pantalla
+// completa (decisión Amir 2026-07-08): entre Hero y Price (ambos navy) restaura la
+// alternancia navy→crema→navy que ES el ritmo del sitio, y el papel claro hace
+// resaltar la medalla metálica. Cards blancas sobre crema (sistema de DESIGN.md);
+// las bloqueadas en papel cálido, apagadas de misterio. Cuadros de meta en los
+// dientes (naranja/navy). Copy en español neutro de Bolivia — SIN voseo.
+import { Image } from 'astro:assets';
+import renacerMedal from '../../../../../assets/medals/renacer.png';
 
 const stages = [
-  { n: 1, when: '16 AGO 2026', locked: false },
-  { n: 2, when: '25 OCT 2026', locked: true },
-  { n: 3, when: 'Por definir', locked: true },
+  {
+    n: 1,
+    name: 'Renacer',
+    when: '16 AGO 2026',
+    locked: false,
+    medal: renacerMedal,
+    href: '/calendario/renacer',
+  },
+  { n: 2, name: 'Nombre por revelar', when: '25 OCT 2026', locked: true, medal: null, href: null },
+  { n: 3, name: 'Por revelar', when: 'Fecha por definir', locked: true, medal: null, href: null },
 ];
+
+// Silueta de la placa por posición en la cadena: dientes de encastre a ambos lados
+// (etapa del medio) o sólo a la izquierda (última). Notches a la misma altura que
+// los de la vecina, para que se lea que son el mismo encastre.
+const ghostPaths: Record<string, string> = {
+  both: 'M40,40 h120 v18 l-14,10 14,10 v14 l-14,10 14,10 v88 h-120 v-18 l14,-10 -14,-10 v-14 l14,-10 -14,-10 Z',
+  left: 'M40,40 h120 v160 h-120 v-88 l14,-10 -14,-10 v-14 l14,-10 -14,-10 v-18 Z',
+};
+
+const pad = (n: number) => String(n).padStart(2, '0');
 ---
 
 <section class="tour">
-  {/* Defs compartidos por los 3 medallones: aro a cuadros de meta + arco del texto. */}
-  <svg class="rt-defs" width="0" height="0" aria-hidden="true">
-    <defs>
-      <pattern id="rt-checker" width="12" height="12" patternUnits="userSpaceOnUse">
-        <rect class="ck-o" width="12" height="12"></rect>
-        <rect class="ck-n" width="6" height="6"></rect>
-        <rect class="ck-n" x="6" y="6" width="6" height="6"></rect>
-      </pattern>
-      <path id="rt-arc" d="M42,100 A58,58 0 0 1 158,100"></path>
-    </defs>
-  </svg>
-
   <div class="tour__inner">
     <header class="tour__head">
       <div>
-        <p class="tour__kicker" data-reveal>La serie</p>
+        <p class="tour__kicker" data-reveal>// La serie</p>
         <h2 class="tour__title" data-reveal data-delay="1">Run Tour Finish Line</h2>
       </div>
       <span class="tour__badge" data-reveal data-delay="1">1ª edición · 3 etapas</span>
     </header>
 
-    {/* Cadena horizontal de medallones — el objeto-héroe. Grid de 5 columnas:
-        monedas en 1/3/5 y eslabones en 2/4 (fila 1); captions bajo cada moneda
-        (fila 2, mismas columnas) para que queden alineadas. */}
-    <div class="chain">
+    <p class="tour__lead" data-reveal data-delay="2">
+      Cada etapa entrega su propia medalla, y las tres traen dientes que <b>encajan entre sí</b>.
+      Completa el Run Tour y las medallas se unen en una sola pieza: el símbolo de la serie.
+    </p>
+
+    {/* Riel de cards: la medalla es la protagonista. Entre cards van los DIENTES
+        de encastre (cuadros de meta) que cuentan que las medallas se enganchan.
+        El estado de la serie lo dicen el badge (3 etapas) y los candados — sin
+        barra de "avance" personal (no hay cuentas; sería un estado falso). */}
+    <div class="rail">
       {
         stages.map((s, i) => (
           <Fragment>
-            {i > 0 && <span class="link" style={`grid-column:${i * 2};grid-row:1`} aria-hidden="true" />}
-            <div class:list={['coin', { 'coin--locked': s.locked }]} style={`grid-column:${i * 2 + 1};grid-row:1`}>
-              <svg class="coin__svg" viewBox="0 0 200 200" aria-hidden="true">
-                <circle class="coin__rim" cx="100" cy="100" r="84" />
-                <circle class="coin__field" cx="100" cy="100" r="77" />
-                <text class="coin__arc">
-                  <textPath href="#rt-arc" startOffset="50%">RUN TOUR</textPath>
-                </text>
-                {/* Acento La Paz: cresta de cordillera (secundaria, no compite con el nº). */}
-                <path class="coin__crest" d="M72,80 L86,62 L98,72 L112,58 L128,80 Z" />
-                <text class="coin__num" x="100" y="126">{s.n}</text>
-              </svg>
-            </div>
+            {i > 0 && (
+              <span class="teeth" data-reveal data-delay={i === 1 ? '1' : '2'} aria-hidden="true">
+                <span class="teeth__t" /><span class="teeth__t" /><span class="teeth__t" />
+              </span>
+            )}
+            <article
+              class:list={['card', { 'card--locked': s.locked, 'card--link': !!s.href }]}
+              data-reveal
+              data-delay={i === 0 ? '1' : i === 1 ? '2' : '3'}
+            >
+              <div class="card__top">
+                <span class="card__stage">Etapa {pad(s.n)}</span>
+                <span class="card__state">
+                  {s.locked ? (
+                    <>
+                      <svg class="card__lock" viewBox="0 0 24 24" aria-hidden="true">
+                        <rect x="4.5" y="10.5" width="15" height="10" />
+                        <path d="M8,10.5 V7.5 a4,4 0 0 1 8,0 V10.5" />
+                      </svg>
+                      Por desbloquear
+                    </>
+                  ) : (
+                    <>
+                      <span class="card__dot" aria-hidden="true" />
+                      Desbloqueada
+                    </>
+                  )}
+                </span>
+              </div>
+
+              <div class:list={['card__stage-vis', { 'card__stage-vis--photo': !s.locked && !!s.medal }]}>
+                {!s.locked && s.medal ? (
+                  <Image
+                    class="card__medal"
+                    src={s.medal}
+                    alt={`Medalla ${s.name} — Run Tour Finish Line`}
+                    widths={[280, 460, 620, 760]}
+                    sizes="(max-width: 860px) 94vw, 360px"
+                    loading="lazy"
+                  />
+                ) : (
+                  /* Placeholder: silueta de la placa real (banner arriba, cuerpo,
+                     banner abajo) + candado. Misterio, no vacío. Los dientes van
+                     según la posición: la del medio encastra por ambos lados. */
+                  <svg class="card__ghost" viewBox="0 0 200 260" aria-hidden="true">
+                    <path class="ghost__stroke" d={i === 1 ? ghostPaths.both : ghostPaths.left} />
+                    <rect class="ghost__stroke" x="30" y="30" width="140" height="30" />
+                    <rect class="ghost__stroke" x="46" y="196" width="108" height="26" />
+                    <g class="ghost__lock">
+                      <rect x="86" y="120" width="28" height="20" />
+                      <path d="M92,120 V113 a8,8 0 0 1 16,0 V120" />
+                    </g>
+                  </svg>
+                )}
+              </div>
+
+              <div class="card__foot">
+                <span class:list={['card__name', { 'card__name--tbd': s.locked }]}>{s.name}</span>
+                <span class="card__when">{s.when}</span>
+                {s.href && (
+                  <a class="card__cta" href={s.href}>
+                    Conoce la carrera <span class="card__cta-arr" aria-hidden="true">→</span>
+                  </a>
+                )}
+              </div>
+            </article>
           </Fragment>
         ))
       }
-      {
-        stages.map((s, i) => (
-          <p class:list={['cap', { 'cap--locked': s.locked }]} style={`grid-column:${i * 2 + 1};grid-row:2`}>
-            <span class="cap__stage">{`Etapa ${s.n}`}</span>
-            <span class="cap__when">{s.when}</span>
-            <span class="cap__state">
-              {s.locked ? (
-                <>
-                  <svg class="cap__ico" viewBox="0 0 24 24" aria-hidden="true">
-                    <rect x="4.5" y="10.5" width="15" height="10" rx="0" />
-                    <path class="cap__ico-sh" d="M8,10.5 V7.5 a4,4 0 0 1 8,0 V10.5" />
-                  </svg>
-                  Por desbloquear
-                </>
-              ) : (
-                <>
-                  <span class="cap__dot" aria-hidden="true" />
-                  Desbloqueada
-                </>
-              )}
-            </span>
-          </p>
-        ))
-      }
     </div>
-
-    <p class="tour__lead" data-reveal data-delay="2">
-      Completá las tres etapas para ensamblar una medalla única. Cada carrera desbloquea una pieza
-      y, al cruzar la meta final, las tres se unen para formar el símbolo del
-      <b> Run Tour Finish Line</b>.
-    </p>
   </div>
 </section>
-
-<script>
-  // Ensamblado al entrar en viewport: mejora progresiva sobre el estado por
-  // defecto (cadena YA armada). Sin JS o con reduced-motion se ve completa; el
-  // movimiento nunca bloquea contenido.
-  const chain = document.querySelector<HTMLElement>('.chain');
-  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  if (chain && !reduce && 'IntersectionObserver' in window) {
-    chain.classList.add('motion-armed');
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('is-in');
-            io.unobserve(entry.target);
-          }
-        }
-      },
-      { threshold: 0.35 },
-    );
-    io.observe(chain);
-  }
-</script>
 
 <style>
   .tour {
     position: relative;
     overflow: hidden;
-    /* Escenario limpio (se quitaron las rayas del mockup). Viñeteado radial
-       sutilísimo para asentar el objeto — luz de escenario, no glow. */
-    background: radial-gradient(120% 82% at 50% 40%, var(--fl-navy-2), var(--fl-navy) 80%);
-    color: var(--fl-cream);
-  }
-  .rt-defs {
-    position: absolute;
+    /* Papel claro con viñeteado sutil hacia cream-2: escenario de vitrina para la
+       medalla. A pantalla completa, como el Hero. */
+    background: radial-gradient(120% 82% at 50% 34%, var(--fl-cream), var(--fl-cream-2) 88%);
+    color: var(--fl-ink);
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
   }
   .tour__inner {
     position: relative;
     z-index: 1;
+    width: 100%;
     max-width: var(--fl-container);
     margin: 0 auto;
-    padding: clamp(60px, 9vw, 116px) clamp(20px, 5vw, 56px);
+    padding: clamp(60px, 7vw, 96px) clamp(20px, 5vw, 56px);
   }
 
+  /* ---- Cabecera ---- */
   .tour__head {
     display: flex;
     flex-wrap: wrap;
@@ -160,7 +188,9 @@ const stages = [
     font-weight: 700;
     letter-spacing: 3px;
     text-transform: uppercase;
-    color: var(--fl-orange);
+    /* Eyebrow sobre fondo claro: prefijo // como en Recorrido, pero en muted —
+       on-cream-faint (#9a8f78) da ~2.8:1 sobre crema y falla AA a 12px. */
+    color: var(--fl-on-cream-muted);
   }
   .tour__title {
     font-family: 'Archivo Black', sans-serif;
@@ -168,6 +198,7 @@ const stages = [
     line-height: 0.96;
     letter-spacing: -0.02em;
     text-transform: uppercase;
+    text-wrap: balance;
     margin: 12px 0 0;
   }
   .tour__badge {
@@ -176,241 +207,274 @@ const stages = [
     font-weight: 700;
     letter-spacing: 1.5px;
     text-transform: uppercase;
-    color: var(--fl-cream);
-    border: 1px solid rgba(246, 240, 228, 0.25);
+    color: var(--fl-ink);
+    border: 1px solid rgba(20, 35, 58, 0.3);
     padding: 8px 14px;
-    align-self: center;
+    /* Alineado a la línea base del título (el header ya alinea flex-end):
+       el badge deja de flotar sin referencia. */
+    align-self: flex-end;
   }
 
-  /* ---- Cadena horizontal de medallones (protagonista) ---- */
-  .chain {
-    display: grid;
-    grid-auto-columns: max-content;
-    justify-content: center;
-    align-items: center;
-    column-gap: clamp(2px, 1vw, 10px);
-    row-gap: clamp(16px, 2.4vw, 26px);
-    margin-top: clamp(40px, 6vw, 72px);
-  }
-  .coin {
-    width: clamp(96px, 21vw, 212px);
-  }
-  .coin__svg {
-    display: block;
-    width: 100%;
-    height: auto;
-    overflow: visible;
-    filter: drop-shadow(0 16px 26px rgba(0, 0, 0, 0.32));
-  }
-
-  .coin__rim {
-    fill: none;
-    stroke: url(#rt-checker);
-    stroke-width: 12;
-  }
-  .coin__field {
-    fill: var(--fl-cream);
-  }
-  .coin__arc {
-    font-family: 'Space Mono', monospace;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 3px;
-    fill: var(--fl-navy);
-    text-anchor: middle;
-  }
-  .coin__crest {
-    fill: var(--fl-navy);
-    opacity: 0.5;
-  }
-  .coin__num {
-    font-family: 'Archivo Black', sans-serif;
-    font-size: 62px;
-    text-anchor: middle;
-    dominant-baseline: central;
-    fill: var(--fl-navy);
-  }
-
-  /* Medallón bloqueado: moneda vacía en contorno, contenido apagado. */
-  .coin--locked {
-    opacity: 0.68;
-  }
-  .coin--locked .coin__svg {
-    filter: none;
-  }
-  .coin--locked .coin__field {
-    fill: none;
-    stroke: rgba(246, 240, 228, 0.3);
-    stroke-width: 2;
-    stroke-dasharray: 7 7;
-  }
-  .coin--locked .coin__rim {
-    opacity: 0.4;
-  }
-  .coin--locked .coin__arc,
-  .coin--locked .coin__num {
-    fill: var(--fl-on-navy-soft);
-  }
-  .coin--locked .coin__crest {
-    fill: none;
-    stroke: var(--fl-on-navy-soft);
-    stroke-width: 2;
-    opacity: 0.5;
-  }
-
-  .ck-o {
-    fill: var(--fl-orange);
-  }
-  .ck-n {
-    fill: var(--fl-navy);
-  }
-
-  /* Eslabón tipo bisagra (subordinado: la medalla es la protagonista). */
-  .link {
-    width: clamp(16px, 3vw, 30px);
-    height: 12px;
-    background: var(--fl-on-navy-muted);
-    align-self: center;
-  }
-
-  /* ---- Caption bajo cada medallón ---- */
-  .cap {
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 5px;
-    text-align: center;
-    max-width: clamp(96px, 21vw, 212px);
-  }
-  .cap__stage {
-    font-family: 'Archivo', sans-serif;
-    font-weight: 800;
-    font-size: clamp(14px, 1.8vw, 17px);
-    color: var(--fl-cream);
-    text-transform: uppercase;
-  }
-  .cap__when {
-    font-family: 'Space Mono', monospace;
-    font-size: 12px;
-    letter-spacing: 1px;
-    color: var(--fl-on-navy-soft);
-  }
-  .cap__state {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 2px;
-    font-family: 'Space Mono', monospace;
-    font-size: 10.5px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    color: var(--fl-orange);
-  }
-  .cap--locked .cap__state {
-    color: var(--fl-on-navy-soft);
-  }
-  .cap__dot {
-    width: 8px;
-    height: 8px;
-    background: var(--fl-orange);
-  }
-  .cap__ico {
-    width: 13px;
-    height: 13px;
-    fill: none;
-    stroke: var(--fl-on-navy-soft);
-    stroke-width: 1.8;
-  }
-  .cap__ico rect {
-    fill: var(--fl-on-navy-soft);
-    stroke: none;
-  }
-  .cap__ico-sh {
-    fill: none;
-  }
-
-  /* ---- Relato ---- */
+  /* ---- Relato del encastre ---- */
   .tour__lead {
-    margin: clamp(40px, 6vw, 68px) auto 0;
-    max-width: 54ch;
-    text-align: center;
+    margin: clamp(26px, 4vw, 40px) 0 0;
+    max-width: 62ch;
     font-size: clamp(16px, 2vw, 19px);
     line-height: 1.55;
-    color: var(--fl-on-navy-soft);
+    color: var(--fl-on-cream-muted);
     text-wrap: pretty;
   }
   .tour__lead b {
-    color: var(--fl-cream);
+    color: var(--fl-ink);
   }
 
-  /* ================= MOTION: ensamblado al entrar ================= */
-  /* Estado inicial sólo con JS (`.motion-armed`); sin JS = cadena ya armada. */
-  .chain.motion-armed .coin {
-    opacity: 0;
-    transform: scale(0.88);
+  /* ---- Riel de cards ---- */
+  .rail {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    gap: 0;
+    margin-top: clamp(34px, 5vw, 56px);
   }
-  .chain.motion-armed .link {
-    opacity: 0;
-    transform: scaleX(0);
+  .card {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 360px;
+    display: flex;
+    flex-direction: column;
+    /* Card blanca sobre crema (sistema DESIGN.md): la card se lee como objeto. */
+    background: var(--fl-surface);
+    border: 1px solid rgba(20, 35, 58, 0.14);
   }
-  .chain.motion-armed.is-in .coin {
-    opacity: 1;
-    transform: none;
+  .card--link {
+    border-color: rgba(20, 35, 58, 0.35);
     transition:
-      transform 0.55s var(--ease-out),
-      opacity 0.5s var(--ease-out);
+      border-color 0.18s ease-out,
+      transform 0.18s ease-out;
   }
-  .chain.motion-armed.is-in .coin--locked {
-    opacity: 0.68;
+  .card--link:hover {
+    border-color: rgba(20, 35, 58, 0.6);
+    transform: translateY(-3px);
   }
-  .chain.motion-armed.is-in .link {
-    opacity: 1;
-    transform: none;
-    transition:
-      transform 0.3s var(--ease-out),
-      opacity 0.3s var(--ease-out);
-  }
-  /* Encaje de izquierda a derecha (nth-of-type cuenta por tag: .coin=div, .link=span). */
-  .chain.motion-armed.is-in .coin:nth-of-type(1) {
-    transition-delay: 0s;
-  }
-  .chain.motion-armed.is-in .link:nth-of-type(1) {
-    transition-delay: 0.22s;
-  }
-  .chain.motion-armed.is-in .coin:nth-of-type(2) {
-    transition-delay: 0.3s;
-  }
-  .chain.motion-armed.is-in .link:nth-of-type(2) {
-    transition-delay: 0.5s;
-  }
-  .chain.motion-armed.is-in .coin:nth-of-type(3) {
-    transition-delay: 0.58s;
+  .card--locked {
+    /* Papel cálido apagado: misterio, en la misma familia de papeles. */
+    background: var(--fl-cream-2);
+    border-color: rgba(20, 35, 58, 0.1);
   }
 
-  .coin--locked {
-    opacity: 0.68;
+  .card__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(20, 35, 58, 0.1);
+  }
+  .card__stage {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--fl-ink);
+  }
+  .card--locked .card__stage {
+    color: var(--fl-on-cream-muted);
+  }
+  .card__state {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Space Mono', monospace;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    /* Texto en tinta (el naranja a este tamaño no pasa AA sobre claro);
+       el acento naranja lo pone el dot. */
+    color: var(--fl-ink);
+    white-space: nowrap;
+  }
+  .card--locked .card__state {
+    color: var(--fl-on-cream-muted);
+  }
+  .card__dot {
+    width: 7px;
+    height: 7px;
+    background: var(--fl-orange);
+  }
+  .card__lock {
+    width: 12px;
+    height: 12px;
+    fill: none;
+    stroke: var(--fl-on-cream-muted);
+    stroke-width: 1.8;
+  }
+  .card__lock rect {
+    fill: var(--fl-on-cream-muted);
+    stroke: none;
   }
 
-  @media (max-width: 640px) {
-    .cap__stage {
-      font-size: 13px;
-    }
-    .cap__when {
-      font-size: 11px;
-    }
+  /* ---- Escenario visual (medalla / placeholder) ---- */
+  .card__stage-vis {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(18px, 2.4vw, 26px);
+    aspect-ratio: 1 / 1;
+  }
+  /* La foto real es una toma de ESTUDIO (fondo oscuro, cinta, sombra propia), no
+     un recorte con alpha: va a sangre como imagen enmarcada (DESIGN.md: frames de
+     proporción fija, esquinas rectas), no fingiendo flotar sobre la card blanca. */
+  .card__stage-vis--photo {
+    padding: 0;
+  }
+  .card__medal {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .card__ghost {
+    width: 62%;
+    height: auto;
+    opacity: 0.8;
+  }
+  .ghost__stroke {
+    fill: none;
+    stroke: rgba(20, 35, 58, 0.32);
+    stroke-width: 2;
+    stroke-dasharray: 7 7;
+  }
+  .ghost__lock rect {
+    fill: none;
+    stroke: var(--fl-on-cream-muted);
+    stroke-width: 2.4;
+  }
+  .ghost__lock path {
+    fill: none;
+    stroke: var(--fl-on-cream-muted);
+    stroke-width: 2.4;
   }
 
+  /* ---- Pie de card ---- */
+  .card__foot {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 16px;
+    border-top: 1px solid rgba(20, 35, 58, 0.1);
+  }
+  .card__name {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(20px, 2.6vw, 26px);
+    line-height: 1;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    color: var(--fl-ink);
+  }
+  .card__name--tbd {
+    font-family: 'Space Mono', monospace;
+    font-size: 15px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--fl-on-cream-muted);
+  }
+  .card__when {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: var(--fl-on-cream-muted);
+  }
+
+  /* CTA de la card desbloqueada: link estirado (cubre toda la card) con
+     affordance visible en el pie. */
+  .card__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--fl-ink);
+    touch-action: manipulation;
+  }
+  .card__cta::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+  .card__cta:focus-visible {
+    outline: none;
+  }
+  .card:has(.card__cta:focus-visible) {
+    outline: 2px solid var(--fl-orange);
+    outline-offset: 3px;
+  }
+  .card__cta-arr {
+    transition: transform 0.18s ease-out;
+  }
+  .card--link:hover .card__cta-arr {
+    transform: translateX(4px);
+  }
   @media (prefers-reduced-motion: reduce) {
-    .chain.motion-armed .coin,
-    .chain.motion-armed .link {
-      opacity: 1;
-      transform: none;
+    .card--link,
+    .card__cta-arr {
       transition: none;
     }
-    .chain.motion-armed .coin--locked {
-      opacity: 0.68;
+    .card--link:hover {
+      transform: none;
+    }
+    .card--link:hover .card__cta-arr {
+      transform: none;
+    }
+  }
+
+  /* ---- Dientes de encastre entre cards ---- */
+  .teeth {
+    flex: 0 0 auto;
+    align-self: center;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 0 clamp(4px, 1vw, 10px);
+    z-index: 2;
+  }
+  .teeth__t {
+    width: 12px;
+    height: 12px;
+    background: var(--fl-orange);
+  }
+  .teeth__t:nth-child(2) {
+    /* Cuadro alterno navy: el damero naranja/navy de la bandera de meta
+       (el crema desaparecería sobre el fondo claro). */
+    background: var(--fl-navy);
+  }
+
+  /* ---- Responsive: apilado en móvil, dientes horizontales en la costura ---- */
+  @media (max-width: 860px) {
+    .rail {
+      flex-direction: column;
+      align-items: stretch;
+      max-width: 420px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .card {
+      max-width: none;
+    }
+    .card__stage-vis {
+      aspect-ratio: 16 / 10;
+    }
+    .teeth {
+      flex-direction: row;
+      align-self: center;
+      padding: clamp(4px, 2vw, 10px) 0;
     }
   }
 </style>
