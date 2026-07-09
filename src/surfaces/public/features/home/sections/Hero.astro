@@ -8,6 +8,7 @@
 // mientras el editor no los cargue.
 import type { RaceEvent } from '@shared/lib/server/strapi-client';
 import { heroDate, shortDate, dayMonth, countdownISOFrom } from '../format';
+import { isPastRace } from '@shared/lib/race-date';
 import { Image } from 'astro:assets';
 import Countdown from './Countdown.astro';
 
@@ -40,13 +41,32 @@ const STATUS_LABEL: Record<NonNullable<RaceEvent['status']>, string> = {
 };
 const statusLabel = race.status ? STATUS_LABEL[race.status] : null;
 
+// ¿Se puede inscribir HOY? Un solo booleano gobierna el CTA y la nota del
+// countdown, para que el hero no se contradiga: antes el chip decía
+// "Inscripciones cerradas" mientras el botón ofrecía "Inscribirse" y la nota
+// prometía un plazo ya vencido.
+//
+// Dos fuentes, y tienen que estar de acuerdo:
+//  · el estado de la carrera (o, si el editor no lo cargó, el de sus modalidades
+//    — misma regla que el badge del listado /calendario);
+//  · el plazo de inscripción, si existe. Una fecha pasada cierra la inscripción
+//    aunque el editor se haya olvidado de mover el estado.
+const statusSaysOpen = race.status
+  ? race.status === 'inscripciones_abiertas'
+  : race.modalities.some((m) => m.status === 'abierto' || m.status === 'ultimos_cupos');
+const deadlinePassed = race.registrationDeadline ? isPastRace(race.registrationDeadline) : false;
+const canRegister = statusSaysOpen && !deadlinePassed;
+
 const detailUrl = `/calendario/${race.slug}`;
-const ctaLabel = isFree ? 'Inscribirse gratis' : 'Inscribirse';
+// El naranja es el color de la conversión. Si no hay nada que convertir, el CTA
+// baja a secundario y dice lo único cierto: que podés conocer la carrera.
+const ctaLabel = canRegister ? (isFree ? 'Inscribirse gratis' : 'Inscribirse') : 'Ver la carrera';
 
 const countdownTarget = countdownISOFrom(race.date, race.startTime);
-const countdownNote = race.registrationDeadline
-  ? `Inscripciones hasta el ${dayMonth(race.registrationDeadline)}`
-  : undefined;
+const countdownNote =
+  canRegister && race.registrationDeadline
+    ? `Inscripciones hasta el ${dayMonth(race.registrationDeadline)}`
+    : undefined;
 ---
 
 <section id="carrera" class="hero">
@@ -111,7 +131,7 @@ const countdownNote = race.registrationDeadline
       </div>
 
       <div class="hero__actions" data-reveal data-delay="3">
-        <a class="btn btn--primary" href={detailUrl}>
+        <a class:list={['btn', canRegister ? 'btn--primary' : 'btn--secondary']} href={detailUrl}>
           {ctaLabel} <span class="btn__arrow" aria-hidden="true">→</span>
         </a>
       </div>
@@ -321,6 +341,15 @@ const countdownNote = race.registrationDeadline
     background: var(--fl-orange-strong);
     color: #fff;
   }
+  /* Sin inscripción abierta no hay conversión, así que no hay naranja. Contorno
+     crema sobre la foto: mismo alto que el primario (el borde de 2px se compensa
+     en el padding) para que el hero no salte entre estados. */
+  .btn--secondary {
+    padding: 14px 24px;
+    border: 2px solid var(--fl-cream);
+    color: var(--fl-cream);
+    background: transparent;
+  }
   .btn__arrow {
     transition: transform 180ms var(--ease-out);
   }
@@ -329,12 +358,21 @@ const countdownNote = race.registrationDeadline
       transform: translateY(-2px);
       background: var(--fl-orange-hover);
     }
+    .btn--secondary:hover {
+      transform: translateY(-2px);
+      background: var(--fl-cream);
+      color: var(--fl-navy);
+    }
     .btn:hover .btn__arrow {
       transform: translateX(4px);
     }
   }
   .btn:active {
     transform: scale(0.97);
+  }
+  .btn:focus-visible {
+    outline: 2px solid var(--fl-orange);
+    outline-offset: 3px;
   }
 
   /* El contador, último hijo, queda como banda al pie del hero. */
