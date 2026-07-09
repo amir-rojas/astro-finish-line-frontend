@@ -10,10 +10,8 @@
 // El tag Run Tour/Suelta sale de `RaceEvent.isRunTour` (mapeado de `esRunTour`
 // en Strapi): true → "Run Tour" (placa navy), false → "Suelta" (outline).
 //
-// "Ver calendario completo →" es un <span aria-hidden> inerte (sin href, sin
-// tabindex): no existe un listado `/calendario` en esta entrega, así que nada
-// debe parecer clickeable ni producir 404 (mismo patrón que "Ver todas" en
-// Recaps).
+// "Ver calendario completo →" apunta al listado `/calendario`, que muestra las
+// mismas carreras futuras sin agrupar por mes.
 //
 // Estado vacío (Strapi sin carreras futuras): la sección NUNCA se oculta —
 // muestra la cabecera + un mensaje breve y honesto ("Pronto anunciaremos
@@ -32,9 +30,9 @@ const hasRaces = months.length > 0;
   <div class="agenda__inner">
     <header class="agenda__head">
       <h2 class="agenda__title" data-reveal>Próximas carreras</h2>
-      <span class="agenda__all" aria-hidden="true" data-reveal data-delay="1">
-        Ver calendario completo →
-      </span>
+      <a class="agenda__all" href="/calendario" data-reveal data-delay="1">
+        Ver calendario completo <span aria-hidden="true">→</span>
+      </a>
     </header>
 
     {
@@ -120,8 +118,18 @@ const hasRaces = months.length > 0;
     font-weight: 700;
     letter-spacing: 1.5px;
     text-transform: uppercase;
-    color: var(--fl-orange-strong);
-    cursor: default;
+    color: var(--fl-orange-strong); /* 4.81:1 sobre --fl-surface */
+    text-decoration: none;
+    text-underline-offset: 6px;
+    text-decoration-thickness: 2px;
+    white-space: nowrap;
+  }
+  .agenda__all:hover {
+    text-decoration: underline;
+  }
+  .agenda__all:focus-visible {
+    outline: 2px solid var(--fl-orange);
+    outline-offset: 3px;
   }
 
   /* ---- Lista de meses ---- */

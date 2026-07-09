@@ -3,6 +3,7 @@
 // instantes). El countdown sí usa el offset real del evento.
 import type { CollectionEntry } from 'astro:content';
 import type { RaceEvent } from '@shared/lib/server/strapi-client';
+import { raceDayKey, todayInRaceTimezone } from '@shared/lib/race-date';
 
 export type EventData = CollectionEntry<'events'>['data'];
 
@@ -55,22 +56,20 @@ export interface AgendaMonth {
 }
 
 /** Agrupa las carreras FUTURAS por mes, en orden cronológico.
- *  - Filtra `date >= hoy` a granularidad de DÍA en America/La_Paz (una carrera
- *    más temprano HOY igual se muestra) — a diferencia del compare de instante
- *    crudo de `getNextRace`.
+ *  - El filtro `date >= hoy` (día en America/La_Paz) lo define `race-date.ts`,
+ *    compartido con el listado /calendario — a diferencia del compare de
+ *    instante crudo de `getNextRace`.
  *  - Asume `events` ya ordenado `fecha:asc` (lo garantiza `getEvents`); preserva
  *    ese orden dentro de cada mes y entre meses. */
 export function upcomingByMonth(events: RaceEvent[], now: Date = new Date()): AgendaMonth[] {
-  const todayKey = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/La_Paz' }).format(now);
+  const todayKey = todayInRaceTimezone(now);
 
   const months = new Map<string, AgendaMonth>();
   for (const race of events) {
+    if (raceDayKey(race.date) < todayKey) continue;
+
     const y = race.date.getUTCFullYear();
     const m = race.date.getUTCMonth() + 1;
-    const d = race.date.getUTCDate();
-    const eventKey = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    if (eventKey < todayKey) continue;
-
     const key = `${y}-${String(m).padStart(2, '0')}`;
     let bucket = months.get(key);
     if (!bucket) {

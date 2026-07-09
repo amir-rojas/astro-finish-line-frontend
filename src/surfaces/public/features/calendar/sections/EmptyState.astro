@@ -1,0 +1,37 @@
+---
+// EmptyState — vacío LEGÍTIMO del listado (0 carreras publicadas en Strapi).
+// No es un error: el error real (Strapi caído, payload roto) ya lo corta
+// `strapi-client.ts` con fail-fast antes de llegar acá. Calmo, on-brand, sin
+// iconografía de alerta.
+---
+
+<div class="es">
+  <div class="es__inner">
+    <p class="es__title">No hay carreras próximas</p>
+    <p class="es__copy">Todavía no publicamos nuevas fechas. Vuelve a pasar pronto.</p>
+  </div>
+</div>
+
+<style>
+  .es {
+    background: var(--fl-cream);
+  }
+  .es__inner {
+    max-width: var(--fl-container);
+    margin: 0 auto;
+    padding: clamp(56px, 9vw, 96px) clamp(20px, 5vw, 56px);
+    text-align: center;
+  }
+  .es__title {
+    margin: 0;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(20px, 2.6vw, 26px);
+    text-transform: uppercase;
+    color: var(--fl-navy);
+  }
+  .es__copy {
+    margin: 10px 0 0;
+    font-size: 15px;
+    color: var(--fl-on-cream-muted);
+  }
+</style>

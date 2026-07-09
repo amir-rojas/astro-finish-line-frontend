@@ -45,7 +45,7 @@ const jsonLd = calendarEventJsonLd(event, pageUrl);
     <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} is:inline />
   </Fragment>
 
-  <CalendarHeader />
+  <CalendarHeader back={{ href: '/calendario', label: 'Calendario' }} />
 
   <main>
     <DetailHero {event} />
