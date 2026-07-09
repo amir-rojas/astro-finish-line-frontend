@@ -9,9 +9,6 @@ import Hero from '@public/features/home/sections/Hero.astro';
 import RunTour from '@public/features/home/sections/RunTour.astro';
 import Recaps from '@public/features/home/sections/Recaps.astro';
 import Agenda from '@public/features/home/sections/Agenda.astro';
-import Price from '@public/features/home/sections/Price.astro';
-import Course from '@public/features/home/sections/Course.astro';
-import Sponsors from '@public/features/home/sections/Sponsors.astro';
 import SiteFooter from '@public/features/home/sections/SiteFooter.astro';
 import { eventJsonLd, seoTitle, upcomingByMonth } from '@public/features/home/format';
 import { getNextRace, getEvents } from '@shared/lib/server/strapi-client';
@@ -22,7 +19,7 @@ if (!entry) throw new Error('No hay eventos en la colección `events` para la ho
 const event = entry.data;
 
 // Hero data-driven: la próxima carrera sale de Strapi (no del JSON local). El
-// resto de secciones siguen con el JSON local durante la transición.
+// JSON local sólo alimenta el header, el footer y los metadatos SEO.
 const nextRace = await getNextRace();
 if (!nextRace) throw new Error('No hay carreras publicadas en Strapi para el hero.');
 
@@ -56,9 +53,6 @@ const jsonLd = eventJsonLd(event, {
     <RunTour />
     <Recaps />
     <Agenda months={agendaMonths} />
-    <Price {event} />
-    <Course {event} />
-    <Sponsors />
   </main>
   <SiteFooter {event} />
 </PublicLayout>
