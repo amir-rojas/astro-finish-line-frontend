@@ -5,6 +5,7 @@
 // fuentes Archivo / Archivo Black / Space Mono, lienzo navy y color crema.
 // El panel admin usa su propio AdminLayout; nunca se mezclan.
 import BaseLayout from '@shared/layouts/BaseLayout.astro';
+import { ClientRouter } from 'astro:transitions';
 import '../styles/public.css';
 
 interface Props {
@@ -20,6 +21,10 @@ const { title, description, ogImage, ogUrl, canonical } = Astro.props;
 <BaseLayout {title} {description} {ogImage} {ogUrl} {canonical}>
   {/* Fuentes propias del surface público, inyectadas en el <head> del shell. */}
   <Fragment slot="head">
+    {/* Transiciones entre páginas. Va acá y no en BaseLayout para no arrastrar el
+        router al panel admin: navegar público→admin cae a full reload, que es lo
+        correcto. Astro desactiva sus animaciones con `prefers-reduced-motion`. */}
+    <ClientRouter />
     {/* preconnect a fonts.googleapis.com / fonts.gstatic.com ya vive en BaseLayout */}
     <link
       href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Archivo+Black&family=Space+Mono:wght@400;700&display=swap"
@@ -37,17 +42,25 @@ const { title, description, ogImage, ogUrl, canonical } = Astro.props;
 <script>
   // Revelado al entrar en viewport. Solo se activa con JS y si el usuario no
   // pidió reducir movimiento: por defecto el contenido es visible (no-JS safe).
-  const root = document.querySelector<HTMLElement>('.public-surface');
-  const allowMotion = window.matchMedia('(prefers-reduced-motion: no-preference)').matches;
+  //
+  // Corre en `astro:page-load`, que dispara en la carga inicial y después de
+  // cada navegación del ClientRouter. El observer anterior se desconecta en
+  // `astro:before-swap`: sin eso, cada navegación dejaría uno vivo observando
+  // nodos que ya no están en el documento.
+  let io: IntersectionObserver | null = null;
 
-  if (root && allowMotion && 'IntersectionObserver' in window) {
+  function initReveal() {
+    const root = document.querySelector<HTMLElement>('.public-surface');
+    const allowMotion = window.matchMedia('(prefers-reduced-motion: no-preference)').matches;
+    if (!root || !allowMotion || !('IntersectionObserver' in window)) return;
+
     root.classList.add('reveal-ready');
-    const io = new IntersectionObserver(
+    io = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
           if (entry.isIntersecting) {
             entry.target.classList.add('is-in');
-            io.unobserve(entry.target);
+            io?.unobserve(entry.target);
           }
         }
       },
@@ -63,11 +76,17 @@ const { title, description, ogImage, ogUrl, canonical } = Astro.props;
           const rect = el.getBoundingClientRect();
           const inView = rect.top < window.innerHeight && rect.bottom > 0;
           if (inView) el.classList.add('is-in');
-          else io.observe(el);
+          else io?.observe(el);
         }
       }),
     );
   }
+
+  document.addEventListener('astro:page-load', initReveal);
+  document.addEventListener('astro:before-swap', () => {
+    io?.disconnect();
+    io = null;
+  });
 </script>
 
 <style>

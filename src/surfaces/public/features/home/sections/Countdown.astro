@@ -127,6 +127,13 @@ const units = [
 <script>
   // Countdown vivo. Es información (no decoración), por eso sigue actualizando
   // aun con prefers-reduced-motion. Una sola instancia por página.
+  //
+  // Con ClientRouter el script NO se re-ejecuta al navegar: hay que reinicializar
+  // en `astro:page-load` y, sobre todo, matar el intervalo en `astro:before-swap`.
+  // Si no, al salir de la home queda un setInterval de 1s escribiendo sobre nodos
+  // que ya no están en el documento — y al volver, se acumula otro.
+  const timers: ReturnType<typeof setInterval>[] = [];
+
   function initCountdown(root: HTMLElement) {
     const targetIso = root.dataset.target;
     if (!targetIso) return;
@@ -164,9 +171,14 @@ const units = [
 
     tick();
     const iv = setInterval(tick, 1000);
+    timers.push(iv);
   }
 
-  document
-    .querySelectorAll<HTMLElement>('[data-countdown]')
-    .forEach((el) => initCountdown(el));
+  document.addEventListener('astro:page-load', () => {
+    document.querySelectorAll<HTMLElement>('[data-countdown]').forEach((el) => initCountdown(el));
+  });
+
+  document.addEventListener('astro:before-swap', () => {
+    for (const iv of timers.splice(0)) clearInterval(iv);
+  });
 </script>

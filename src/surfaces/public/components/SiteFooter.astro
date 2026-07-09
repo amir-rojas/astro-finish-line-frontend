@@ -51,7 +51,8 @@ const icons: Record<'whatsapp' | SocialLink['icon'], string> = {
 };
 ---
 
-<footer class="ft">
+{/* Mismo criterio que el header: fuera del cross-fade, sin animar, sin persistir. */}
+<footer class="ft" transition:name="site-footer" transition:animate="none">
   {/* La línea de meta: cruzas la bandera al llegar al final del scroll. */}
   <div class="ft__finish" aria-hidden="true"></div>
 

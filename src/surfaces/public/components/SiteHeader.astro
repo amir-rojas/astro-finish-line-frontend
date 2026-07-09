@@ -13,6 +13,16 @@
 //
 // SIN CTA de inscripción: no existe "la" inscripción, existe la de cada carrera
 // y vive en su página de detalle (modelo NYRR).
+//
+// `Calendario` va ÚLTIMO y con cuerpo de botón. No porque "sea el que navega"
+// (desde el detalle de una carrera los tres navegan), sino por JERARQUÍA: quien
+// entra al sitio de un organizador viene a encontrar una carrera. Que pesara lo
+// mismo que "Así se vivió", que es branding, era el error.
+//
+// El bloque es crema sólido, no naranja: el naranja se reserva para la
+// conversión real ("Inscribirse", en el detalle). Y sin `border-radius`: el pill
+// de la referencia (NYRR) rompe el registro filoso de DESIGN.md, y su relleno
+// —un navy apenas más claro— daría 1.17:1 acá, invisible.
 import BrandIsotype from './BrandIsotype.astro';
 
 const path = Astro.url.pathname;
@@ -20,25 +30,35 @@ const path = Astro.url.pathname;
 const isCalendar = path === '/calendario' || path.startsWith('/calendario/');
 
 const nav = [
-  { href: '/calendario', label: 'Calendario', current: isCalendar },
-  { href: '/#run-tour', label: 'Run Tour', current: false },
-  { href: '/#recaps', label: 'Así se vivió', current: false },
+  { href: '/#run-tour', label: 'Run Tour', current: false, cta: false },
+  { href: '/#recaps', label: 'Así se vivió', current: false, cta: false },
+  { href: '/calendario', label: 'Calendario', current: isCalendar, cta: true },
 ];
 ---
 
 <a class="skip" href="#contenido">Saltar al contenido</a>
 
-<header class="hd">
+{/* `transition:name` lo saca del cross-fade del documento y `animate="none"` lo
+    intercambia sin animar: el header no parpadea al navegar. NO se usa
+    `transition:persist` a propósito — persistir conserva el DOM viejo, y con él
+    un `aria-current` de la página anterior. */}
+<header class="hd" transition:name="site-header" transition:animate="none">
   <div class="hd__inner">
     <a href="/" class="brand" aria-label="Finish Line — inicio">
       <span class="brand__iso"><BrandIsotype /></span>
       <span class="brand__word">FINISH LINE</span>
     </a>
 
+    <span class="hd__rule" aria-hidden="true"></span>
+
     <nav class="nav" aria-label="Secciones">
       {
         nav.map((s) => (
-          <a href={s.href} aria-current={s.current ? 'page' : undefined}>
+          <a
+            class:list={[s.cta && 'nav__cta']}
+            href={s.href}
+            aria-current={s.current ? 'page' : undefined}
+          >
             {s.label}
           </a>
         ))
@@ -56,7 +76,11 @@ const nav = [
       <nav class="menu__panel" aria-label="Secciones">
         {
           nav.map((s) => (
-            <a href={s.href} aria-current={s.current ? 'page' : undefined}>
+            <a
+              class:list={[s.cta && 'menu__cta']}
+              href={s.href}
+              aria-current={s.current ? 'page' : undefined}
+            >
               {s.label}
             </a>
           ))
@@ -67,8 +91,12 @@ const nav = [
 </header>
 
 <script>
-  const details = document.querySelector<HTMLDetailsElement>('.hd .menu');
-  if (details) {
+  // `astro:page-load` corre en la carga inicial Y después de cada navegación del
+  // ClientRouter. Sin esto, el header se reemplaza al navegar y el menú móvil
+  // queda sin listeners: se abre pero no cierra.
+  function initMenu() {
+    const details = document.querySelector<HTMLDetailsElement>('.hd .menu');
+    if (!details) return;
     const summary = details.querySelector<HTMLElement>('summary');
     const panel = details.querySelector<HTMLElement>('.menu__panel');
 
@@ -81,13 +109,20 @@ const nav = [
         summary?.focus();
       }
     });
-    document.addEventListener('click', (e) => {
-      if (details.open && !details.contains(e.target as Node)) details.open = false;
-    });
+    // Va sobre `document`, que sobrevive al swap: se registra una sola vez.
     details.addEventListener('toggle', () => {
       summary?.setAttribute('aria-expanded', String(details.open));
     });
   }
+
+  // El click-fuera se ata a `document` una única vez y busca el <details> vivo
+  // en cada evento, en vez de capturar el de la primera carga.
+  document.addEventListener('click', (e) => {
+    const details = document.querySelector<HTMLDetailsElement>('.hd .menu');
+    if (details?.open && !details.contains(e.target as Node)) details.open = false;
+  });
+
+  document.addEventListener('astro:page-load', initMenu);
 </script>
 
 <style>
@@ -127,8 +162,15 @@ const nav = [
     min-height: var(--fl-header-h, 74px);
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 18px;
+    gap: clamp(18px, 3vw, 36px);
+  }
+
+  /* Regla vertical: separa identidad de navegación. Hairline, no borde. */
+  .hd__rule {
+    align-self: stretch;
+    width: 1px;
+    background: rgba(246, 240, 228, 0.12);
+    flex-shrink: 0;
   }
 
   .brand {
@@ -155,17 +197,25 @@ const nav = [
   }
 
   .nav {
+    margin-left: auto;
     display: flex;
-    gap: 28px;
+    align-items: center;
+    gap: clamp(20px, 2.4vw, 32px);
     font-family: 'Space Mono', monospace;
-    font-size: 12px;
+    font-size: 14px;
     letter-spacing: 1.5px;
     text-transform: uppercase;
   }
+  /* 44px de alto: WCAG 2.2 SC 2.5.8 pide 24×24 como mínimo; el padding también
+     da al link un área de clic real, no solo la caja del texto. */
   .nav a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 2px;
     color: var(--fl-on-navy-soft);
     text-decoration: none;
-    text-underline-offset: 6px;
+    text-underline-offset: 8px;
     text-decoration-thickness: 2px;
     transition: color 160ms var(--ease-out);
   }
@@ -176,11 +226,33 @@ const nav = [
     outline: 2px solid var(--fl-orange);
     outline-offset: 4px;
   }
-  /* Página actual. */
-  .nav a[aria-current='page'] {
+  /* Página actual, para los links de sección. */
+  .nav a[aria-current='page']:not(.nav__cta) {
     color: var(--fl-cream);
     text-decoration: underline;
     text-decoration-color: var(--fl-orange);
+  }
+
+  /* Destino primario. Crema sólido sobre navy = 15.07:1. Sin radius.
+     Se escribe `.nav a.nav__cta` porque `.nav a` es más específico que
+     `.nav__cta` a secas y le ganaría el color. */
+  .nav a.nav__cta {
+    padding: 0 24px;
+    background: var(--fl-cream);
+    color: var(--fl-navy);
+    font-weight: 700;
+    transition:
+      background-color 160ms var(--ease-out),
+      color 160ms var(--ease-out);
+  }
+  .nav a.nav__cta:hover {
+    background: var(--fl-surface);
+    color: var(--fl-navy);
+  }
+  /* Ya estás en el calendario: barra naranja embutida, no un color distinto
+     (el relleno crema ya carga toda la jerarquía). */
+  .nav a.nav__cta[aria-current='page'] {
+    box-shadow: inset 0 -4px 0 var(--fl-orange);
   }
 
   /* --- Disclosure móvil --------------------------------------------------- */
@@ -273,7 +345,7 @@ const nav = [
     background: rgba(246, 240, 228, 0.06);
     color: var(--fl-cream);
   }
-  .menu__panel a[aria-current='page'] {
+  .menu__panel a[aria-current='page']:not(.menu__cta) {
     background: rgba(246, 240, 228, 0.06);
     color: var(--fl-cream);
     text-decoration: underline;
@@ -281,15 +353,34 @@ const nav = [
     text-underline-offset: 5px;
     text-decoration-thickness: 2px;
   }
+  /* Mismo destino primario que en desktop, con el mismo peso. Se escribe como
+     `.menu__panel a.menu__cta` porque `.menu__panel a` es más específico que
+     `.menu__cta` a secas y le ganaría el color. */
+  .menu__panel a.menu__cta {
+    margin-top: 6px;
+    background: var(--fl-cream);
+    color: var(--fl-navy);
+    font-weight: 700;
+    text-align: center;
+  }
+  .menu__panel a.menu__cta:hover {
+    background: var(--fl-surface);
+    color: var(--fl-navy);
+  }
+  .menu__panel a.menu__cta[aria-current='page'] {
+    box-shadow: inset 0 -4px 0 var(--fl-orange);
+  }
 
   /* Colapso: bajo 900px el nav inline se reemplaza por el disclosure. El corte
      subió de 860px porque el isotipo ensancha la marca. */
   @media (max-width: 899px) {
-    .nav {
+    .nav,
+    .hd__rule {
       display: none;
     }
     .menu {
       display: block;
+      margin-left: auto;
     }
   }
   /* Teléfonos: el isotipo mide ~2.2 anchos por alto, así que achicarlo por alto
