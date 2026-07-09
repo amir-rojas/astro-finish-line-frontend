@@ -111,16 +111,19 @@ const { modalities } = Astro.props;
     font-size: 13px;
     font-weight: 700;
   }
-  /* Tonos alineados con los del listado; texto sobre superficie clara con
-     contraste AA. El label textual siempre acompaña al color (nunca color-only). */
+  /* Mismos tokens de estado que el listado (ver PublicLayout). Acá se usan como
+     TINTA sobre `--fl-surface`, no como relleno: 5.32 / 5.19 / 7.73:1.
+     "Agotado" era rojo (#b23b2e) mientras el listado lo pintaba gris: la misma
+     carrera se veía de dos colores. Agotado no es un error, es indisponibilidad.
+     El label textual siempre acompaña al color (nunca color-only). */
   .mod__status-value--open {
-    color: #1f7a4d;
+    color: var(--fl-status-open);
   }
   .mod__status-value--warning {
-    color: #a15c00;
+    color: var(--fl-status-warning);
   }
   .mod__status-value--closed {
-    color: #b23b2e;
+    color: var(--fl-status-closed);
   }
 
   @media (max-width: 560px) {

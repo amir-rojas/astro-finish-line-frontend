@@ -37,6 +37,29 @@ Neutrales de texto (derivados, contraste ya verificado para AA):
 - Sobre navy: `#aebbcb`, `#b9c6d6` (cuerpo), `#cdd7e2` (chips), `#8295aa` / `#5d6f86` (meta tenue).
 - Sobre crema: `#6b6456` / `#5a5346` (cuerpo), `#9a8f78` (labels/meta).
 
+### Estado de inscripción — extensión funcional, fuera del ramp de marca
+
+| Token | Hex | Uso |
+| --- | --- | --- |
+| `--fl-status-open` | `#1f7a4d` | "Abiertas". Relleno con texto blanco (5.32:1) o tinta sobre superficie clara |
+| `--fl-status-warning` | `#a15c00` | "Últimos cupos". Ídem (5.19:1) |
+| `--fl-status-closed` | `#52525b` | "Agotado". Ídem (7.73:1) |
+| `--fl-status-open-ink` | `#8ee0ac` | Tinta/borde de "abiertas" sobre navy (10.92:1) |
+
+Estos cuatro son la **única** excepción a "un solo acento". El semáforo verde /
+ámbar / gris es una convención universal que el usuario ya trae aprendida, y la
+paleta de marca no tiene un tercer acento para codificar urgencia: el naranja
+significa *inscribirse*, y si empieza a significar también *disponible* deja de
+significar nada.
+
+Reglas:
+- **Solo para estado.** Nunca para branding, decoración ni jerarquía.
+- **Nunca color-only.** El label textual ("Agotado") siempre acompaña al color.
+- **Agotado es gris, no rojo.** No es un error del usuario, es indisponibilidad.
+- Los tres primeros pasan AA con texto blanco encima *y* como tinta sobre crema
+  o `--fl-surface`: el mismo token sirve para el relleno del listado y para el
+  texto del detalle.
+
 Reglas:
 - El naranja es el **único** acento. No introducir segundos acentos.
 - Texto de cuerpo ≥ 4.5:1; verificar los grises tenues sobre navy/crema (no bajar

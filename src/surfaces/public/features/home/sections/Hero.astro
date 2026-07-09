@@ -271,13 +271,17 @@ const countdownNote =
     border: 1px solid rgba(246, 240, 228, 0.22);
     color: var(--fl-cream);
   }
+  /* Estado de inscripción abierta: token de estado, no color de marca. */
   .chip--open {
-    border-color: rgba(90, 200, 140, 0.5);
-    color: #8ee0ac;
+    border-color: color-mix(in srgb, var(--fl-status-open-ink) 55%, transparent);
+    color: var(--fl-status-open-ink);
   }
+  /* "Gratis" / "Co-organizada" NO son estados: son etiquetas. El acento lo pone
+     el borde naranja de marca; el texto se queda en crema (15:1) porque el chip
+     va sobre la foto, donde un naranja claro pierde contraste sobre las luces. */
   .chip--tag {
-    border-color: rgba(242, 102, 31, 0.5);
-    color: #ffb98f;
+    border-color: color-mix(in srgb, var(--fl-orange) 55%, transparent);
+    color: var(--fl-cream);
   }
 
   /* Fila de datos: distancia + altitud sobreimpresos sobre la foto. */

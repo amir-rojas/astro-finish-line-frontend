@@ -107,6 +107,18 @@ const { title, description, ogImage, ogUrl, canonical } = Astro.props;
     --fl-on-navy-muted: #8295aa;
     --fl-on-cream-muted: #5a5346;
     --fl-on-cream-faint: #9a8f78;
+
+    /* ESTADO DE INSCRIPCIÓN — extensión funcional deliberada, FUERA del ramp de
+       marca. El semáforo verde/ámbar/gris es una convención universal y el
+       usuario escanea el listado con ella; la marca (navy/crema/naranja) no
+       tiene un tercer acento para codificar urgencia, y el naranja ya significa
+       "inscribirse". No usar estos tokens para nada que no sea estado.
+       Contraste con texto blanco verificado (mínimo AA a 11px bold). */
+    --fl-status-open: #1f7a4d; /* rellenos sobre crema; blanco encima: 5.32:1 */
+    --fl-status-warning: #a15c00; /* blanco encima: 5.19:1 */
+    --fl-status-closed: #52525b; /* blanco encima: 7.73:1 */
+    --fl-status-open-ink: #8ee0ac; /* tinta/borde sobre navy: 10.92:1 */
+
     --fl-container: 1180px;
 
     background: var(--fl-navy);

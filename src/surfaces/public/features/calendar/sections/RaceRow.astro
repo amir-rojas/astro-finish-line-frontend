@@ -100,16 +100,17 @@ const status = raceStatus(event.modalities);
     padding: 5px 9px;
     color: #fff;
   }
-  /* Tonos con contraste AA (>=4.5:1) para el texto blanco sobre el chip. El
-     label textual siempre acompaña al color — nunca es color-only. */
+  /* Tokens de estado (ver PublicLayout): extensión funcional fuera del ramp de
+     marca. Contraste AA con el texto blanco ya verificado ahí. El label textual
+     siempre acompaña al color — nunca es color-only. */
   .rr__status--open {
-    background: #1f7a4d;
+    background: var(--fl-status-open);
   }
   .rr__status--warning {
-    background: #a15c00;
+    background: var(--fl-status-warning);
   }
   .rr__status--closed {
-    background: #52525b;
+    background: var(--fl-status-closed);
   }
 
   .rr__cta {
