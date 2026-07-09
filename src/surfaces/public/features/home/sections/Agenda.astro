@@ -1,0 +1,275 @@
+---
+// Agenda — MÓDULO 4 (último) de la home: agenda vertical de próximas carreras,
+// agrupada por mes.
+//
+// Presentacional puro: NO hace fetch ni deriva nada de Strapi. Recibe `months`
+// ya agrupado y filtrado (futuro, orden cronológico) desde `index.astro` vía
+// `upcomingByMonth()` (format.ts) — mismo patrón "la página trae, la sección
+// muestra" que Hero/Price/Course.
+//
+// El tag Run Tour/Suelta sale de `RaceEvent.isRunTour` (mapeado de `esRunTour`
+// en Strapi): true → "Run Tour" (placa navy), false → "Suelta" (outline).
+//
+// "Ver calendario completo →" es un <span aria-hidden> inerte (sin href, sin
+// tabindex): no existe un listado `/calendario` en esta entrega, así que nada
+// debe parecer clickeable ni producir 404 (mismo patrón que "Ver todas" en
+// Recaps).
+//
+// Estado vacío (Strapi sin carreras futuras): la sección NUNCA se oculta —
+// muestra la cabecera + un mensaje breve y honesto ("Pronto anunciaremos
+// nuevas fechas."). Ocultar el módulo dejaría un salto abrupto al footer y
+// perdería el cierre narrativo de la home (Hero → serie → recaps → agenda).
+import type { AgendaMonth } from '@public/features/home/format';
+
+interface Props {
+  months: AgendaMonth[];
+}
+const { months } = Astro.props;
+const hasRaces = months.length > 0;
+---
+
+<section id="agenda" class="agenda">
+  <div class="agenda__inner">
+    <header class="agenda__head">
+      <h2 class="agenda__title" data-reveal>Próximas carreras</h2>
+      <span class="agenda__all" aria-hidden="true" data-reveal data-delay="1">
+        Ver calendario completo →
+      </span>
+    </header>
+
+    {
+      hasRaces ? (
+        <ul class="months" data-reveal data-delay="1">
+          {months.map((m) => (
+            <li class="month">
+              <p class="month__label">
+                {m.month} <span>{m.year}</span>
+              </p>
+              <ul class="month__races">
+                {m.races.map((r) => {
+                  const meta = [r.location, [...new Set(r.distances)].join('/')]
+                    .filter(Boolean)
+                    .join(' · ');
+                  return (
+                    <li>
+                      <a class="vrace" href={`/calendario/${r.slug}`}>
+                        <span class="vrace__date">
+                          <span class="vrace__day">
+                            {String(r.date.getUTCDate()).padStart(2, '0')}
+                          </span>
+                        </span>
+                        <span>
+                          <span class="vrace__name">{r.title}</span>
+                          <span class="vrace__meta">{meta}</span>
+                        </span>
+                        <span class:list={['vtag', r.isRunTour ? 'vtag--tour' : 'vtag--suelta']}>
+                          {r.isRunTour ? 'Run Tour' : 'Suelta'}
+                        </span>
+                        <span class="vrace__go" aria-hidden="true">
+                          →
+                        </span>
+                      </a>
+                    </li>
+                  );
+                })}
+              </ul>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p class="agenda__empty" data-reveal data-delay="1">
+          Pronto anunciaremos nuevas fechas.
+        </p>
+      )
+    }
+  </div>
+</section>
+
+<style>
+  .agenda {
+    background: var(--fl-surface);
+    color: var(--fl-ink);
+  }
+  .agenda__inner {
+    max-width: var(--fl-container);
+    margin: 0 auto;
+    padding: clamp(52px, 7vw, 84px) clamp(20px, 5vw, 56px);
+  }
+
+  /* ---- Cabecera ---- */
+  .agenda__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: clamp(26px, 3.5vw, 38px);
+  }
+  .agenda__title {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(26px, 4vw, 44px);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    color: var(--fl-ink);
+    margin: 0;
+  }
+  .agenda__all {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--fl-orange-strong);
+    cursor: default;
+  }
+
+  /* ---- Lista de meses ---- */
+  .months {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(20px, 2.8vw, 30px);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .month__races {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .month__label {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--fl-orange-strong);
+    margin: 0 0 2px;
+  }
+  .month__label span {
+    color: var(--fl-on-cream-muted);
+  }
+  .month__label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(20, 35, 58, 0.16);
+  }
+
+  /* ---- Fila de carrera ---- */
+  .vrace {
+    display: grid;
+    grid-template-columns: 74px 1fr auto auto;
+    align-items: center;
+    gap: clamp(14px, 3vw, 28px);
+    padding: 16px 10px;
+    text-decoration: none;
+    color: inherit;
+    border-top: 1px solid rgba(20, 35, 58, 0.1);
+    transition: background 140ms var(--ease-out);
+  }
+  .month__races li:first-child .vrace {
+    border-top: none;
+  }
+  .vrace:hover {
+    background: rgba(20, 35, 58, 0.035);
+  }
+  .vrace:focus-visible {
+    outline: 2px solid var(--fl-orange);
+    outline-offset: 2px;
+  }
+  .vrace__date {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1;
+  }
+  .vrace__day {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 28px;
+    color: var(--fl-ink);
+  }
+  .vrace__name {
+    display: block;
+    font-family: 'Archivo', sans-serif;
+    font-weight: 800;
+    font-size: clamp(16px, 2.2vw, 20px);
+    color: var(--fl-ink);
+  }
+  .vrace__meta {
+    display: block;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    color: var(--fl-on-cream-muted);
+    margin-top: 3px;
+  }
+  .vrace__go {
+    font-family: 'Space Mono', monospace;
+    font-size: 20px;
+    color: var(--fl-orange-strong);
+    transition: transform 160ms var(--ease-out);
+  }
+  .vrace:hover .vrace__go {
+    transform: translateX(4px);
+  }
+
+  /* ---- Tag Run Tour / Suelta ---- */
+  .vtag {
+    font-family: 'Space Mono', monospace;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    padding: 5px 10px;
+    white-space: nowrap;
+  }
+  .vtag--tour {
+    background: var(--fl-navy);
+    color: var(--fl-cream);
+  }
+  .vtag--suelta {
+    background: transparent;
+    border: 1px solid rgba(20, 35, 58, 0.28);
+    color: var(--fl-on-cream-muted);
+  }
+
+  /* ---- Estado vacío ---- */
+  .agenda__empty {
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    color: var(--fl-on-cream-muted);
+    margin: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .vrace__go {
+      transition: none;
+    }
+    .vrace:hover .vrace__go {
+      transform: none;
+    }
+  }
+
+  @media (max-width: 680px) {
+    .vrace {
+      grid-template-columns: 58px 1fr auto;
+      row-gap: 6px;
+    }
+    .vrace__day {
+      font-size: 24px;
+    }
+    .vrace__go {
+      display: none;
+    }
+    .vrace .vtag {
+      grid-column: 2 / -1;
+      justify-self: start;
+    }
+  }
+</style>

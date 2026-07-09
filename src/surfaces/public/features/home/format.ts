@@ -2,6 +2,7 @@
 // evitar corrimientos de día (las fechas del evento son fechas civiles, no
 // instantes). El countdown sí usa el offset real del evento.
 import type { CollectionEntry } from 'astro:content';
+import type { RaceEvent } from '@shared/lib/server/strapi-client';
 
 export type EventData = CollectionEntry<'events'>['data'];
 
@@ -36,6 +37,51 @@ export function dayMonth(date: Date): string {
   const day = part(date, { day: '2-digit' });
   const mon = cap(part(date, { month: 'short' }).replace('.', ''));
   return `${day} ${mon}`;
+}
+
+/** { month:"Agosto", year:"2026" } — capitalizado es-BO, UTC (fecha civil).
+ *  El año va separado para que el componente lo estilice muted. */
+export function monthYearParts(date: Date): { month: string; year: string } {
+  return { month: cap(part(date, { month: 'long' })), year: String(date.getUTCFullYear()) };
+}
+
+/** Grupo de carreras futuras de un mes, para la agenda de la home. */
+export interface AgendaMonth {
+  /** "2026-08" — clave estable para el loop keyed de Astro. */
+  key: string;
+  month: string;
+  year: string;
+  races: RaceEvent[];
+}
+
+/** Agrupa las carreras FUTURAS por mes, en orden cronológico.
+ *  - Filtra `date >= hoy` a granularidad de DÍA en America/La_Paz (una carrera
+ *    más temprano HOY igual se muestra) — a diferencia del compare de instante
+ *    crudo de `getNextRace`.
+ *  - Asume `events` ya ordenado `fecha:asc` (lo garantiza `getEvents`); preserva
+ *    ese orden dentro de cada mes y entre meses. */
+export function upcomingByMonth(events: RaceEvent[], now: Date = new Date()): AgendaMonth[] {
+  const todayKey = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/La_Paz' }).format(now);
+
+  const months = new Map<string, AgendaMonth>();
+  for (const race of events) {
+    const y = race.date.getUTCFullYear();
+    const m = race.date.getUTCMonth() + 1;
+    const d = race.date.getUTCDate();
+    const eventKey = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    if (eventKey < todayKey) continue;
+
+    const key = `${y}-${String(m).padStart(2, '0')}`;
+    let bucket = months.get(key);
+    if (!bucket) {
+      const { month, year } = monthYearParts(race.date);
+      bucket = { key, month, year, races: [] };
+      months.set(key, bucket);
+    }
+    bucket.races.push(race);
+  }
+
+  return [...months.values()];
 }
 
 /** ISO con offset, p.ej. "2026-07-12T08:00:00-04:00" para el countdown.

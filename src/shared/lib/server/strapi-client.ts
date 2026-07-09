@@ -70,6 +70,8 @@ const raceSchema = z.object({
     .nullable()
     .optional(),
   coorganizador: z.string().nullable().optional(),
+  // serie Run Tour vs carrera suelta — tag de la agenda
+  esRunTour: z.boolean().nullable().optional(),
 });
 
 const strapiListResponseSchema = z.object({
@@ -111,6 +113,8 @@ export interface RaceEvent {
   status?: 'proximo' | 'inscripciones_abiertas' | 'cerrado' | 'finalizado';
   /** Co-organizador, p.ej. "Alcaldía de La Paz" (chip del hero). */
   coorganizer?: string;
+  /** Serie Run Tour vs carrera suelta — alimenta el tag de la agenda de la home. */
+  isRunTour: boolean;
   heroImage?: { url: string; alt: string };
   /** Markdown crudo tal cual viene de Strapi. Renderizar en la superficie que lo use. */
   descriptionRaw?: string;
@@ -161,6 +165,7 @@ function mapRace(raw: RawRace, strapiUrl: string): RaceEvent {
     startTime: raw.horaLargada ? raw.horaLargada.slice(0, 5) : undefined,
     status: raw.estado ?? undefined,
     coorganizer: raw.coorganizador ?? undefined,
+    isRunTour: raw.esRunTour ?? false,
     heroImage: raw.heroImage
       ? {
           url: toAbsoluteUrl(raw.heroImage.url, strapiUrl),
