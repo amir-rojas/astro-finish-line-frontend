@@ -7,6 +7,7 @@ import PublicLayout from '@public/layouts/PublicLayout.astro';
 import SiteHeader from '@public/features/home/sections/SiteHeader.astro';
 import Hero from '@public/features/home/sections/Hero.astro';
 import RunTour from '@public/features/home/sections/RunTour.astro';
+import Recaps from '@public/features/home/sections/Recaps.astro';
 import Price from '@public/features/home/sections/Price.astro';
 import Course from '@public/features/home/sections/Course.astro';
 import Sponsors from '@public/features/home/sections/Sponsors.astro';
@@ -48,6 +49,7 @@ const jsonLd = eventJsonLd(event, {
   <main>
     <Hero race={nextRace} />
     <RunTour />
+    <Recaps />
     <Price {event} />
     <Course {event} />
     <Sponsors />

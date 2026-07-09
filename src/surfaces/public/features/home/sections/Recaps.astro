@@ -1,0 +1,339 @@
+---
+// Recaps — MÓDULO 3 de la home: "Así se vivió Finish Line".
+//
+// Vitrina editorial de ediciones pasadas con foto real (no placeholder): 1
+// recap FEATURE (alto, con excerpt) + 2 recaps MEDIUM, en grid asimétrica
+// 1.5fr/1fr. Sobre foto real el damero diagonal compite con la imagen — se
+// descartó (DESIGN.md: restricción); el motivo de marca sobrevive solo como
+// el cuadradito naranja de la etiqueta "Recap" (micro-motivo, no panel).
+//
+// Contraste verificado sobre las 3 fotos reales: TODO el texto sobre foto va
+// en --fl-cream (nunca naranja/on-navy-soft — sobre la grava clara de
+// Titicaca el naranja cae a ~3.7:1 y falla AA; el crema pasa ≥4.5:1 en todas
+// las bandas de scrim usadas). El naranja queda como acento puro (cuadradito
+// de la etiqueta).
+//
+// "Ver recap" / "Ver todas" son `<span aria-hidden>` inertes (sin href, sin
+// tabindex, cursor default): esta entrega no linkea a detalle de recap, así
+// que nada debe parecer clickeable ni producir 404.
+//
+// Datos hardcodeados (Strapi aún no modela recaps/ediciones pasadas): cuando
+// exista la colección, este `const recaps` se reemplaza por un fetch en el
+// único call site de este archivo.
+import { Image } from 'astro:assets';
+import titicaca from '../../../../../assets/recaps/titicaca.jpg';
+import francofonia from '../../../../../assets/recaps/francofonia.jpg';
+import sanSilvestre from '../../../../../assets/recaps/san-silvestre.jpg';
+
+type Recap = {
+  slug: string;
+  name: string;
+  date: string;
+  image: ImageMetadata;
+  alt: string;
+  objectPosition: string;
+  excerpt?: string;
+  featured?: boolean;
+};
+
+const recaps: Recap[] = [
+  {
+    slug: 'titicaca',
+    name: 'Maratón del Titicaca 2026',
+    date: 'Mayo 2026 · La Paz',
+    image: titicaca,
+    alt: 'Corredor cruzando la meta del Maratón del Titicaca 2026 bajo el arco de llegada, en el altiplano.',
+    objectPosition: '50% 40%',
+    excerpt:
+      'Bajo el sol del altiplano, cientos de corredores cruzaron la meta a 3.800 msnm de altura.',
+    featured: true,
+  },
+  {
+    slug: 'francofonia',
+    name: 'Carrera de la Francofonía 5K · 10K',
+    date: '15 Mar 2026',
+    image: francofonia,
+    alt: 'Corredores avanzando por el asfalto en la Carrera de la Francofonía, con público animando al costado de la ruta.',
+    objectPosition: '50% 35%',
+  },
+  {
+    slug: 'san-silvestre',
+    name: 'II San Silvestre 2025',
+    date: 'Dic 2025 · Nocturna',
+    image: sanSilvestre,
+    alt: 'Corredores nocturnos de la San Silvestre avanzando por las calles iluminadas de La Paz.',
+    objectPosition: '50% 45%',
+  },
+];
+
+const delays: Record<string, string> = { titicaca: '1', francofonia: '2', 'san-silvestre': '3' };
+---
+
+<section id="recaps" class="recaps">
+  <div class="recaps__inner">
+    <header class="recaps__head">
+      <div>
+        <p class="recaps__kicker" data-reveal>// Ediciones pasadas</p>
+        <h2 class="recaps__title" data-reveal data-delay="1">Así se vivió Finish Line</h2>
+      </div>
+      <span class="recaps__all" aria-hidden="true" data-reveal data-delay="1">Ver todas →</span>
+    </header>
+
+    <div class="recaps__grid">
+      {
+        recaps.map((r) => (
+          <article
+            class:list={['recap', { 'recap--feature': r.featured, 'recap--medium': !r.featured }]}
+            data-reveal
+            data-delay={delays[r.slug]}
+          >
+            <div class="recap__frame">
+              <Image
+                class="recap__media"
+                src={r.image}
+                alt={r.alt}
+                widths={r.featured ? [560, 680, 900, 1120] : [440, 560, 720, 880]}
+                sizes={
+                  r.featured
+                    ? '(max-width: 860px) 92vw, 680px'
+                    : '(max-width: 860px) 92vw, 440px'
+                }
+                loading="lazy"
+                style={`object-position:${r.objectPosition}`}
+              />
+              <span class="recap__tag">
+                <span class="recap__tag-sq" aria-hidden="true" />
+                Recap
+              </span>
+              <div class="recap__body">
+                <span class="recap__date">{r.date}</span>
+                <h3 class="recap__name">{r.name}</h3>
+                {r.excerpt && <p class="recap__excerpt">{r.excerpt}</p>}
+                {r.featured && (
+                  <span class="recap__cta" aria-hidden="true">
+                    Ver recap →
+                  </span>
+                )}
+              </div>
+            </div>
+          </article>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .recaps {
+    position: relative;
+    background: var(--fl-cream-2);
+    color: var(--fl-ink);
+  }
+  .recaps__inner {
+    max-width: var(--fl-container);
+    margin: 0 auto;
+    padding: clamp(60px, 7vw, 96px) clamp(20px, 5vw, 56px);
+  }
+
+  /* ---- Cabecera ---- */
+  .recaps__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+  }
+  .recaps__kicker {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    /* on-cream-faint falla AA a este tamaño: se usa muted, igual que RunTour. */
+    color: var(--fl-on-cream-muted);
+  }
+  .recaps__title {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(26px, 4.4vw, 48px);
+    line-height: 0.96;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    text-wrap: balance;
+    color: var(--fl-ink);
+    margin: 12px 0 0;
+  }
+  .recaps__all {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--fl-on-cream-muted);
+    cursor: default;
+    align-self: flex-end;
+  }
+
+  /* ---- Grid asimétrica: 1 feature + 2 medium ---- */
+  .recaps__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: clamp(16px, 2vw, 24px);
+    margin-top: clamp(34px, 5vw, 56px);
+  }
+
+  .recap__frame {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(20, 35, 58, 0.14);
+    height: 100%;
+  }
+  .recap__media {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease-out;
+  }
+  .recap:hover .recap__media {
+    transform: scale(1.06);
+  }
+
+  /* Scrim navy (pseudo-elemento: sin nodo en el árbol de accesibilidad, no
+     necesita aria-hidden). Banda más profunda en el feature, que carga más
+     texto (fecha + nombre + excerpt + "Ver recap"). */
+  .recap__frame::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .recap--medium .recap__frame::after {
+    background: linear-gradient(
+      to top,
+      rgba(10, 21, 37, 0.94) 0%,
+      rgba(10, 21, 37, 0.7) 22%,
+      rgba(10, 21, 37, 0.15) 46%,
+      transparent 66%
+    );
+  }
+  .recap--feature .recap__frame::after {
+    background: linear-gradient(
+      to top,
+      rgba(10, 21, 37, 0.95) 0%,
+      rgba(10, 21, 37, 0.86) 26%,
+      rgba(10, 21, 37, 0.5) 48%,
+      transparent 78%
+    );
+  }
+
+  /* ---- Etiqueta "Recap" ---- */
+  .recap__tag {
+    position: absolute;
+    top: clamp(14px, 2vw, 20px);
+    left: clamp(14px, 2vw, 20px);
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: rgba(10, 21, 37, 0.9);
+    color: var(--fl-cream);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 6px 10px;
+  }
+  .recap__tag-sq {
+    width: 6px;
+    height: 6px;
+    background: var(--fl-orange);
+  }
+
+  /* ---- Cuerpo (texto sobre foto, siempre crema) ---- */
+  .recap__body {
+    position: absolute;
+    inset: auto 0 0 0;
+    z-index: 1;
+    padding: clamp(16px, 2.4vw, 26px);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .recap__date {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: var(--fl-cream);
+  }
+  .recap__name {
+    font-family: 'Archivo Black', sans-serif;
+    line-height: 1.05;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    color: var(--fl-cream);
+  }
+  .recap--feature .recap__name {
+    font-size: clamp(24px, 3.2vw, 40px);
+  }
+  .recap--medium .recap__name {
+    font-size: clamp(18px, 2.2vw, 24px);
+  }
+  .recap__excerpt {
+    margin-top: 4px;
+    max-width: 46ch;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--fl-cream);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .recap__cta {
+    margin-top: 10px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--fl-cream);
+    cursor: default;
+  }
+
+  /* ---- Aspect ratio por slot (mobile-first: 1 columna) ---- */
+  .recap--feature .recap__frame {
+    aspect-ratio: 4 / 5;
+  }
+  .recap--medium .recap__frame {
+    aspect-ratio: 16 / 10;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .recap__media {
+      transition: none;
+    }
+    .recap:hover .recap__media {
+      transform: none;
+    }
+  }
+
+  /* ---- Desktop: feature alto a la izquierda, 2 medium apilados a la
+     derecha. El feature (aspect-ratio 4/5) fija la altura total; al no
+     declarar `grid-template-rows`, el motor de grid distribuye esa altura
+     entre las 2 filas implícitas que el feature abarca — los medium, sin
+     aspect-ratio propio, heredan esa altura de fila y la foto la cubre con
+     object-fit:cover. ---- */
+  @media (min-width: 861px) {
+    .recaps__grid {
+      grid-template-columns: 1.5fr 1fr;
+    }
+    .recap--feature {
+      grid-column: 1;
+      grid-row: 1 / span 2;
+    }
+    .recap--medium .recap__frame {
+      aspect-ratio: auto;
+    }
+  }
+</style>
