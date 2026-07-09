@@ -16,9 +16,14 @@ interface Props {
 }
 const { race } = Astro.props;
 
-// Titular display: tagline si existe; si no, cae al nombre. El kicker con el
-// nombre oficial solo se muestra cuando hay tagline (para no duplicarlo).
-const displayTitle = race.tagline ?? race.title;
+// El H1 es el NOMBRE de la carrera, no la frase gancho: es la entidad que la
+// gente busca y reconoce ("Renacer"), y es la keyword del encabezado principal.
+// El tagline queda como subtítulo, fuera del <h1>, para que un lector de
+// pantalla anuncie un encabezado limpio.
+//
+// La guarda contra `race.title` no es paranoia: hay carreras en Strapi donde el
+// tagline se cargó igual al nombre, y sin ella el hero lo imprimía dos veces.
+const tagline = race.tagline && race.tagline !== race.title ? race.tagline : null;
 
 const distances = [...new Set(race.distances)];
 const distanceLine = distances.join(' · ');
@@ -66,10 +71,8 @@ const countdownNote = race.registrationDeadline
       <p class="eyebrow" data-reveal>Próxima carrera</p>
       <p class="hero__date" data-reveal data-delay="1">{heroDate(race.date)}</p>
 
-      <h1 class="hero__title" data-reveal data-delay="1">
-        {race.tagline && <span class="hero__name">{race.title}</span>}
-        <span class="hero__tagline">{displayTitle}</span>
-      </h1>
+      <h1 class="hero__title" data-reveal data-delay="1">{race.title}</h1>
+      {tagline && <p class="hero__tagline" data-reveal data-delay="2">{tagline}</p>}
 
       <p class="hero__loc" data-reveal data-delay="2">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -189,30 +192,29 @@ const countdownNote = race.registrationDeadline
     color: var(--fl-on-navy-soft, #c4d0de);
   }
 
-  /* El H1 envuelve el nombre de la carrera (kicker) + el tagline display. */
+  /* El H1 es el nombre de la carrera. Protagonista. */
   .hero__title {
     margin: 16px 0 0;
-    display: flex;
-    flex-direction: column;
-  }
-  /* Kicker: nombre oficial de la carrera. Lleva la keyword principal al H1
-     sin robarle protagonismo al tagline. */
-  .hero__name {
-    font-family: 'Archivo', sans-serif;
-    font-weight: 700;
-    font-size: clamp(15px, 1.8vw, 20px);
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    color: var(--fl-cream);
-    margin-bottom: clamp(8px, 1.2vw, 12px);
-  }
-  .hero__tagline {
     font-family: 'Archivo Black', sans-serif;
     font-size: clamp(40px, 7.4vw, 88px);
     line-height: 0.9;
     letter-spacing: -0.03em;
     text-transform: uppercase;
+    text-wrap: balance;
+    color: var(--fl-cream);
+  }
+  /* Frase gancho: subtítulo, subordinado al nombre. Se distingue por tamaño y
+     peso, no por opacidad — el hero va sobre foto y bajar el alfa arruinaría el
+     contraste. */
+  .hero__tagline {
+    margin: clamp(12px, 1.6vw, 18px) 0 0;
+    max-width: 34ch;
+    font-family: 'Archivo', sans-serif;
+    font-weight: 500;
+    font-size: clamp(17px, 1.9vw, 22px);
+    line-height: 1.35;
     white-space: pre-line; /* respeta los saltos de línea del tagline */
+    text-wrap: pretty;
     color: var(--fl-cream);
   }
 
