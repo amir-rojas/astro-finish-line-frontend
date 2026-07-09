@@ -1,53 +1,68 @@
 ---
-import type { EventData } from '../format';
+// Header GLOBAL de la superficie pública. Lo usan la home, /calendario y el
+// detalle de carrera. Reemplaza al SiteHeader de `features/home` (nav de anclas,
+// event-driven) y al CalendarHeader (sin nav) — el sitio dejó de ser una landing
+// de un solo evento y pasó a ser el sitio de un organizador con muchas carreras.
+//
+// Nav de tres destinos, todos válidos desde CUALQUIER ruta:
+//  · /calendario   → ruta real
+//  · /#run-tour    → ancla root-relative: navega a la home y baja
+//  · /#recaps      → idem
+// Un `#run-tour` pelado solo resolvía en `/`; desde el detalle de una carrera
+// era un link muerto.
+//
+// SIN CTA de inscripción: no existe "la" inscripción, existe la de cada carrera
+// y vive en su página de detalle (modelo NYRR).
+import BrandIsotype from './BrandIsotype.astro';
 
-interface Props {
-  event: EventData;
-}
-const { event } = Astro.props;
-const reg = event.registrationUrl;
+const path = Astro.url.pathname;
+/** Ruta actual: `/calendario` y `/calendario/lo-que-sea` marcan el mismo ítem. */
+const isCalendar = path === '/calendario' || path.startsWith('/calendario/');
 
-const sections = [
-  { href: '#carrera', label: 'Próxima carrera' },
-  { href: '#run-tour', label: 'Run Tour' },
-  { href: '#recaps', label: 'Así se vivió' },
-  { href: '#agenda', label: 'Calendario' },
+const nav = [
+  { href: '/calendario', label: 'Calendario', current: isCalendar },
+  { href: '/#run-tour', label: 'Run Tour', current: false },
+  { href: '/#recaps', label: 'Así se vivió', current: false },
 ];
 ---
 
+<a class="skip" href="#contenido">Saltar al contenido</a>
+
 <header class="hd">
   <div class="hd__inner">
-    <a href="#carrera" class="brand" aria-label="Finish Line — inicio">
-      <span class="brand__mark" aria-hidden="true"></span>
+    <a href="/" class="brand" aria-label="Finish Line — inicio">
+      <span class="brand__iso"><BrandIsotype /></span>
       <span class="brand__word">FINISH LINE</span>
     </a>
 
     <nav class="nav" aria-label="Secciones">
-      {sections.map((s) => <a href={s.href}>{s.label}</a>)}
+      {
+        nav.map((s) => (
+          <a href={s.href} aria-current={s.current ? 'page' : undefined}>
+            {s.label}
+          </a>
+        ))
+      }
     </nav>
 
-    <div class="actions">
-      {
-        reg && (
-          <a class="cta" href={reg} target="_blank" rel="noopener noreferrer">
-            Inscribirse
-          </a>
-        )
-      }
-
-      {/* Disclosure de secciones para móvil. Funciona sin JS (details/summary);
-          el script solo lo cierra al elegir, con Escape o al tocar fuera. */}
-      <details class="menu">
-        <summary class="burger" aria-expanded="false" aria-label="Secciones">
-          <span class="burger__box" aria-hidden="true">
-            <span class="burger__bar"></span>
-          </span>
-        </summary>
-        <nav class="menu__panel" aria-label="Secciones">
-          {sections.map((s) => <a href={s.href}>{s.label}</a>)}
-        </nav>
-      </details>
-    </div>
+    {/* Disclosure de secciones para móvil. Funciona sin JS (details/summary);
+        el script solo lo cierra al elegir, con Escape o al tocar fuera. */}
+    <details class="menu">
+      <summary class="burger" aria-expanded="false" aria-label="Secciones">
+        <span class="burger__box" aria-hidden="true">
+          <span class="burger__bar"></span>
+        </span>
+      </summary>
+      <nav class="menu__panel" aria-label="Secciones">
+        {
+          nav.map((s) => (
+            <a href={s.href} aria-current={s.current ? 'page' : undefined}>
+              {s.label}
+            </a>
+          ))
+        }
+      </nav>
+    </details>
   </div>
 </header>
 
@@ -57,67 +72,50 @@ const sections = [
     const summary = details.querySelector<HTMLElement>('summary');
     const panel = details.querySelector<HTMLElement>('.menu__panel');
 
-    // Cerrar al elegir una sección.
     panel?.addEventListener('click', (e) => {
       if ((e.target as HTMLElement).closest('a')) details.open = false;
     });
-    // Cerrar con Escape y devolver el foco al botón.
     details.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && details.open) {
         details.open = false;
         summary?.focus();
       }
     });
-    // Cerrar al tocar fuera.
     document.addEventListener('click', (e) => {
       if (details.open && !details.contains(e.target as Node)) details.open = false;
     });
-    // Mantener aria-expanded en sintonía con el estado abierto.
     details.addEventListener('toggle', () => {
       summary?.setAttribute('aria-expanded', String(details.open));
     });
   }
-
-  // Scrollspy: marca con aria-current el enlace de la sección visible, para
-  // indicar dónde estás al navegar/scrollear. Mejora progresiva (sin JS no pasa
-  // nada). Aplica a nav desktop y al panel móvil.
-  const navLinks = Array.from(
-    document.querySelectorAll<HTMLAnchorElement>(
-      '.hd .nav a[href^="#"], .hd .menu__panel a[href^="#"]',
-    ),
-  );
-  const ids = [...new Set(navLinks.map((a) => a.getAttribute('href')!.slice(1)))];
-  const targets = ids
-    .map((id) => document.getElementById(id))
-    .filter((el): el is HTMLElement => Boolean(el));
-
-  if (targets.length && 'IntersectionObserver' in window) {
-    let active = '';
-    const setActive = (id: string) => {
-      if (id === active) return;
-      active = id;
-      for (const a of navLinks) {
-        if (a.getAttribute('href') === '#' + id) a.setAttribute('aria-current', 'true');
-        else a.removeAttribute('aria-current');
-      }
-    };
-    const spy = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) {
-          if (e.isIntersecting) setActive((e.target as HTMLElement).id);
-        }
-      },
-      { rootMargin: '-45% 0px -50% 0px', threshold: 0 },
-    );
-    targets.forEach((t) => spy.observe(t));
-  }
 </script>
 
 <style>
+  /* Primer foco tabulable de la página: invisible hasta que se enfoca. */
+  .skip {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: var(--z-skip);
+    transform: translateY(-110%);
+    padding: 12px 18px;
+    background: var(--fl-cream);
+    color: var(--fl-navy);
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .skip:focus-visible {
+    transform: translateY(0);
+    outline: 2px solid var(--fl-orange);
+    outline-offset: -4px;
+  }
+
   .hd {
     position: sticky;
     top: 0;
-    z-index: 50;
+    z-index: var(--z-header);
     background: rgba(14, 28, 48, 0.94);
     backdrop-filter: blur(10px);
     border-bottom: 1px solid rgba(246, 240, 228, 0.1);
@@ -132,17 +130,22 @@ const sections = [
     justify-content: space-between;
     gap: 18px;
   }
+
   .brand {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
     text-decoration: none;
     flex-shrink: 0;
   }
-  .brand__mark {
-    width: 13px;
-    height: 13px;
-    background: var(--fl-orange);
+  .brand:focus-visible {
+    outline: 2px solid var(--fl-orange);
+    outline-offset: 4px;
+  }
+  /* El isotipo es ancho (ratio ~2.2:1): se dimensiona por ALTO. */
+  .brand__iso {
+    display: block;
+    height: 42px;
   }
   .brand__word {
     font-family: 'Archivo Black', sans-serif;
@@ -151,7 +154,6 @@ const sections = [
     color: var(--fl-cream);
   }
 
-  /* Nav inline (desktop). */
   .nav {
     display: flex;
     gap: 28px;
@@ -170,41 +172,15 @@ const sections = [
   .nav a:hover {
     color: var(--fl-cream);
   }
-  /* Sección actual: indica dónde estás al navegar/scrollear. */
-  .nav a[aria-current='true'] {
+  .nav a:focus-visible {
+    outline: 2px solid var(--fl-orange);
+    outline-offset: 4px;
+  }
+  /* Página actual. */
+  .nav a[aria-current='page'] {
     color: var(--fl-cream);
     text-decoration: underline;
     text-decoration-color: var(--fl-orange);
-  }
-
-  .actions {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-shrink: 0;
-  }
-
-  .cta {
-    font-family: 'Space Mono', monospace;
-    font-weight: 700;
-    font-size: 12px;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    background: var(--fl-orange-strong);
-    color: #fff;
-    padding: 12px 20px;
-    text-decoration: none;
-    white-space: nowrap;
-    transition:
-      background-color 160ms var(--ease-out),
-      transform 160ms var(--ease-out);
-  }
-  .cta:hover {
-    background: var(--fl-orange-hover);
-    transform: translateY(-1px);
-  }
-  .cta:active {
-    transform: scale(0.97);
   }
 
   /* --- Disclosure móvil --------------------------------------------------- */
@@ -297,7 +273,7 @@ const sections = [
     background: rgba(246, 240, 228, 0.06);
     color: var(--fl-cream);
   }
-  .menu__panel a[aria-current='true'] {
+  .menu__panel a[aria-current='page'] {
     background: rgba(246, 240, 228, 0.06);
     color: var(--fl-cream);
     text-decoration: underline;
@@ -306,8 +282,9 @@ const sections = [
     text-decoration-thickness: 2px;
   }
 
-  /* Colapso: bajo 860px el nav inline se reemplaza por el disclosure. */
-  @media (max-width: 859px) {
+  /* Colapso: bajo 900px el nav inline se reemplaza por el disclosure. El corte
+     subió de 860px porque el isotipo ensancha la marca. */
+  @media (max-width: 899px) {
     .nav {
       display: none;
     }
@@ -315,38 +292,34 @@ const sections = [
       display: block;
     }
   }
-  /* Teléfonos: achica marca + CTA + gaps para que marca, CTA y hamburguesa
-     quepan sin desbordar. En pantallas anchas (~412px CSS, p. ej. Galaxy S25
-     Ultra) el contenido se salía del viewport y la hamburguesa quedaba cortada
-     contra el borde derecho. */
+  /* Teléfonos: el isotipo mide ~2.2 anchos por alto, así que achicarlo por alto
+     es lo que libera espacio para el wordmark y la hamburguesa. */
   @media (max-width: 480px) {
     .hd__inner {
       gap: 10px;
       padding: 0 16px;
     }
+    .brand {
+      gap: 10px;
+    }
+    .brand__iso {
+      height: 30px;
+    }
     .brand__word {
       font-size: 18px;
     }
-    .actions {
-      gap: 8px;
-    }
-    .cta {
-      padding: 11px 14px;
-    }
   }
   @media (max-width: 360px) {
+    .brand__iso {
+      height: 26px;
+    }
     .brand__word {
       font-size: 16px;
-    }
-    .cta {
-      font-size: 11px;
-      padding: 10px 12px;
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
     .nav a,
-    .cta,
     .burger__bar,
     .burger__box::before,
     .burger__box::after,

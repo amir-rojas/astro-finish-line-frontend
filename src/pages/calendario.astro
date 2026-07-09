@@ -5,11 +5,9 @@
 // Las ediciones pasadas NO se listan acá: viven en el módulo "Así se vivió" de
 // la home. Este es el calendario de lo que viene.
 //
-// Chrome: usa CalendarHeader/CalendarFooter, igual que el detalle. Cuando exista
-// el header y el footer globales, ambas rutas pasan a consumirlos.
 import PublicLayout from '@public/layouts/PublicLayout.astro';
-import CalendarHeader from '@public/features/calendar/sections/CalendarHeader.astro';
-import CalendarFooter from '@public/features/calendar/sections/CalendarFooter.astro';
+import SiteHeader from '@public/components/SiteHeader.astro';
+import SiteFooter from '@public/components/SiteFooter.astro';
 import ListHeader from '@public/features/calendar/sections/ListHeader.astro';
 import RaceList from '@public/features/calendar/sections/RaceList.astro';
 import EmptyState from '@public/features/calendar/sections/EmptyState.astro';
@@ -23,10 +21,10 @@ const races = upcomingRaces(await getEvents());
   title="Calendario de carreras"
   description="Próximas carreras de Finish Line en Bolivia: fechas, distancias y estado de inscripción."
 >
-  <CalendarHeader />
-  <main>
+  <SiteHeader />
+  <main id="contenido">
     <ListHeader />
     {races.length > 0 ? <RaceList events={races} /> : <EmptyState />}
   </main>
-  <CalendarFooter />
+  <SiteFooter />
 </PublicLayout>

@@ -5,8 +5,8 @@
 // completo viaja como prop; un slug inexistente no se genera → Astro sirve 404.
 // THIN: solo orquesta el chrome del surface y las secciones del feature.
 import PublicLayout from '@public/layouts/PublicLayout.astro';
-import CalendarHeader from '@public/features/calendar/sections/CalendarHeader.astro';
-import CalendarFooter from '@public/features/calendar/sections/CalendarFooter.astro';
+import SiteHeader from '@public/components/SiteHeader.astro';
+import SiteFooter from '@public/components/SiteFooter.astro';
 import DetailHero from '@public/features/calendar/sections/DetailHero.astro';
 import Description from '@public/features/calendar/sections/Description.astro';
 import Modalities from '@public/features/calendar/sections/Modalities.astro';
@@ -45,9 +45,9 @@ const jsonLd = calendarEventJsonLd(event, pageUrl);
     <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} is:inline />
   </Fragment>
 
-  <CalendarHeader back={{ href: '/calendario', label: 'Calendario' }} />
+  <SiteHeader />
 
-  <main>
+  <main id="contenido">
     <DetailHero {event} />
 
     <div class="detail">
@@ -63,7 +63,7 @@ const jsonLd = calendarEventJsonLd(event, pageUrl);
     </div>
   </main>
 
-  <CalendarFooter />
+  <SiteFooter />
 </PublicLayout>
 
 <style>

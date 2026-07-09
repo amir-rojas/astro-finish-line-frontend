@@ -3,9 +3,17 @@
 
 :root {
   --fl-header-h: 74px; /* alto del header sticky; lo usan Hero (calc) y SiteHeader */
+
+  /* Escala semántica de apilamiento. Nunca escribir z-index a mano: si algo
+     necesita un nivel nuevo, se nombra acá y se ordena contra el resto.
+     El grano va sobre el header a propósito (cubre toda la página y no
+     intercepta punteros); el skip-link tiene que ganarle a todo. */
+  --z-header: 50;
+  --z-grain: 70;
+  --z-skip: 100;
 }
 
-/* Los anclas (#carrera, #recorrido…) compensan el header sticky al saltar. */
+/* Los anclas (#run-tour, #recaps…) compensan el header sticky al saltar. */
 html {
   scroll-padding-top: var(--fl-header-h);
 }
@@ -26,7 +34,7 @@ html {
   content: '';
   position: fixed;
   inset: 0;
-  z-index: 70;
+  z-index: var(--z-grain);
   pointer-events: none;
   opacity: 0.045;
   mix-blend-mode: overlay;

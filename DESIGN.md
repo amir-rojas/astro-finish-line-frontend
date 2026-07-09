@@ -95,7 +95,14 @@ Escala display (clamp, fiel a la referencia):
 - **Bandera de meta a cuadros** (`repeating-linear-gradient` naranja/navy): franjas
   delgadas que enmarcan la sección de precio y como acento bajo el hero. Es EL
   símbolo de marca (línea de meta), no decoración.
-- **Cuadrado naranja sólido** (~12–13px) junto al wordmark = logo mark.
+- **Isotipo** (`components/BrandIsotype.astro`): la corona — tres picos y el
+  corredor con los brazos en alto — trazada plana desde el emblema real. Va junto
+  al wordmark en el header. Cada capa se pinta con tokens (`--iso-peaks`,
+  `--iso-runner`), así que sirve sobre navy y sobre crema. Reemplaza al cuadrado
+  naranja que hacía de mark provisional.
+- **Emblema completo** (con la cinta y las letras, `assets/images/logo.png`): solo
+  en el footer, sobre placa crema, como firma del organizador. A tamaño de header
+  la cinta se come el logo.
 - **Hatch diagonal** muy sutil (naranja a baja opacidad) en el hero.
 - **Números gigantes** Archivo Black como anclas visuales (precio, countdown, 10K).
 
