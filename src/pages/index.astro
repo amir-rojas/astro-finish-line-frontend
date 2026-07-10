@@ -49,10 +49,15 @@ const jsonLd = eventJsonLd(event, {
   <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} is:inline />
   <SiteHeader />
   <main id="contenido">
+    {/* El futuro antes del pasado. La agenda —lo único accionable de la home—
+        estaba tras tres carreras ya corridas: quien llegaba buscando "cuándo es
+        la próxima" y no era la del hero, tenía que atravesar la serie y los
+        recaps para encontrarla. Recaps queda como cierre emocional, justo antes
+        del footer, que es el mapa del sitio. */}
     <Hero race={nextRace} />
     <RunTour />
-    <Recaps />
     <Agenda months={agendaMonths} />
+    <Recaps />
   </main>
   <SiteFooter />
 </PublicLayout>
