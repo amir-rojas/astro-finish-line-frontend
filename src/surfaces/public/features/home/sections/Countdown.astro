@@ -57,13 +57,17 @@ const units = [
     gap: 24px;
     flex-wrap: wrap;
   }
+  /* Navy PLENO sobre el naranja: 4.79:1, el máximo que da este par. La jerarquía
+     de la banda la cargan el tamaño, el peso y la familia —no el alfa—, porque el
+     alfa la hundía por debajo de AA: al 0.72 estas etiquetas daban 3.47:1, y son
+     justamente las palabras que explican qué significan los números gigantes. */
   .cd__label {
     margin: 0;
     font-family: 'Space Mono', monospace;
     font-size: 12px;
     letter-spacing: 2px;
     text-transform: uppercase;
-    color: rgba(14, 28, 48, 0.72);
+    color: var(--fl-navy);
   }
   /* Anclaje concreto: la fecha de la carrera. */
   .cd__largada {
@@ -82,14 +86,14 @@ const units = [
     font-size: 13px;
     letter-spacing: 1.5px;
     text-transform: uppercase;
-    color: rgba(14, 28, 48, 0.82);
+    color: var(--fl-navy);
   }
   .cd__note {
     margin: 6px 0 0;
     font-family: 'Space Mono', monospace;
     font-size: 12px;
     letter-spacing: 1px;
-    color: rgba(14, 28, 48, 0.62);
+    color: var(--fl-navy);
   }
   .cd__grid {
     display: flex;
@@ -116,7 +120,9 @@ const units = [
     line-height: 0.9;
     font-variant-numeric: tabular-nums;
   }
-  .cd__label {
+  /* Acotado a la unidad. Sin el scope pisaba al `.cd__label` de arriba —misma
+     especificidad, declarado después— y su `font-size: 12px` era letra muerta. */
+  .cd__unit .cd__label {
     font-family: 'Space Mono', monospace;
     font-size: 11px;
     letter-spacing: 2px;
