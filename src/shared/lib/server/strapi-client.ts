@@ -47,6 +47,29 @@ const heroImageSchema = z
   .nullable()
   .optional();
 
+// Media de un bloque de información (PDF de reglamento, convocatoria, etc.).
+// El objeto real de Strapi trae muchas keys más (documentId, formats, hash,
+// provider, width, height…): `.object()` descarta las que no declaramos acá.
+const infoFileSchema = z.object({
+  url: z.string(),
+  name: z.string(),
+  size: z.number(),
+  mime: z.string(),
+  ext: z.string().optional(),
+});
+
+// Bloque del componente repetible `bloquesInfo` (información del evento:
+// reglamento, convocatoria, recomendaciones…). Verificado contra Strapi local:
+// `archivo` (media múltiple) llega `null` cuando el bloque no tiene adjuntos,
+// NUNCA `[]` — por eso `.nullable()` en vez de `.default([])` (que solo cubre
+// `undefined`, no `null`, y hubiera hecho throw-ear el parse).
+const bloqueInfoSchema = z.object({
+  titulo: z.string(),
+  contenido: z.string(),
+  orden: z.number().int().nullable().optional(),
+  archivo: z.array(infoFileSchema).nullable().optional(),
+});
+
 const raceSchema = z.object({
   documentId: z.string(),
   nombre: z.string(),
@@ -73,6 +96,10 @@ const raceSchema = z.object({
   coorganizador: z.string().nullable().optional(),
   // serie Run Tour vs carrera suelta — tag de la agenda
   esRunTour: z.boolean().nullable().optional(),
+  // Componente repetible: reglamento, convocatoria, info general del detalle.
+  // Verificado que un array vacío llega como `[]` (a diferencia de `archivo`
+  // adentro de cada bloque, que llega `null` cuando está vacío).
+  bloquesInfo: z.array(bloqueInfoSchema).default([]),
 });
 
 const strapiListResponseSchema = z.object({
@@ -93,6 +120,26 @@ export interface RaceModality {
 export interface RaceAgeCategory {
   name: string;
   range: string;
+}
+
+/** Un archivo adjunto a un bloque de información (típicamente un PDF). */
+export interface InfoBlockFile {
+  url: string;
+  name: string;
+  /** Tamaño en KB tal cual lo entrega Strapi — formatear con `formatFileSize()`. */
+  sizeKb: number;
+  mime: string;
+  ext?: string;
+}
+
+/** Un bloque de "Información del evento" (reglamento, convocatoria, etc.). */
+export interface InfoBlock {
+  title: string;
+  /** Markdown crudo tal cual viene de Strapi. Renderizar en la superficie que lo use. */
+  contentRaw: string;
+  /** Orden editorial declarado en Strapi. Si falta, el bloque se ubica al final. */
+  order?: number;
+  files: InfoBlockFile[];
 }
 
 export interface RaceEvent {
@@ -123,6 +170,8 @@ export interface RaceEvent {
   registrationDeadline?: Date;
   modalities: RaceModality[];
   categories: RaceAgeCategory[];
+  /** Bloques de "Información del evento" (reglamento, convocatoria…), ya ordenados. */
+  infoBlocks: InfoBlock[];
 }
 
 // --- Alias de la superficie de calendario/detalle ---------------------------
@@ -184,7 +233,38 @@ function mapRace(raw: RawRace, strapiUrl: string): RaceEvent {
       status: m.estado,
     })),
     categories: raw.categoriasEdad.map((c) => ({ name: c.nombre, range: c.rango })),
+    infoBlocks: mapInfoBlocks(raw.bloquesInfo, strapiUrl),
   };
+}
+
+/**
+ * Mapea `bloquesInfo` y los ordena por `orden` ascendente. Los bloques sin
+ * `orden` (null/undefined) van AL FINAL, en el orden en que llegaron de
+ * Strapi entre ellos — de ahí el índice como tiebreak (sort estable manual,
+ * no asumimos que `Array#sort` respete el orden original de empates en todos
+ * los motores). `archivo` llega `null` cuando el bloque no tiene adjuntos
+ * (ver schema `bloqueInfoSchema`): se normaliza a `[]` acá.
+ */
+function mapInfoBlocks(raw: RawRace['bloquesInfo'], strapiUrl: string): InfoBlock[] {
+  return raw
+    .map((block, index) => ({ block, index }))
+    .sort((a, b) => {
+      const orderA = a.block.orden ?? Number.POSITIVE_INFINITY;
+      const orderB = b.block.orden ?? Number.POSITIVE_INFINITY;
+      return orderA === orderB ? a.index - b.index : orderA - orderB;
+    })
+    .map(({ block }) => ({
+      title: block.titulo,
+      contentRaw: block.contenido,
+      order: block.orden ?? undefined,
+      files: (block.archivo ?? []).map((f) => ({
+        url: toAbsoluteUrl(f.url, strapiUrl),
+        name: f.name,
+        sizeKb: f.size,
+        mime: f.mime,
+        ext: f.ext,
+      })),
+    }));
 }
 
 // --- Fetch -------------------------------------------------------------------
@@ -200,9 +280,17 @@ async function fetchEvents(): Promise<RaceEvent[]> {
   const query = [
     'status=published',
     'sort=fecha:asc',
-    'populate[0]=heroImage',
-    'populate[1]=modalidades',
-    'populate[2]=categoriasEdad',
+    // `bloquesInfo` necesita la forma anidada `populate[bloquesInfo][populate]=archivo`
+    // porque es un componente repetible con un campo de media adentro (`archivo`):
+    // el populate indexado plano (`populate[N]=bloquesInfo`) no alcanza los medios
+    // anidados dentro de un componente. El resto de los `populate` se pasa con la
+    // MISMA forma nombrada (`populate[campo]=true`), no indexada (`populate[0..2]`):
+    // Strapi/qs no puede mezclar índices numéricos y keys de texto bajo el mismo
+    // parámetro `populate` — mezclarlos rompe el parseo con "Invalid key" (400).
+    'populate[heroImage]=true',
+    'populate[modalidades]=true',
+    'populate[categoriasEdad]=true',
+    'populate[bloquesInfo][populate]=archivo',
   ].join('&');
 
   const endpoint = new URL(`/api/carreras?${query}`, strapiUrl).toString();

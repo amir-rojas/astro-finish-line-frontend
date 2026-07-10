@@ -2,6 +2,8 @@
 //
 // PR 1 (capa de datos): render de markdown, formato de precio y mapeo de
 // estado por modalidad.
+// detalle-info-evento (Unit 1): `formatFileSize()` — tamaño de los adjuntos
+// de los bloques de "Información del evento".
 // PR 3 (listado): `dayMonth()` (bloque de fecha de cada fila) y `raceStatus()`
 // (estado agregado por carrera — ver engram `sdd/strapi-content-connection/
 // list-status-badge`).
@@ -137,6 +139,17 @@ const MONTHS_ES_LONG = [
 
 export function longDate(date: Date): string {
   return `${date.getUTCDate()} de ${MONTHS_ES_LONG[date.getUTCMonth()]}, ${date.getUTCFullYear()}`;
+}
+
+/**
+ * Tamaño de un archivo adjunto ("240 KB" / "1.3 MB") para el texto accesible
+ * del link de descarga de cada bloque de información. Strapi entrega `size`
+ * en KB (float); por debajo de 1024 KB se muestra redondeado en KB, si no en
+ * MB con un decimal.
+ */
+export function formatFileSize(kb: number): string {
+  if (kb < 1024) return `${Math.round(kb)} KB`;
+  return `${(kb / 1024).toFixed(1)} MB`;
 }
 
 /**
