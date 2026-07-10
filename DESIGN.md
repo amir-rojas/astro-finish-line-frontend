@@ -37,6 +37,26 @@ Neutrales de texto (derivados, contraste ya verificado para AA):
 - Sobre navy: `#aebbcb`, `#b9c6d6` (cuerpo), `#cdd7e2` (chips), `#8295aa` / `#5d6f86` (meta tenue).
 - Sobre crema: `#6b6456` / `#5a5346` (cuerpo), `#9a8f78` (labels/meta).
 
+### Alfa por rol — divisorias, bordes y hovers
+
+No son colores nuevos: son los de marca a baja opacidad. **Un token por rol, no
+por valor.** Nunca escribir el `rgba()` a mano en una sección: si aparece un rol
+que no está acá, se agrega el token, no un literal. (Las pantallas de
+calendario/detalle/home se calcaron de un mockup con otra paleta; por eso quedan
+`rgba()` navy sueltos que se están migrando a estos tokens.)
+
+| Token | Valor | Rol |
+| --- | --- | --- |
+| `--fl-hairline` | crema @ .12 | Reglas y divisorias entre bloques, **sobre navy** |
+| `--fl-hairline-ink` | tinta (`--fl-ink`) @ .10 | Reglas y divisorias entre bloques, **sobre crema** |
+| `--fl-edge` | crema @ .18 | Borde de chips, tarjetas y botones ghost, sobre navy |
+| `--fl-wash` | crema @ .06 | Fondo de hover neutro sobre navy |
+| `--fl-wash-orange` | naranja @ .10 | Fondo de hover naranja sobre navy |
+
+Pendiente (mismo origen): el lado crema aún no tiene contraparte de `--fl-edge`
+ni de `--fl-wash` — los bordes de card y hovers sobre crema siguen con `rgba()`
+literal. Migrar cuando una pantalla los toque.
+
 ### Estado de inscripción — extensión funcional, fuera del ramp de marca
 
 | Token | Hex | Uso |

@@ -141,6 +141,13 @@ const { title, description, ogImage, ogUrl, canonical } = Astro.props;
     --fl-wash: rgba(246, 240, 228, 0.06); /* fondo de hover neutro sobre navy */
     --fl-wash-orange: rgba(238, 83, 20, 0.1); /* fondo de hover naranja sobre navy */
 
+    /* Divisoria SOBRE CREMA: la contraparte de --fl-hairline para secciones
+       claras. Es `--fl-ink` (la tinta sobre crema) a baja opacidad. Nace porque
+       las pantallas de calendario/detalle/agenda se calcaron de un mockup con
+       otra paleta y cada una escribió su propia `rgba()` navy —dos bases y dos
+       alfas para el mismo rol. Un token, un rol. */
+    --fl-hairline-ink: rgba(20, 35, 58, 0.1); /* reglas y divisorias entre bloques claros */
+
     /* ESTADO DE INSCRIPCIÓN — extensión funcional deliberada, FUERA del ramp de
        marca. El semáforo verde/ámbar/gris es una convención universal y el
        usuario escanea el listado con ella; la marca (navy/crema/naranja) no
