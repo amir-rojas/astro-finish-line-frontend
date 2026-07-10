@@ -23,12 +23,21 @@
 // Sin progreso "personal" ("Tu avance"): el visitante puede no estar inscrito y no
 // hay cuentas — el estado es de la SERIE, y lo cuentan el badge y los candados.
 //
-// Registro FILOSO fiel a DESIGN.md: sin glow/glass. Sección CREMA a pantalla
-// completa (decisión Amir 2026-07-08): entre Hero y Price (ambos navy) restaura la
-// alternancia navy→crema→navy que ES el ritmo del sitio, y el papel claro hace
-// resaltar la medalla metálica. Cards blancas sobre crema (sistema de DESIGN.md);
-// las bloqueadas en papel cálido, apagadas de misterio. Cuadros de meta en los
-// dientes (naranja/navy). Copy en español neutro de Bolivia — SIN voseo.
+// Registro FILOSO fiel a DESIGN.md: sin glow/glass.
+//
+// Sección NAVY-2 (decisión Amir 2026-07-09). Fue crema entre 2026-07-08 y hoy: la
+// premisa de entonces era "entre Hero y Price, ambos navy, el crema restaura la
+// alternancia". Price salió de la home, y el vecino de abajo pasó a ser Recaps
+// (crema-2): el crema ya no alternaba con nada, dejaba tres secciones claras
+// seguidas y hacía desaparecer el borde con Recaps. `--fl-navy-2` existe en el
+// sistema exactamente para esto y no lo usaba nadie.
+//
+// Sobre navy la medalla —una toma de estudio con fondo oscuro— deja de pelear con
+// el papel. Cards en navy profundo; las bloqueadas se funden con el fondo de la
+// sección: el misterio ahora es sombra, no papel apagado. El diente del medio pasa
+// de navy a crema (sobre navy, un cuadro navy no existe).
+//
+// Copy en español neutro de Bolivia — SIN voseo.
 import { Image } from 'astro:assets';
 import renacerMedal from '../../../../../assets/medals/renacer.png';
 
@@ -157,13 +166,18 @@ const pad = (n: number) => String(n).padStart(2, '0');
     position: relative;
     overflow: hidden;
     /* Papel claro con viñeteado sutil hacia cream-2: escenario de vitrina para la
-       medalla. A pantalla completa, como el Hero. */
-    background: radial-gradient(120% 82% at 50% 34%, var(--fl-cream), var(--fl-cream-2) 88%);
-    color: var(--fl-ink);
-    min-height: 100vh;
-    min-height: 100dvh;
-    display: flex;
-    align-items: center;
+       medalla.
+
+       SIN `min-height: 100vh`. Lo tenía, centrado con flex, para ocupar la
+       pantalla como el Hero. Pero el Hero tiene una foto que llena y esta
+       sección tiene tres tarjetas: en un monitor de 1440 de alto el centrado
+       agregaba 247px de vacío ARRIBA Y ABAJO del padding, y en móvil no hacía
+       nada (el contenido ya supera el viewport). El respiro sale del padding de
+       `.tour__inner`, que es el mismo que el de Recaps. */
+    /* Viñeteado hacia el navy del lienzo: la vitrina se ilumina al centro, donde
+       está la medalla. Mismo gesto que tenía en crema, invertido. */
+    background: radial-gradient(120% 82% at 50% 34%, var(--fl-navy-2), var(--fl-navy) 88%);
+    color: var(--fl-cream);
   }
   .tour__inner {
     position: relative;
@@ -188,9 +202,9 @@ const pad = (n: number) => String(n).padStart(2, '0');
     font-weight: 700;
     letter-spacing: 3px;
     text-transform: uppercase;
-    /* Eyebrow sobre fondo claro: prefijo // como en Recorrido, pero en muted —
-       on-cream-faint (#9a8f78) da ~2.8:1 sobre crema y falla AA a 12px. */
-    color: var(--fl-on-cream-muted);
+    /* Eyebrow con prefijo // como en Recorrido. Sobre navy-2, `on-navy-muted` da
+       4.77:1 a 12px bold: pasa AA con poco margen. No bajarlo. */
+    color: var(--fl-on-navy-muted);
   }
   .tour__title {
     font-family: 'Archivo Black', sans-serif;
@@ -207,8 +221,8 @@ const pad = (n: number) => String(n).padStart(2, '0');
     font-weight: 700;
     letter-spacing: 1.5px;
     text-transform: uppercase;
-    color: var(--fl-ink);
-    border: 1px solid rgba(20, 35, 58, 0.3);
+    color: var(--fl-cream);
+    border: 1px solid var(--fl-edge);
     padding: 8px 14px;
     /* Alineado a la línea base del título (el header ya alinea flex-end):
        el badge deja de flotar sin referencia. */
@@ -221,11 +235,11 @@ const pad = (n: number) => String(n).padStart(2, '0');
     max-width: 62ch;
     font-size: clamp(16px, 2vw, 19px);
     line-height: 1.55;
-    color: var(--fl-on-cream-muted);
+    color: var(--fl-on-navy-soft);
     text-wrap: pretty;
   }
   .tour__lead b {
-    color: var(--fl-ink);
+    color: var(--fl-cream);
   }
 
   /* ---- Riel de cards ---- */
@@ -243,24 +257,27 @@ const pad = (n: number) => String(n).padStart(2, '0');
     max-width: 360px;
     display: flex;
     flex-direction: column;
-    /* Card blanca sobre crema (sistema DESIGN.md): la card se lee como objeto. */
-    background: var(--fl-surface);
-    border: 1px solid rgba(20, 35, 58, 0.14);
+    /* Navy profundo sobre la vitrina navy-2: la card se lee como objeto por ser
+       MÁS oscura que el fondo, no más clara. Una card blanca acá sería un agujero
+       de luz que le robaría la escena a la medalla. */
+    background: var(--fl-navy-3);
+    border: 1px solid var(--fl-hairline);
   }
   .card--link {
-    border-color: rgba(20, 35, 58, 0.35);
+    border-color: var(--fl-edge);
     transition:
       border-color 0.18s ease-out,
       transform 0.18s ease-out;
   }
   .card--link:hover {
-    border-color: rgba(20, 35, 58, 0.6);
+    border-color: var(--fl-on-navy-soft);
     transform: translateY(-3px);
   }
   .card--locked {
-    /* Papel cálido apagado: misterio, en la misma familia de papeles. */
-    background: var(--fl-cream-2);
-    border-color: rgba(20, 35, 58, 0.1);
+    /* Se funde con el fondo de la sección: el misterio es sombra, no papel
+       apagado. La silueta punteada es casi lo único que la delata. */
+    background: transparent;
+    border-color: var(--fl-hairline);
   }
 
   .card__top {
@@ -269,7 +286,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
     justify-content: space-between;
     gap: 10px;
     padding: 14px 16px;
-    border-bottom: 1px solid rgba(20, 35, 58, 0.1);
+    border-bottom: 1px solid var(--fl-hairline);
   }
   .card__stage {
     font-family: 'Space Mono', monospace;
@@ -277,10 +294,10 @@ const pad = (n: number) => String(n).padStart(2, '0');
     font-weight: 700;
     letter-spacing: 2px;
     text-transform: uppercase;
-    color: var(--fl-ink);
+    color: var(--fl-cream);
   }
   .card--locked .card__stage {
-    color: var(--fl-on-cream-muted);
+    color: var(--fl-on-navy-muted);
   }
   .card__state {
     display: inline-flex;
@@ -291,13 +308,13 @@ const pad = (n: number) => String(n).padStart(2, '0');
     font-weight: 700;
     letter-spacing: 1px;
     text-transform: uppercase;
-    /* Texto en tinta (el naranja a este tamaño no pasa AA sobre claro);
+    /* Texto en crema (el naranja a este tamaño no pasa AA sobre navy);
        el acento naranja lo pone el dot. */
-    color: var(--fl-ink);
+    color: var(--fl-cream);
     white-space: nowrap;
   }
   .card--locked .card__state {
-    color: var(--fl-on-cream-muted);
+    color: var(--fl-on-navy-muted);
   }
   .card__dot {
     width: 7px;
@@ -308,11 +325,11 @@ const pad = (n: number) => String(n).padStart(2, '0');
     width: 12px;
     height: 12px;
     fill: none;
-    stroke: var(--fl-on-cream-muted);
+    stroke: var(--fl-on-navy-muted);
     stroke-width: 1.8;
   }
   .card__lock rect {
-    fill: var(--fl-on-cream-muted);
+    fill: var(--fl-on-navy-muted);
     stroke: none;
   }
 
@@ -343,18 +360,18 @@ const pad = (n: number) => String(n).padStart(2, '0');
   }
   .ghost__stroke {
     fill: none;
-    stroke: rgba(20, 35, 58, 0.32);
+    stroke: rgba(246, 240, 228, 0.34);
     stroke-width: 2;
     stroke-dasharray: 7 7;
   }
   .ghost__lock rect {
     fill: none;
-    stroke: var(--fl-on-cream-muted);
+    stroke: var(--fl-on-navy-muted);
     stroke-width: 2.4;
   }
   .ghost__lock path {
     fill: none;
-    stroke: var(--fl-on-cream-muted);
+    stroke: var(--fl-on-navy-muted);
     stroke-width: 2.4;
   }
 
@@ -364,7 +381,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
     flex-direction: column;
     gap: 4px;
     padding: 16px;
-    border-top: 1px solid rgba(20, 35, 58, 0.1);
+    border-top: 1px solid var(--fl-hairline);
   }
   .card__name {
     font-family: 'Archivo Black', sans-serif;
@@ -372,20 +389,20 @@ const pad = (n: number) => String(n).padStart(2, '0');
     line-height: 1;
     letter-spacing: 0.01em;
     text-transform: uppercase;
-    color: var(--fl-ink);
+    color: var(--fl-cream);
   }
   .card__name--tbd {
     font-family: 'Space Mono', monospace;
     font-size: 15px;
     letter-spacing: 1px;
     text-transform: uppercase;
-    color: var(--fl-on-cream-muted);
+    color: var(--fl-on-navy-muted);
   }
   .card__when {
     font-family: 'Space Mono', monospace;
     font-size: 12px;
     letter-spacing: 1px;
-    color: var(--fl-on-cream-muted);
+    color: var(--fl-on-navy-muted);
   }
 
   /* CTA de la card desbloqueada: link estirado (cubre toda la card) con
@@ -401,7 +418,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
     letter-spacing: 1.5px;
     text-transform: uppercase;
     text-decoration: none;
-    color: var(--fl-ink);
+    color: var(--fl-cream);
     touch-action: manipulation;
   }
   .card__cta::after {
@@ -451,9 +468,9 @@ const pad = (n: number) => String(n).padStart(2, '0');
     background: var(--fl-orange);
   }
   .teeth__t:nth-child(2) {
-    /* Cuadro alterno navy: el damero naranja/navy de la bandera de meta
-       (el crema desaparecería sobre el fondo claro). */
-    background: var(--fl-navy);
+    /* Cuadro alterno crema: el damero de la bandera de meta. Sobre navy el
+       cuadro navy no existiría; sobre el crema anterior era al revés. */
+    background: var(--fl-cream);
   }
 
   /* ---- Responsive: apilado en móvil, dientes horizontales en la costura ---- */
