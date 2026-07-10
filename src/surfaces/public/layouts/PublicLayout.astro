@@ -40,52 +40,76 @@ const { title, description, ogImage, ogUrl, canonical } = Astro.props;
 </BaseLayout>
 
 <script>
-  // Revelado al entrar en viewport. Solo se activa con JS y si el usuario no
-  // pidió reducir movimiento: por defecto el contenido es visible (no-JS safe).
+  // Revelado al entrar en viewport.
+  //
+  // REGLA: el contenido visible NUNCA se oculta. Solo se "arma" (`data-armed`,
+  // que es lo que el CSS esconde) lo que ya está debajo del fold al cargar. Un
+  // elemento armado siempre termina revelado: o lo cruza el observer, o lo
+  // suelta una de las salidas de emergencia de abajo.
   //
   // Corre en `astro:page-load`, que dispara en la carga inicial y después de
   // cada navegación del ClientRouter. El observer anterior se desconecta en
   // `astro:before-swap`: sin eso, cada navegación dejaría uno vivo observando
   // nodos que ya no están en el documento.
   let io: IntersectionObserver | null = null;
+  let failsafe: number | undefined;
 
   function initReveal() {
     const root = document.querySelector<HTMLElement>('.public-surface');
     const allowMotion = window.matchMedia('(prefers-reduced-motion: no-preference)').matches;
     if (!root || !allowMotion || !('IntersectionObserver' in window)) return;
 
-    root.classList.add('reveal-ready');
+    // Un render automatizado (screenshot, PDF, auditoría) no scrollea: el
+    // observer no dispararía nunca y la página saldría vacía. Que vea lo mismo
+    // que un lector que ya bajó.
+    if (navigator.webdriver || document.hidden) return;
+
+    const armed = new Set<HTMLElement>();
+    const release = (el: HTMLElement) => {
+      el.classList.add('is-in');
+      armed.delete(el);
+    };
+    const releaseAll = () => {
+      for (const el of [...armed]) release(el);
+      io?.disconnect();
+      io = null;
+      clearTimeout(failsafe);
+    };
+
     io = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
           if (entry.isIntersecting) {
-            entry.target.classList.add('is-in');
+            release(entry.target as HTMLElement);
             io?.unobserve(entry.target);
           }
         }
       },
       { rootMargin: '0px 0px -10% 0px', threshold: 0.12 },
     );
-    const els = Array.from(root.querySelectorAll<HTMLElement>('[data-reveal]'));
-    // Doble rAF: se pinta el estado oculto y recién después se revela, para que
-    // la transición corra. Lo que ya está en la primera pantalla (hero completo,
-    // incluido el contador al borde inferior) entra al cargar; el resto, al scroll.
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() => {
-        for (const el of els) {
-          const rect = el.getBoundingClientRect();
-          const inView = rect.top < window.innerHeight && rect.bottom > 0;
-          if (inView) el.classList.add('is-in');
-          else io?.observe(el);
-        }
-      }),
-    );
+
+    for (const el of root.querySelectorAll<HTMLElement>('[data-reveal]')) {
+      // Estrictamente por debajo del fold. Lo que asoma aunque sea un píxel se
+      // queda como está: nunca parpadea.
+      if (el.getBoundingClientRect().top < window.innerHeight) continue;
+      el.dataset.armed = '';
+      armed.add(el);
+      io.observe(el);
+    }
+
+    // Salidas de emergencia. Garantizan que nada quede oculto para siempre:
+    //  1. imprimir (el CSS ya lo cubre, pero así el DOM también queda coherente)
+    //  2. un tope de 10s: si en 10 segundos nadie scrolleó, la animación ya no
+    //     le importa a nadie, y el contenido sí.
+    window.addEventListener('beforeprint', releaseAll, { once: true });
+    failsafe = window.setTimeout(releaseAll, 10_000);
   }
 
   document.addEventListener('astro:page-load', initReveal);
   document.addEventListener('astro:before-swap', () => {
     io?.disconnect();
     io = null;
+    clearTimeout(failsafe);
   });
 </script>
 
@@ -112,9 +136,10 @@ const { title, description, ogImage, ogUrl, canonical } = Astro.props;
        marca a baja opacidad, y se escribían a mano —`rgba(246, 240, 228, .12)`—
        en el header, el hero, el precio y el footer. Un token por rol, no por
        valor: si la divisoria tiene que respirar más, se cambia acá. */
-    --fl-hairline: rgba(246, 240, 228, 0.12); /* divisorias entre bloques */
-    --fl-edge: rgba(246, 240, 228, 0.18); /* borde de chips y botones ghost */
-    --fl-wash-orange: rgba(238, 83, 20, 0.1); /* fondo de hover sobre navy */
+    --fl-hairline: rgba(246, 240, 228, 0.12); /* reglas y divisorias entre bloques */
+    --fl-edge: rgba(246, 240, 228, 0.18); /* borde de chips, tarjetas y botones ghost */
+    --fl-wash: rgba(246, 240, 228, 0.06); /* fondo de hover neutro sobre navy */
+    --fl-wash-orange: rgba(238, 83, 20, 0.1); /* fondo de hover naranja sobre navy */
 
     /* ESTADO DE INSCRIPCIÓN — extensión funcional deliberada, FUERA del ramp de
        marca. El semáforo verde/ámbar/gris es una convención universal y el
