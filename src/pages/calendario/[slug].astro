@@ -10,6 +10,7 @@ import SiteFooter from '@public/components/SiteFooter.astro';
 import DetailHero from '@public/features/calendar/sections/DetailHero.astro';
 import Description from '@public/features/calendar/sections/Description.astro';
 import Modalities from '@public/features/calendar/sections/Modalities.astro';
+import EventInfo from '@public/features/calendar/sections/EventInfo.astro';
 import DetailSidebar from '@public/features/calendar/sections/DetailSidebar.astro';
 import { getEvents } from '@shared/lib/server/strapi-client';
 import { calendarEventJsonLd } from '@public/features/calendar/format';
@@ -55,6 +56,7 @@ const jsonLd = calendarEventJsonLd(event, pageUrl);
         <div class="detail__main">
           {event.descriptionRaw && <Description markdown={event.descriptionRaw} />}
           {event.modalities.length > 0 && <Modalities modalities={event.modalities} />}
+          {event.infoBlocks.length > 0 && <EventInfo blocks={event.infoBlocks} />}
         </div>
         <div class="detail__side">
           <DetailSidebar {event} />
