@@ -11,8 +11,9 @@ Este repo usa **tres entornos** atados al modelo de ramas. La regla de oro:
 | **Preview / Staging** | `develop` | `staging.finishlinebolivia.com` | Revisión (vos + César) antes de prod |
 | **Production** | `main` | `www.finishlinebolivia.com` | El público real |
 
-Además, **cada rama de feature** que pushees genera su propia URL de preview
-efímera en Vercel — útil para mostrar un cambio puntual sin tocar `develop`.
+Las ramas de feature **no** generan preview: Vercel las cancela vía *Ignored
+Build Step*. Solo `develop` y `main` deployan. Para ver un cambio desplegado hay
+que mergearlo a `develop`.
 
 ## Modelo de ramas
 
@@ -42,7 +43,7 @@ git checkout -b feat/lo-que-sea
 # 3. Trabajás local
 pnpm dev
 
-# 4. Push → Vercel genera un preview de esa rama
+# 4. Push (Vercel no deploya esta rama: la cancela por Ignored Build Step)
 git push -u origin feat/lo-que-sea
 
 # 5. PR feat/... → develop. Al mergear, se actualiza staging.

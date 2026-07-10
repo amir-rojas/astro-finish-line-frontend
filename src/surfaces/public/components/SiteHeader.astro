@@ -109,7 +109,8 @@ const nav = [
         summary?.focus();
       }
     });
-    // Va sobre `document`, que sobrevive al swap: se registra una sola vez.
+    // Va sobre el <details> vivo, que es nuevo tras cada swap: se re-registra
+    // en cada `astro:page-load`, junto con los dos listeners de arriba.
     details.addEventListener('toggle', () => {
       summary?.setAttribute('aria-expanded', String(details.open));
     });

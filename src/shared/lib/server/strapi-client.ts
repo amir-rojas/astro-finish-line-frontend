@@ -21,6 +21,7 @@
  */
 import { z } from 'zod';
 import { STRAPI_URL, STRAPI_TOKEN } from 'astro:env/server';
+import { upcomingRaces } from '@shared/lib/race-date';
 
 // --- Schemas Strapi (forma cruda, nombres de campo en español) ------------
 
@@ -257,9 +258,15 @@ export async function getEvent(slug: string): Promise<RaceEvent | null> {
 }
 
 /**
- * La "próxima carrera" para el hero de la home: la primera con fecha >= hoy
+ * La "próxima carrera" para el hero de la home: la primera que todavía no pasó
  * (la lista viene ordenada por fecha asc). Si no hay ninguna futura, cae a la
  * más reciente (última). Devuelve null solo si no hay carreras publicadas.
+ *
+ * Usa `upcomingRaces` —la misma regla que la agenda y /calendario— y no una
+ * comparación por instante: `fecha` es un `date` de Strapi sin hora, así que
+ * llega como medianoche UTC, o sea las 20:00 del día ANTERIOR en La Paz. Con
+ * `date.getTime() >= Date.now()` el hero soltaba la carrera la víspera a las
+ * 20:00 y saltaba a la siguiente, mientras la agenda seguía anunciándola.
  *
  * Nota (staleness SSG): se resuelve en build. Cuando pase la fecha de la carrera
  * elegida, el hero queda viejo hasta el próximo rebuild — pendiente conocido.
@@ -267,6 +274,5 @@ export async function getEvent(slug: string): Promise<RaceEvent | null> {
 export async function getNextRace(): Promise<RaceEvent | null> {
   const events = await getEvents();
   if (events.length === 0) return null;
-  const now = Date.now();
-  return events.find((event) => event.date.getTime() >= now) ?? events[events.length - 1];
+  return upcomingRaces(events)[0] ?? events[events.length - 1];
 }
