@@ -33,6 +33,11 @@ Valores tal cual la referencia (hex; equivalentes OKLCH al migrar a tokens).
 | Papel cálido 3 | `--fl-cream-3` | `#e1d6bd` | Placeholder del mapa de recorrido |
 | Superficie card | `--fl-surface` | `#ffffff` | Cards sobre crema |
 
+Variantes del naranja (según de qué lado del contraste esté):
+- `--fl-orange` `#ee5314` — el acento puro: mark, motivos, foco. NO como texto sobre crema (3.15:1, no llega a AA).
+- `--fl-orange-strong` `#cf3f0d` — texto **blanco ENCIMA** del naranja (relleno de CTA): 4.8:1.
+- `--fl-orange-ink` `#b83609` — naranja **como TEXTO** sobre claro (links en crema): 5.18:1 AA. Es el que va en links; `-strong` reprueba (4.23:1) porque no fue hecho para eso.
+
 Neutrales de texto (derivados, contraste ya verificado para AA):
 - Sobre navy: `#aebbcb`, `#b9c6d6` (cuerpo), `#cdd7e2` (chips), `#8295aa` / `#5d6f86` (meta tenue).
 - Sobre crema: `#6b6456` / `#5a5346` (cuerpo), `#9a8f78` (labels/meta).
