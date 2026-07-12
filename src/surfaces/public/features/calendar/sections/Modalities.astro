@@ -5,6 +5,7 @@
 // Si la carrera no tiene modalidades, el caller no monta este componente.
 import type { CalendarModality } from '@shared/lib/server/strapi-client';
 import { formatPrice, modalityStatus } from '../format';
+import SectionHeading from './SectionHeading.astro';
 
 interface Props {
   modalities: CalendarModality[];
@@ -13,7 +14,7 @@ const { modalities } = Astro.props;
 ---
 
 <section class="mods">
-  <h2 class="mods__label">Modalidades disponibles</h2>
+  <SectionHeading kicker="// Distancias y precios" title="Modalidades" />
 
   <ul class="mods__list">
     {
@@ -27,7 +28,7 @@ const { modalities } = Astro.props;
             </div>
             <span class="mod__price">{formatPrice(m.price)}</span>
             <div class="mod__status">
-              <span class="mod__status-label">Status</span>
+              <span class="mod__status-label">Estado</span>
               <span class={`mod__status-value mod__status-value--${status.tone}`}>{status.label}</span>
             </div>
           </li>
@@ -38,44 +39,39 @@ const { modalities } = Astro.props;
 </section>
 
 <style>
-  .mods__label {
-    margin: 0 0 18px;
-    font-family: 'Space Mono', monospace;
-    font-size: 14px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--fl-navy);
-  }
-
   .mods__list {
     list-style: none;
     margin: 0;
     padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
   }
 
+  /* Filas editoriales: sin tarjeta, separadas por hairline — misma gramática
+     que Información del evento. El peso lo dan los números Archivo Black, no una
+     caja: Modalidades es LA decisión, y se lee como la sección más fuerte de la
+     columna sin necesitar un contenedor propio. */
   .mod {
     display: grid;
     grid-template-columns: 1fr auto auto;
-    align-items: center;
-    gap: clamp(16px, 4vw, 40px);
-    padding: clamp(18px, 2.4vw, 24px) clamp(18px, 2.4vw, 26px);
-    background: var(--fl-surface);
+    align-items: baseline;
+    gap: clamp(16px, 4vw, 44px);
+    padding: clamp(18px, 2.6vw, 26px) 0;
+  }
+  .mod + .mod {
+    border-top: 1px solid var(--fl-hairline-ink);
   }
 
   .mod__distance {
     display: block;
     font-family: 'Archivo Black', sans-serif;
-    font-size: clamp(17px, 2.2vw, 21px);
+    font-size: clamp(22px, 3vw, 30px);
     text-transform: uppercase;
-    color: var(--fl-navy);
+    letter-spacing: -0.01em;
+    color: var(--fl-ink);
     line-height: 1;
   }
   .mod__name {
     display: block;
-    margin-top: 6px;
+    margin-top: 8px;
     font-family: 'Space Mono', monospace;
     font-size: 12px;
     letter-spacing: 1px;
@@ -83,12 +79,14 @@ const { modalities } = Astro.props;
     color: var(--fl-on-cream-faint);
   }
 
+  /* El precio es el ancla de la decisión: número grande Archivo Black, no un
+     dato en letra chica. */
   .mod__price {
-    font-family: 'Space Mono', monospace;
-    font-size: clamp(14px, 1.8vw, 16px);
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: var(--fl-navy);
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(20px, 2.6vw, 28px);
+    line-height: 1;
+    letter-spacing: -0.01em;
+    color: var(--fl-ink);
     white-space: nowrap;
   }
 

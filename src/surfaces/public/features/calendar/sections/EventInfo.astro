@@ -7,6 +7,7 @@
 // aparte al final. El caller decide si montar este componente: acá se asume
 // que `blocks` no está vacío, pero se guarda una salida defensiva por si acaso.
 import { renderMarkdown, formatFileSize } from '../format';
+import SectionHeading from './SectionHeading.astro';
 import type { InfoBlock } from '@shared/lib/server/strapi-client';
 
 interface Props {
@@ -18,7 +19,7 @@ const { blocks } = Astro.props;
 {
   blocks.length > 0 && (
     <section class="einfo">
-      <h2 class="einfo__label">Información del evento</h2>
+      <SectionHeading kicker="// Antes de correr" title="Información del evento" />
 
       <div class="einfo__list">
         {blocks.map((block) => (
@@ -47,15 +48,6 @@ const { blocks } = Astro.props;
 }
 
 <style>
-  .einfo__label {
-    margin: 0 0 18px;
-    font-family: 'Space Mono', monospace;
-    font-size: 14px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--fl-navy);
-  }
-
   .einfo__list {
     display: flex;
     flex-direction: column;

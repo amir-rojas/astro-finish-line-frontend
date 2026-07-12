@@ -4,6 +4,7 @@
 // nunca pasar `descripcion` cruda a set:html). El caller decide si montar este
 // componente: acá se asume que `markdown` viene con contenido.
 import { renderMarkdown } from '../format';
+import SectionHeading from './SectionHeading.astro';
 
 interface Props {
   markdown: string;
@@ -13,19 +14,11 @@ const html = renderMarkdown(markdown);
 ---
 
 <section class="desc">
-  <h2 class="desc__label">Descripción</h2>
+  <SectionHeading kicker="// La carrera" title="Descripción" />
   <div class="desc__body" set:html={html} />
 </section>
 
 <style>
-  .desc__label {
-    margin: 0 0 18px;
-    font-family: 'Space Mono', monospace;
-    font-size: 14px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--fl-navy);
-  }
   .desc__body {
     font-family: 'Archivo', sans-serif;
     font-size: clamp(15px, 1.9vw, 17px);
