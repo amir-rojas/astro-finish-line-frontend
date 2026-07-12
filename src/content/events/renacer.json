@@ -1,39 +1,22 @@
 {
   "title": "Renacer",
-  "tagline": "Corré por\nun nuevo\ncomienzo",
-  "date": "2026-08-06",
+  "tagline": "Corre por\nun nuevo\ncomienzo",
+  "date": "2026-08-16",
   "gatheringTime": "07:00",
   "startTime": "08:00",
-  "location": "Por confirmar",
-  "finishLocation": "Por confirmar",
+  "timezoneOffset": "-04:00",
+  "location": "Plaza Avaroa",
+  "finishLocation": "Plaza Avaroa",
   "city": "La Paz",
   "country": "Bolivia",
-  "courseTitle": "10 KM por confirmar",
-  "courseDescription": "Recorrido por confirmar.",
+  "courseTitle": "10 KM y 5 KM",
   "altitudeM": 3640,
   "altitudeNote": "La ciudad más alta del mundo",
-  "distances": ["10K"],
-  "registrationOptions": [
-    {
-      "label": "Con kit",
-      "price": { "amount": 15, "currency": "Bs" },
-      "url": "https://eventr.id/002cLzp8",
-      "includes": ["Kit del corredor", "Dorsal oficial", "Hidratación en ruta"],
-      "note": "Incluye tu kit de corredor",
-      "featured": true
-    }
-  ],
-  "categories": [
-    { "name": "Juvenil", "ages": "15 a 19 años" },
-    { "name": "Mayores", "ages": "20 a 39 años" },
-    { "name": "Senior", "ages": "40 años en adelante" }
-  ],
-  "categoriesNote": "Las edades deberán estar cumplidas durante la gestión 2026. Damas y Varones.",
-  "registrationNote": "Hasta agotar cupos",
-  "status": "open",
+  "distances": ["10K", "5K"],
+  "status": "upcoming",
   "heroImage": "../../assets/images/etapa-renacer.jpg",
   "heroImageAlt": "Corredores en la etapa Renacer",
-  "description": "Descripción por confirmar.",
+  "description": "10K y 5K del Run Tour Finish Line, el circuito que premia la perseverancia de cada corredor. Salida y llegada en la Plaza Avaroa, en el corazón de La Paz.",
   "instagram": "@finishlinebolivia",
   "instagramUrl": "https://www.instagram.com/finishlinebolivia",
   "facebookUrl": "https://www.facebook.com/FinishLineSportingEvents",
@@ -47,13 +30,5 @@
   "shirt": "../../assets/shirts/renacer.png",
   "shirtAlt": "Polera oficial de Renacer",
   "medal": "../../assets/medals/renacer.png",
-  "medalAlt": "Medalla finisher de Renacer",
-  "modalities": [
-    {
-      "distance": "10K",
-      "label": "10K",
-      "price": 15,
-      "status": "abierto"
-    }
-  ]
+  "medalAlt": "Medalla finisher de Renacer"
 }
