@@ -1,9 +1,11 @@
 ---
-// DetailHero — cabecera del detalle de carrera: heroImage a sangre (oscurecida
-// con un degradado para asegurar contraste del texto encima) + título + bloque
-// de labels UBICACIÓN / FECHA. Si la carrera no trae heroImage, degrada a un
-// fondo navy con la franja diagonal de marca (mismo motivo que ListHeader) — no
-// se muestra un hueco ni un placeholder roto.
+// DetailHero — cabecera del detalle de carrera. A diferencia de la home
+// (`Hero.astro`, foto a sangre completa con el texto encima), acá la imagen va
+// CONTENIDA al ancho de página, sin scrim, y el bloque de texto (distancias →
+// título → UBICACIÓN/FECHA) vive debajo sobre crema. Así el detalle se diferencia
+// de la home en vez de calcar su hero, y respira más. Si la carrera no trae
+// heroImage, la imagen degrada a un panel crema con la franja diagonal de marca
+// (mismo motivo que ListHeader) — no se muestra un hueco ni un placeholder roto.
 import { Image } from 'astro:assets';
 import type { CalendarEvent } from '@shared/lib/server/strapi-client';
 import { heroDate } from '../format';
@@ -16,130 +18,119 @@ const { event } = Astro.props;
 const distances = [...new Set(event.distances)];
 ---
 
-<section class:list={['dh', { 'dh--noimg': !event.heroImage }]}>
-  {
-    event.heroImage && (
-      <Image
-        class="dh__img"
-        src={event.heroImage.url}
-        alt={event.heroImage.alt}
-        inferSize
-        loading="eager"
-      />
-    )
-  }
-  <div class="dh__scrim" aria-hidden="true"></div>
-  <div class="dh__stripe" aria-hidden="true"></div>
-
+<section class="dh">
   <div class="dh__inner">
-    <h1 class="dh__title">{event.title}</h1>
-    {
-      distances.length > 0 && (
-        <p class="dh__distances">{distances.join(' · ')}</p>
-      )
-    }
+    <div class:list={['dh__media', { 'dh__media--noimg': !event.heroImage }]}>
+      {
+        event.heroImage ? (
+          <Image
+            class="dh__img"
+            src={event.heroImage.url}
+            alt={event.heroImage.alt}
+            inferSize
+            widths={[768, 1180, 1600]}
+            sizes="(max-width: 1180px) 100vw, 1180px"
+            loading="eager"
+            fetchpriority="high"
+          />
+        ) : (
+          <span class="dh__stripe" aria-hidden="true" />
+        )
+      }
+    </div>
 
-    <dl class="dh__facts">
-      <div class="dh__fact">
-        <dt>Ubicación</dt>
-        <dd>{event.location}</dd>
-      </div>
-      <div class="dh__fact">
-        <dt>Fecha</dt>
-        <dd>{heroDate(event.date)}</dd>
-      </div>
-    </dl>
+    <div class="dh__meta">
+      {
+        distances.length > 0 && (
+          <p class="dh__distances">{distances.join(' · ')}</p>
+        )
+      }
+      <h1 class="dh__title">{event.title}</h1>
+
+      <dl class="dh__facts">
+        <div class="dh__fact">
+          <dt>Ubicación</dt>
+          <dd>{event.location}</dd>
+        </div>
+        <div class="dh__fact">
+          <dt>Fecha</dt>
+          <dd>{heroDate(event.date)}</dd>
+        </div>
+      </dl>
+    </div>
   </div>
 </section>
 
 <style>
   .dh {
-    position: relative;
-    isolation: isolate;
-    overflow: hidden;
-    min-height: clamp(420px, 62vh, 640px);
-    display: flex;
-    align-items: flex-end;
-    background: var(--fl-navy);
+    background: var(--fl-cream);
+  }
+  .dh__inner {
+    max-width: var(--fl-container);
+    margin: 0 auto;
+    /* El padding inferior da aire a UBICACIÓN/FECHA antes del borde de la
+       siguiente sección; sin él el bloque de datos choca con la divisoria. */
+    padding: clamp(28px, 4vw, 48px) clamp(20px, 5vw, 56px) clamp(40px, 6vw, 72px);
   }
 
+  /* Imagen contenida (no a sangre): esquinas rectas para no romper el lenguaje
+     editorial del surface, que no usa border-radius en ningún lado. */
+  .dh__media {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 16 / 7;
+    background: var(--fl-cream-2);
+  }
   .dh__img {
-    position: absolute;
-    inset: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    z-index: 0;
+    object-position: 50% 38%;
+    display: block;
   }
 
-  /* Oscurece la foto de abajo hacia arriba para que el texto (crema) mantenga
-     contraste AA sin depender del brillo real de la imagen de Strapi. */
-  .dh__scrim {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    background: linear-gradient(
-      to top,
-      rgba(14, 28, 48, 0.92) 0%,
-      rgba(14, 28, 48, 0.55) 45%,
-      rgba(14, 28, 48, 0.35) 100%
-    );
+  /* Fallback sin foto: panel crema con la franja diagonal naranja de marca. */
+  .dh__media--noimg {
+    background: var(--fl-cream-2);
   }
-
-  /* Franja diagonal naranja: mismo motivo de marca del resto del surface. En el
-     hero con imagen queda como acento inferior-derecho; en el fallback sin
-     imagen es el protagonista visual. */
   .dh__stripe {
     position: absolute;
     right: -6%;
-    bottom: -30%;
-    width: 34%;
-    height: 90%;
-    background: var(--fl-orange);
-    opacity: 0.16;
-    transform: skewX(-12deg);
-    z-index: 2;
-  }
-  .dh--noimg .dh__stripe {
-    opacity: 0.14;
-    top: -20%;
-    bottom: auto;
+    top: -25%;
+    width: 42%;
     height: 150%;
-    width: 46%;
+    background: var(--fl-orange);
+    opacity: 0.14;
+    transform: skewX(-12deg);
   }
 
-  .dh__inner {
-    position: relative;
-    z-index: 3;
-    width: 100%;
-    max-width: var(--fl-container);
-    margin: 0 auto;
-    padding: clamp(40px, 6vw, 72px) clamp(20px, 5vw, 56px) clamp(36px, 5vw, 56px);
-  }
-
-  .dh__title {
-    margin: 0;
-    font-family: 'Archivo Black', sans-serif;
-    font-size: clamp(30px, 5.4vw, 60px);
-    line-height: 0.98;
-    letter-spacing: -0.02em;
-    text-transform: uppercase;
-    color: var(--fl-cream);
-    max-width: 16ch;
+  .dh__meta {
+    padding-top: clamp(22px, 3vw, 34px);
   }
 
   .dh__distances {
-    margin: 14px 0 0;
+    margin: 0;
     font-family: 'Space Mono', monospace;
     font-size: clamp(13px, 1.6vw, 16px);
     font-weight: 700;
     letter-spacing: 2px;
     text-transform: uppercase;
-    color: var(--fl-orange);
+    color: var(--fl-orange-ink);
+  }
+
+  .dh__title {
+    margin: clamp(10px, 1.4vw, 16px) 0 0;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(30px, 5.4vw, 60px);
+    line-height: 0.98;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    color: var(--fl-ink);
+    max-width: 16ch;
   }
 
   .dh__facts {
-    margin: clamp(24px, 4vw, 40px) 0 0;
+    margin: clamp(20px, 3vw, 32px) 0 0;
     display: flex;
     flex-wrap: wrap;
     gap: clamp(28px, 6vw, 64px);
@@ -149,7 +140,7 @@ const distances = [...new Set(event.distances)];
     font-size: 12px;
     letter-spacing: 1.5px;
     text-transform: uppercase;
-    color: var(--fl-on-navy-muted);
+    color: var(--fl-on-cream-faint);
   }
   .dh__fact dd {
     margin: 6px 0 0;
@@ -157,6 +148,12 @@ const distances = [...new Set(event.distances)];
     font-size: clamp(15px, 2vw, 18px);
     font-weight: 700;
     text-transform: uppercase;
-    color: var(--fl-cream);
+    color: var(--fl-ink);
+  }
+
+  @media (max-width: 640px) {
+    .dh__media {
+      aspect-ratio: 16 / 10;
+    }
   }
 </style>
