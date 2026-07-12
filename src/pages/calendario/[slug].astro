@@ -11,10 +11,18 @@ import DetailHero from '@public/features/calendar/sections/DetailHero.astro';
 import Description from '@public/features/calendar/sections/Description.astro';
 import Modalities from '@public/features/calendar/sections/Modalities.astro';
 import EventInfo from '@public/features/calendar/sections/EventInfo.astro';
+import RaceRewards from '@public/features/calendar/sections/RaceRewards.astro';
+import type { RewardItem } from '@public/features/calendar/sections/RaceRewards.astro';
 import DetailSidebar from '@public/features/calendar/sections/DetailSidebar.astro';
+import MobileCta from '@public/features/calendar/sections/MobileCta.astro';
 import { getEvents } from '@shared/lib/server/strapi-client';
-import { calendarEventJsonLd } from '@public/features/calendar/format';
+import { calendarEventJsonLd, raceStatus, isFreeEvent } from '@public/features/calendar/format';
 import type { CalendarEvent } from '@shared/lib/server/strapi-client';
+// SEED TEMPORAL: hasta que Strapi tenga los campos `polera`/`medalla`, el merch
+// real de la carrera Renacer se muestra desde assets locales. En cuanto Strapi
+// sirva esos campos, `event.shirt`/`event.medal` ganan y este seed se borra.
+import renacerPolera from '../../assets/shirts/renacer.png';
+import renacerMedalla from '../../assets/medals/renacer.png';
 
 export async function getStaticPaths() {
   const events = await getEvents();
@@ -34,6 +42,31 @@ const description =
     : 'Inscripciones y detalles de la carrera.');
 
 const jsonLd = calendarEventJsonLd(event, pageUrl);
+
+// Merch de la carrera: se muestra lo que exista. Strapi manda; el seed local
+// (renacer) solo cubre el hueco mientras esos campos no viven en el CMS.
+const rewards: RewardItem[] = [];
+const shirtSrc = event.shirt?.url ?? (event.slug === 'renacer' ? renacerPolera : undefined);
+if (shirtSrc) {
+  rewards.push({
+    src: shirtSrc,
+    alt: event.shirt?.alt ?? `Polera oficial de ${event.title}`,
+    label: 'Polera oficial',
+  });
+}
+const medalSrc = event.medal?.url ?? (event.slug === 'renacer' ? renacerMedalla : undefined);
+if (medalSrc) {
+  rewards.push({
+    src: medalSrc,
+    alt: event.medal?.alt ?? `Medalla finisher de ${event.title}`,
+    label: 'Medalla finisher',
+  });
+}
+
+// Estado de inscripción, calculado una sola vez y compartido por la sidebar y la
+// barra móvil, para que nunca se contradigan (una agotada, la otra ofreciendo).
+const soldOut = raceStatus(event.modalities)?.tone === 'closed';
+const isFree = isFreeEvent(event.modalities);
 ---
 
 <PublicLayout
@@ -51,6 +84,11 @@ const jsonLd = calendarEventJsonLd(event, pageUrl);
   <main id="contenido">
     <DetailHero {event} />
 
+    {/* El gancho emocional (polera + medalla) va primero: el atleta ve lo que se
+        lleva mientras el CTA sigue presente. Las secciones de contenido quedan
+        como respaldo racional. */}
+    <RaceRewards items={rewards} />
+
     <div class="detail">
       <div class="detail__inner">
         <div class="detail__main">
@@ -59,18 +97,35 @@ const jsonLd = calendarEventJsonLd(event, pageUrl);
           {event.infoBlocks.length > 0 && <EventInfo blocks={event.infoBlocks} />}
         </div>
         <div class="detail__side">
-          <DetailSidebar {event} />
+          <DetailSidebar {event} {soldOut} />
         </div>
       </div>
     </div>
+
+    <MobileCta {soldOut} registrationUrl={event.registrationUrl} {isFree} />
   </main>
 
   <SiteFooter />
+
+  {/* Reserva el alto de la barra fija móvil al final del documento, para que no
+      tape el pie. Solo cuando la barra realmente se muestra. */}
+  {(soldOut || event.registrationUrl) && <div class="mcta-gap" aria-hidden="true" />}
 </PublicLayout>
 
 <style>
   .detail {
     background: var(--fl-cream);
+  }
+  /* Alto de la barra fija móvil (ver MobileCta.astro). En ≥900px la barra no
+     existe, así que el spacer tampoco ocupa. */
+  .mcta-gap {
+    display: none;
+  }
+  @media (max-width: 900px) {
+    .mcta-gap {
+      display: block;
+      height: calc(84px + env(safe-area-inset-bottom, 0px));
+    }
   }
   .detail__inner {
     max-width: var(--fl-container);

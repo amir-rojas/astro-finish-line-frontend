@@ -10,8 +10,12 @@ import { longDate, isFreeEvent } from '../format';
 
 interface Props {
   event: CalendarEvent;
+  /** La carrera está agotada (todas las modalidades cerradas). Deriva de
+      `raceStatus()` en el orquestador para que la sidebar y la barra móvil
+      nunca se contradigan. */
+  soldOut?: boolean;
 }
-const { event } = Astro.props;
+const { event, soldOut = false } = Astro.props;
 const { registrationDeadline, registrationUrl, categories } = event;
 const isFree = isFreeEvent(event.modalities);
 ---
@@ -27,16 +31,23 @@ const isFree = isFreeEvent(event.modalities);
   }
 
   {
-    registrationUrl && (
-      <a
-        class="sb__cta"
-        href={registrationUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        <span class="sb__cta-text">{isFree ? 'Inscribirse gratis' : 'Iniciar inscripción'}</span>
-        <span class="sb__cta-arrow" aria-hidden="true">→</span>
-      </a>
+    soldOut ? (
+      <div class="sb__closed">
+        <span class="sb__closed-label">Inscripciones</span>
+        <span class="sb__closed-state">Agotadas</span>
+      </div>
+    ) : (
+      registrationUrl && (
+        <a
+          class="sb__cta"
+          href={registrationUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <span class="sb__cta-text">{isFree ? 'Inscribirse gratis' : 'Iniciar inscripción'}</span>
+          <span class="sb__cta-arrow" aria-hidden="true">→</span>
+        </a>
+      )
     )
   }
 
@@ -83,6 +94,30 @@ const isFree = isFreeEvent(event.modalities);
     font-size: clamp(16px, 2vw, 18px);
     font-weight: 800;
     color: var(--fl-navy);
+  }
+
+  /* Carrera agotada: nada de naranja de conversión. Bloque apagado, honesto —
+     no ofrece una acción que ya no existe (spec de marca: honestidad sin teatro). */
+  .sb__closed {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: clamp(20px, 2.4vw, 26px);
+    background: var(--fl-cream-2);
+  }
+  .sb__closed-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--fl-on-cream-faint);
+  }
+  .sb__closed-state {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(18px, 2.4vw, 22px);
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    color: var(--fl-status-closed);
   }
 
   .sb__cta {
