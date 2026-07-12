@@ -77,6 +77,11 @@ const raceSchema = z.object({
   fecha: z.coerce.date(),
   ubicacion: z.string(),
   heroImage: heroImageSchema,
+  // Merch del evento: polera oficial (parte del kit) y medalla finisher. Ambos
+  // media single, opcionales — misma forma que heroImage. No todos los eventos
+  // tienen; el detalle degrada (la banda de recompensa no se renderiza).
+  polera: heroImageSchema,
+  medalla: heroImageSchema,
   descripcion: z.string().nullable().optional(),
   urlEventrid: z.string().nullable().optional(),
   cierreInscripcion: z.coerce.date().nullable().optional(),
@@ -164,6 +169,10 @@ export interface RaceEvent {
   /** Serie Run Tour vs carrera suelta — alimenta el tag de la agenda de la home. */
   isRunTour: boolean;
   heroImage?: { url: string; alt: string };
+  /** Polera oficial del evento (foto de merch). Opcional: no todos los eventos la tienen. */
+  shirt?: { url: string; alt: string };
+  /** Medalla finisher del evento (foto). Opcional: no todos los eventos la tienen. */
+  medal?: { url: string; alt: string };
   /** Markdown crudo tal cual viene de Strapi. Renderizar en la superficie que lo use. */
   descriptionRaw?: string;
   registrationUrl?: string;
@@ -220,6 +229,18 @@ function mapRace(raw: RawRace, strapiUrl: string): RaceEvent {
       ? {
           url: toAbsoluteUrl(raw.heroImage.url, strapiUrl),
           alt: raw.heroImage.alternativeText ?? raw.nombre,
+        }
+      : undefined,
+    shirt: raw.polera
+      ? {
+          url: toAbsoluteUrl(raw.polera.url, strapiUrl),
+          alt: raw.polera.alternativeText ?? `Polera oficial de ${raw.nombre}`,
+        }
+      : undefined,
+    medal: raw.medalla
+      ? {
+          url: toAbsoluteUrl(raw.medalla.url, strapiUrl),
+          alt: raw.medalla.alternativeText ?? `Medalla finisher de ${raw.nombre}`,
         }
       : undefined,
     descriptionRaw: raw.descripcion ?? undefined,
@@ -288,6 +309,13 @@ async function fetchEvents(): Promise<RaceEvent[]> {
     // Strapi/qs no puede mezclar índices numéricos y keys de texto bajo el mismo
     // parámetro `populate` — mezclarlos rompe el parseo con "Invalid key" (400).
     'populate[heroImage]=true',
+    // PENDIENTE STRAPI: cuando el content type Carrera tenga los campos media
+    // `polera` y `medalla`, descomentar estas dos líneas. NO antes: popular un
+    // campo inexistente devuelve 400 "Invalid key polera" y rompe TODO el fetch
+    // (home + detalle). El schema/tipos/mapRace ya están listos: sin populate,
+    // `raw.polera` llega undefined y `shirt`/`medal` quedan sin definir (ok).
+    // 'populate[polera]=true',
+    // 'populate[medalla]=true',
     'populate[modalidades]=true',
     'populate[categoriasEdad]=true',
     'populate[bloquesInfo][populate]=archivo',
