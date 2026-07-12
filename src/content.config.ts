@@ -63,6 +63,10 @@ const events = defineCollection({
     // --- Campos net-new (ex-Strapi), ver adaptador `content/events.ts` -------
     // Serie Run Tour vs carrera suelta — tag de la agenda de la home.
     isRunTour: z.boolean().default(false),
+    // Número de etapa dentro del Run Tour ("Etapa 01"). Solo tiene sentido con
+    // `isRunTour: true`. El hero lo muestra junto al nombre de la serie; sin él,
+    // el lockup degrada al nombre de la serie a secas.
+    runTourStage: z.number().int().positive().optional(),
     coorganizer: z.string().optional(),            // "Alcaldía de La Paz" (chip del hero)
     // Merch del evento: polera oficial y medalla finisher. Media local opcional,
     // misma forma que heroImage (imagen + alt separado).

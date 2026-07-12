@@ -69,6 +69,9 @@ export interface RaceEvent {
   coorganizer?: string;
   /** Serie Run Tour vs carrera suelta — alimenta el tag de la agenda de la home. */
   isRunTour: boolean;
+  /** Etapa dentro del Run Tour (1, 2, 3…). Solo con `isRunTour`. El hero la muestra
+      junto al nombre de la serie; sin ella, el lockup degrada al nombre a secas. */
+  runTourStage?: number;
   heroImage?: ImageMetadata;
   heroImageAlt?: string;
   /** Polera oficial del evento (foto de merch). Opcional: no todos los eventos la tienen. */
@@ -152,6 +155,7 @@ export function toRaceEvent(entry: EventEntry): RaceEvent {
     status: STATUS_MAP[data.status],
     coorganizer: data.coorganizer,
     isRunTour: data.isRunTour,
+    runTourStage: data.runTourStage,
     heroImage: data.heroImage,
     heroImageAlt: data.heroImageAlt ?? data.title,
     shirt: data.shirt,
