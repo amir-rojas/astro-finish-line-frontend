@@ -15,8 +15,11 @@ import type { CalendarEvent, CalendarModality } from '@shared/lib/content/events
 
 marked.setOptions({ async: false });
 
-// Moneda hardcodeada en el front (BOB, sin selector de moneda en v1).
-const CURRENCY = 'BOB';
+// Moneda hardcodeada en el front (sin selector de moneda en v1). Se muestra como
+// "Bs", que es como se escribe el boliviano acá y como está cargado el contenido;
+// "BOB" es el código ISO y solo tiene sentido para máquinas — vive en el JSON-LD
+// (`priceCurrency`), donde schema.org lo exige.
+const CURRENCY = 'Bs';
 
 /**
  * Convierte el markdown de `descripcion` (Strapi) a HTML sanitizado, listo
