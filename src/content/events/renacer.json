@@ -1,6 +1,6 @@
 {
   "title": "Renacer",
-  "tagline": "Corre por\nun nuevo\ncomienzo",
+  "tagline": "Corre por un nuevo comienzo",
   "date": "2026-08-16",
   "gatheringTime": "07:00",
   "startTime": "08:00",
@@ -13,7 +13,14 @@
   "altitudeM": 3640,
   "altitudeNote": "La ciudad más alta del mundo",
   "distances": ["10K", "5K"],
-  "status": "upcoming",
+  "registrationUrl": "https://www.eventrid.bo/eventos/finishline/renacer-run-tour-finish-line",
+  "status": "open",
+  "modalities": [
+    { "distance": "10K", "label": "Sin polera", "price": 105, "status": "abierto" },
+    { "distance": "10K", "label": "Con polera", "price": 230, "status": "abierto" },
+    { "distance": "5K", "label": "Sin polera", "price": 105, "status": "abierto" },
+    { "distance": "5K", "label": "Con polera", "price": 230, "status": "abierto" }
+  ],
   "heroImage": "../../assets/images/etapa-renacer.jpg",
   "heroImageAlt": "Corredores en la etapa Renacer",
   "description": "10K y 5K del Run Tour Finish Line, el circuito que premia la perseverancia de cada corredor. Salida y llegada en la Plaza Avaroa, en el corazón de La Paz.",
@@ -27,6 +34,7 @@
   "organizerLogo": "/assets/finishline-logo.png",
   "featured": false,
   "isRunTour": true,
+  "runTourStage": 1,
   "shirt": "../../assets/shirts/renacer.png",
   "shirtAlt": "Polera oficial de Renacer",
   "medal": "../../assets/medals/renacer.png",
