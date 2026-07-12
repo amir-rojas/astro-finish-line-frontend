@@ -49,6 +49,7 @@ const events = defineCollection({
     registrationNote: z.string().optional(),       // "o hasta agotar cupos"
     status: z.enum(['upcoming', 'open', 'closed', 'finished']).default('upcoming'),
     heroImage: image().optional(),                 // foto del evento (src/assets), optimizada por Astro
+    heroImageAlt: z.string().optional(),           // alt de heroImage; si falta, cae al título
     description: z.string().optional(),
     instagram: z.string().optional(),              // handle "@finishlinebolivia"
     instagramUrl: z.string().url().optional(),     // URL del perfil de Instagram
@@ -59,6 +60,51 @@ const events = defineCollection({
     organizer: z.string().optional(),
     organizerLogo: z.string().optional(),
     featured: z.boolean().default(false),
+    // --- Campos net-new (ex-Strapi), ver adaptador `content/events.ts` -------
+    // Serie Run Tour vs carrera suelta — tag de la agenda de la home.
+    isRunTour: z.boolean().default(false),
+    coorganizer: z.string().optional(),            // "Alcaldía de La Paz" (chip del hero)
+    // Merch del evento: polera oficial y medalla finisher. Media local opcional,
+    // misma forma que heroImage (imagen + alt separado).
+    shirt: image().optional(),
+    shirtAlt: z.string().optional(),
+    medal: image().optional(),
+    medalAlt: z.string().optional(),
+    // Modalidades reales de la carrera (distancia + precio + estado propio).
+    // Si viene vacío, el listado/hero cae al legacy `distances[]`.
+    modalities: z
+      .array(
+        z.object({
+          distance: z.string(),
+          label: z.string().optional(), // fallback a `distance` en el adaptador
+          price: z.number(),
+          status: z.enum(['abierto', 'ultimos_cupos', 'agotado']).default('abierto'),
+        }),
+      )
+      .default([]),
+    // Bloques de "Información del evento" (reglamento, convocatoria…). Los
+    // adjuntos (`files`) son rutas públicas (p.ej. "/docs/reglamento.pdf" en
+    // /public), no media gestionada: local no tiene equivalente a Strapi media.
+    infoBlocks: z
+      .array(
+        z.object({
+          title: z.string(),
+          content: z.string(), // markdown crudo
+          order: z.number().optional(),
+          files: z
+            .array(
+              z.object({
+                url: z.string(),
+                name: z.string(),
+                sizeKb: z.number(),
+                mime: z.string(),
+                ext: z.string().optional(),
+              }),
+            )
+            .default([]),
+        }),
+      )
+      .default([]),
   }),
 });
 
