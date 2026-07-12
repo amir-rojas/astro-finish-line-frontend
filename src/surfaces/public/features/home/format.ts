@@ -2,7 +2,7 @@
 // evitar corrimientos de día (las fechas del evento son fechas civiles, no
 // instantes). El countdown sí usa el offset real del evento.
 import type { CollectionEntry } from 'astro:content';
-import type { RaceEvent } from '@shared/lib/server/strapi-client';
+import type { RaceEvent } from '@shared/lib/content/events';
 import { raceDayKey, todayInRaceTimezone } from '@shared/lib/race-date';
 
 export type EventData = CollectionEntry<'events'>['data'];

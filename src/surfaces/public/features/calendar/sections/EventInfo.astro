@@ -8,7 +8,7 @@
 // que `blocks` no está vacío, pero se guarda una salida defensiva por si acaso.
 import { renderMarkdown, formatFileSize } from '../format';
 import SectionHeading from './SectionHeading.astro';
-import type { InfoBlock } from '@shared/lib/server/strapi-client';
+import type { InfoBlock } from '@shared/lib/content/events';
 
 interface Props {
   blocks: InfoBlock[];

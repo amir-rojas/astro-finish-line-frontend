@@ -2,7 +2,7 @@
 // RaceList — lista de carreras del listado /calendario. Mapea `CalendarEvent[]`
 // (ya ordenado por fecha asc por `getEvents()`) a filas `RaceRow`, sobre fondo
 // crema full-bleed con separadores finos entre filas.
-import type { CalendarEvent } from '@shared/lib/server/strapi-client';
+import type { CalendarEvent } from '@shared/lib/content/events';
 import RaceRow from './RaceRow.astro';
 
 interface Props {

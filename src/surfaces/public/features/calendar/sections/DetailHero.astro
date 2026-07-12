@@ -7,7 +7,7 @@
 // heroImage, la imagen degrada a un panel crema con la franja diagonal de marca
 // (mismo motivo que ListHeader) — no se muestra un hueco ni un placeholder roto.
 import { Image } from 'astro:assets';
-import type { CalendarEvent } from '@shared/lib/server/strapi-client';
+import type { CalendarEvent } from '@shared/lib/content/events';
 import { heroDate } from '../format';
 
 interface Props {
@@ -25,9 +25,8 @@ const distances = [...new Set(event.distances)];
         event.heroImage ? (
           <Image
             class="dh__img"
-            src={event.heroImage.url}
-            alt={event.heroImage.alt}
-            inferSize
+            src={event.heroImage}
+            alt={event.heroImageAlt ?? event.title}
             widths={[768, 1180, 1600]}
             sizes="(max-width: 1180px) 100vw, 1180px"
             loading="eager"

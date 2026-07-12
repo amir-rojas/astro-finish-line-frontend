@@ -1,5 +1,5 @@
 ---
-// Ruta pública "/calendario/[slug]" — detalle de una carrera de Strapi.
+// Ruta pública "/calendario/[slug]" — detalle de una carrera.
 // SSG: `getStaticPaths` genera una página por carrera publicada a partir del
 // mismo `getEvents()` (fetch único enriquecido, sin N+1 por-slug). El `event`
 // completo viaja como prop; un slug inexistente no se genera → Astro sirve 404.
@@ -15,14 +15,10 @@ import RaceRewards from '@public/features/calendar/sections/RaceRewards.astro';
 import type { RewardItem } from '@public/features/calendar/sections/RaceRewards.astro';
 import DetailSidebar from '@public/features/calendar/sections/DetailSidebar.astro';
 import MobileCta from '@public/features/calendar/sections/MobileCta.astro';
-import { getEvents } from '@shared/lib/server/strapi-client';
+import { getImage } from 'astro:assets';
+import { getEvents } from '@shared/lib/content/events';
 import { calendarEventJsonLd, raceStatus, isFreeEvent } from '@public/features/calendar/format';
-import type { CalendarEvent } from '@shared/lib/server/strapi-client';
-// SEED TEMPORAL: hasta que Strapi tenga los campos `polera`/`medalla`, el merch
-// real de la carrera Renacer se muestra desde assets locales. En cuanto Strapi
-// sirva esos campos, `event.shirt`/`event.medal` ganan y este seed se borra.
-import renacerPolera from '../../assets/shirts/renacer.png';
-import renacerMedalla from '../../assets/medals/renacer.png';
+import type { CalendarEvent } from '@shared/lib/content/events';
 
 export async function getStaticPaths() {
   const events = await getEvents();
@@ -43,22 +39,21 @@ const description =
 
 const jsonLd = calendarEventJsonLd(event, pageUrl);
 
-// Merch de la carrera: se muestra lo que exista. Strapi manda; el seed local
-// (renacer) solo cubre el hueco mientras esos campos no viven en el CMS.
+// Merch de la carrera: se muestra lo que traiga el contenido (`shirt`/`medal`).
+// Ambos opcionales — si el evento no los define, la banda de recompensas no se
+// renderiza (ver RaceRewards.astro).
 const rewards: RewardItem[] = [];
-const shirtSrc = event.shirt?.url ?? (event.slug === 'renacer' ? renacerPolera : undefined);
-if (shirtSrc) {
+if (event.shirt) {
   rewards.push({
-    src: shirtSrc,
-    alt: event.shirt?.alt ?? `Polera oficial de ${event.title}`,
+    src: event.shirt,
+    alt: event.shirtAlt ?? `Polera oficial de ${event.title}`,
     label: 'Polera oficial',
   });
 }
-const medalSrc = event.medal?.url ?? (event.slug === 'renacer' ? renacerMedalla : undefined);
-if (medalSrc) {
+if (event.medal) {
   rewards.push({
-    src: medalSrc,
-    alt: event.medal?.alt ?? `Medalla finisher de ${event.title}`,
+    src: event.medal,
+    alt: event.medalAlt ?? `Medalla finisher de ${event.title}`,
     label: 'Medalla finisher',
   });
 }
@@ -67,12 +62,18 @@ if (medalSrc) {
 // barra móvil, para que nunca se contradigan (una agotada, la otra ofreciendo).
 const soldOut = raceStatus(event.modalities)?.tone === 'closed';
 const isFree = isFreeEvent(event.modalities);
+
+// Imagen para compartir (Open Graph): render dedicado 1200×630, mismo patrón
+// que la home. `event.heroImage` ya es ImageMetadata (imagen local).
+const ogImage = event.heroImage
+  ? (await getImage({ src: event.heroImage, width: 1200, height: 630, format: 'jpeg' })).src
+  : undefined;
 ---
 
 <PublicLayout
   title={event.title}
   description={description}
-  ogImage={event.heroImage?.url}
+  ogImage={ogImage}
   canonical={pageUrl}
 >
   <Fragment slot="head">

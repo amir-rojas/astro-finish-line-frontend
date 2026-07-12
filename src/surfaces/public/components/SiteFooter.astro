@@ -14,7 +14,7 @@
 import { Image } from 'astro:assets';
 import logo from '../../../assets/images/logo.png';
 import { site, whatsappLink, type SocialLink } from '@shared/config/site';
-import { getEvents } from '@shared/lib/server/strapi-client';
+import { getEvents } from '@shared/lib/content/events';
 
 const year = new Date().getFullYear();
 const copyright = `© ${year} ${site.organizer}`;

@@ -11,20 +11,23 @@ import Recaps from '@public/features/home/sections/Recaps.astro';
 import Agenda from '@public/features/home/sections/Agenda.astro';
 import SiteFooter from '@public/components/SiteFooter.astro';
 import { eventJsonLd, seoTitle, upcomingByMonth } from '@public/features/home/format';
-import { getNextRace, getEvents } from '@shared/lib/server/strapi-client';
+import { getNextRace, getEvents } from '@shared/lib/content/events';
+
+// Fuente única: la próxima carrera (RaceEvent) gobierna el hero; se busca la
+// MISMA entrada en la colección (EventData) para el SEO/OG/JSON-LD, que
+// necesita campos ricos (city/country/organizer/price) que RaceEvent no trae.
+// Antes había una selección DOBLE (evento `featured` para SEO + `getNextRace`
+// para el hero) que podía describir dos carreras distintas (ver design ADR-6).
+const nextRace = await getNextRace();
+if (!nextRace) throw new Error('No hay carreras en la colección `events` para la home.');
 
 const events = await getCollection('events');
-const entry = events.find((e) => e.data.featured) ?? events[0];
-if (!entry) throw new Error('No hay eventos en la colección `events` para la home.');
+const entry = events.find((e) => e.id === nextRace.slug);
+if (!entry) throw new Error(`No se encontró la entrada de colección para el slug "${nextRace.slug}".`);
 const event = entry.data;
 
-// Hero data-driven: la próxima carrera sale de Strapi (no del JSON local). El
-// JSON local sólo alimenta el header, el footer y los metadatos SEO.
-const nextRace = await getNextRace();
-if (!nextRace) throw new Error('No hay carreras publicadas en Strapi para el hero.');
-
-// Agenda (Módulo 4): getEvents() está memoizado, así que esto no dispara un
-// segundo fetch a Strapi pese a que getNextRace() ya lo llamó.
+// Agenda (Módulo 4): getEvents() no dispara un segundo fetch (ya no hay red,
+// es local), pero se reusa la misma lista para no leer la colección dos veces.
 const agendaMonths = upcomingByMonth(await getEvents(), new Date());
 
 // Imagen para compartir (Open Graph): render dedicado 1200×630 desde la foto

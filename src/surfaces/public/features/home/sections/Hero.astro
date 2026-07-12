@@ -6,7 +6,7 @@
 // la página de detalle de la carrera. Los campos net-new de Strapi (tagline,
 // altitud, hora, estado, coorganizador) son opcionales: el hero degrada elegante
 // mientras el editor no los cargue.
-import type { RaceEvent } from '@shared/lib/server/strapi-client';
+import type { RaceEvent } from '@shared/lib/content/events';
 import { heroDate, shortDate, dayMonth, countdownISOFrom } from '../format';
 import { isPastRace } from '@shared/lib/race-date';
 import { Image } from 'astro:assets';
@@ -74,9 +74,8 @@ const countdownNote =
     race.heroImage && (
       <Image
         class="hero__photo"
-        src={race.heroImage.url}
-        alt={race.heroImage.alt}
-        inferSize
+        src={race.heroImage}
+        alt={race.heroImageAlt ?? race.title}
         widths={[768, 1200, 1600]}
         sizes="100vw"
         loading="eager"

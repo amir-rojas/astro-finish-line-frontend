@@ -11,7 +11,7 @@ import SiteFooter from '@public/components/SiteFooter.astro';
 import ListHeader from '@public/features/calendar/sections/ListHeader.astro';
 import RaceList from '@public/features/calendar/sections/RaceList.astro';
 import EmptyState from '@public/features/calendar/sections/EmptyState.astro';
-import { getEvents } from '@shared/lib/server/strapi-client';
+import { getEvents } from '@shared/lib/content/events';
 import { upcomingRaces } from '@shared/lib/race-date';
 
 const races = upcomingRaces(await getEvents());

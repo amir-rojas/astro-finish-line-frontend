@@ -11,7 +11,7 @@
 // (JSON-LD SportsEvent de la página de detalle).
 import { marked } from 'marked';
 import sanitizeHtml from 'sanitize-html';
-import type { CalendarEvent, CalendarModality } from '@shared/lib/server/strapi-client';
+import type { CalendarEvent, CalendarModality } from '@shared/lib/content/events';
 
 marked.setOptions({ async: false });
 
@@ -176,7 +176,7 @@ export function calendarEventJsonLd(event: CalendarEvent, pageUrl: string): Reco
     sport: 'Running',
   };
 
-  if (event.heroImage) jsonLd.image = event.heroImage.url;
+  if (event.heroImage) jsonLd.image = event.heroImage.src;
   if (event.descriptionRaw) jsonLd.description = event.descriptionRaw;
 
   if (event.modalities.length > 0) {

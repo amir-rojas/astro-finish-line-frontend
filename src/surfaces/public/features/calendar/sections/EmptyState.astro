@@ -1,8 +1,8 @@
 ---
-// EmptyState — vacío LEGÍTIMO del listado (0 carreras publicadas en Strapi).
-// No es un error: el error real (Strapi caído, payload roto) ya lo corta
-// `strapi-client.ts` con fail-fast antes de llegar acá. Calmo, on-brand, sin
-// iconografía de alerta.
+// EmptyState — vacío LEGÍTIMO del listado (0 carreras en la colección local).
+// No es un error: el contenido vive en `src/content/events/*.json` y el schema
+// de la colección valida en build; acá solo se llega cuando no hay carreras
+// próximas. Calmo, on-brand, sin iconografía de alerta.
 ---
 
 <div class="es">
