@@ -36,18 +36,22 @@ const isFree = isFreeEvent(event.modalities);
         <span class="sb__closed-label">Inscripciones</span>
         <span class="sb__closed-state">Agotadas</span>
       </div>
+    ) : registrationUrl ? (
+      <a
+        class="sb__cta"
+        href={registrationUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span class="sb__cta-text">{isFree ? 'Inscribirse gratis' : 'Iniciar inscripción'}</span>
+        <span class="sb__cta-arrow" aria-hidden="true">→</span>
+      </a>
     ) : (
-      registrationUrl && (
-        <a
-          class="sb__cta"
-          href={registrationUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <span class="sb__cta-text">{isFree ? 'Inscribirse gratis' : 'Iniciar inscripción'}</span>
-          <span class="sb__cta-arrow" aria-hidden="true">→</span>
-        </a>
-      )
+      <div class="sb__soon">
+        <span class="sb__closed-label">Inscripciones</span>
+        <span class="sb__soon-state">Próximamente</span>
+        <p class="sb__soon-note">Pronto anunciamos precios, categorías y el recorrido.</p>
+      </div>
     )
   }
 
@@ -118,6 +122,32 @@ const isFree = isFreeEvent(event.modalities);
     text-transform: uppercase;
     letter-spacing: -0.01em;
     color: var(--fl-status-closed);
+  }
+
+  /* Carrera anunciada pero sin inscripción todavía (sin precio ni link): el
+     bloque ocupa el lugar del CTA sin fingir una acción que no existe. Mismo
+     criterio apagado que `.sb__closed`, pero en tono neutro: no es un cierre,
+     es un "todavía no". */
+  .sb__soon {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: clamp(20px, 2.4vw, 26px);
+    background: var(--fl-cream-2);
+  }
+  .sb__soon-state {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(18px, 2.4vw, 22px);
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    color: var(--fl-navy);
+  }
+  .sb__soon-note {
+    margin: 4px 0 0;
+    font-family: 'Archivo', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--fl-on-cream-faint);
   }
 
   .sb__cta {
