@@ -1,16 +1,15 @@
 {
-  "title": "La Paz 10K",
-  "tagline": "La Paz,\nla ciudad\nque corre",
-  "date": "2026-07-12",
+  "title": "Renacer",
+  "tagline": "Corré por\nun nuevo\ncomienzo",
+  "date": "2026-08-06",
   "gatheringTime": "07:00",
   "startTime": "08:00",
-  "timezoneOffset": "-04:00",
-  "location": "Av. Camacho, altura Banco Unión",
-  "finishLocation": "Plaza Hernando Siles, altura Banco Sol",
+  "location": "Por confirmar",
+  "finishLocation": "Por confirmar",
   "city": "La Paz",
   "country": "Bolivia",
-  "courseTitle": "10 KM por el centro de La Paz",
-  "courseDescription": "Salida en la avenida Camacho, altura Banco Unión, y meta en la Plaza del Estadio. Un circuito rápido y vibrante por la ciudad más alta del mundo.",
+  "courseTitle": "10 KM por confirmar",
+  "courseDescription": "Recorrido por confirmar.",
   "altitudeM": 3640,
   "altitudeNote": "La ciudad más alta del mundo",
   "distances": ["10K"],
@@ -18,17 +17,10 @@
     {
       "label": "Con kit",
       "price": { "amount": 15, "currency": "Bs" },
-      "url": "https://www.eventrid.bo/eventos/finishline/la-paz-10k-la-ciudad-que-corre-1",
+      "url": "https://eventr.id/002cLzp8",
       "includes": ["Kit del corredor", "Dorsal oficial", "Hidratación en ruta"],
       "note": "Incluye tu kit de corredor",
       "featured": true
-    },
-    {
-      "label": "Gratis",
-      "price": { "amount": 0, "currency": "Bs" },
-      "url": "https://runsignup.com/Race/BO/LaPaz/LACIUDADQUECORRE",
-      "includes": ["Dorsal oficial", "Hidratación en ruta"],
-      "note": "Hasta agotar cupos"
     }
   ],
   "categories": [
@@ -38,9 +30,10 @@
   ],
   "categoriesNote": "Las edades deberán estar cumplidas durante la gestión 2026. Damas y Varones.",
   "registrationNote": "Hasta agotar cupos",
-  "status": "finished",
-  "heroImage": "../../assets/images/img-event.jpeg",
-  "description": "10 kilómetros por el corazón de la ciudad más alta del mundo. Salida en la avenida Camacho (altura Banco Unión) y meta en la Plaza del Estadio.",
+  "status": "open",
+  "heroImage": "../../assets/images/etapa-renacer.jpg",
+  "heroImageAlt": "Corredores en la etapa Renacer",
+  "description": "Descripción por confirmar.",
   "instagram": "@finishlinebolivia",
   "instagramUrl": "https://www.instagram.com/finishlinebolivia",
   "facebookUrl": "https://www.facebook.com/FinishLineSportingEvents",
@@ -49,5 +42,18 @@
   "whatsapp": "+591 62151410",
   "organizer": "Finish Line Sporting Events",
   "organizerLogo": "/assets/finishline-logo.png",
-  "featured": true
+  "featured": false,
+  "isRunTour": true,
+  "shirt": "../../assets/shirts/renacer.png",
+  "shirtAlt": "Polera oficial de Renacer",
+  "medal": "../../assets/medals/renacer.png",
+  "medalAlt": "Medalla finisher de Renacer",
+  "modalities": [
+    {
+      "distance": "10K",
+      "label": "10K",
+      "price": 15,
+      "status": "abierto"
+    }
+  ]
 }
