@@ -1,4 +1,9 @@
 /**
+ * PARKED: capa Strapi conservada para cuando el CMS+Go esté hosteado. No la
+ * importa nadie (ver `src/shared/lib/content/events.ts`, la fuente local
+ * vigente). Revivir = re-apuntar getEvents/getEvent/getNextRace y restaurar
+ * STRAPI_URL/STRAPI_TOKEN como env requerido.
+ *
  * strapi-client.ts — capa de datos de carreras (server-only, compartida).
  *
  * Es la costura única Astro→Strapi para el contenido de carreras. Nace para la
