@@ -15,7 +15,7 @@ const html = renderMarkdown(markdown);
 
 <section class="desc">
   <SectionHeading kicker="// La carrera" title="Descripción" />
-  <div class="desc__body" set:html={html} />
+  <div class="desc__body" set:html={html} data-reveal data-delay="1" />
 </section>
 
 <style>

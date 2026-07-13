@@ -296,7 +296,9 @@ const desde =
     text-transform: uppercase;
     letter-spacing: 0.5px;
     line-height: 1.15;
-    transition: background 160ms var(--ease-out);
+    transition:
+      background 160ms var(--ease-out),
+      transform 160ms var(--ease-out);
   }
   .sb__cta-arrow {
     font-size: 22px;
@@ -310,6 +312,13 @@ const desde =
     .sb__cta:hover .sb__cta-arrow {
       transform: translateX(4px);
     }
+  }
+  /* El botón que decide la conversión de la página era el ÚNICO que no se hundía
+     al apretarlo: el CTA móvil y el footer ya lo hacían. Va FUERA del bloque
+     `hover`, porque el acuse de recibo del toque importa sobre todo en el dedo,
+     que es justo donde no hay hover que confirme nada. */
+  .sb__cta:active {
+    transform: scale(0.97);
   }
 
   .sb__cats-label {

@@ -18,10 +18,12 @@ const { modalities } = Astro.props;
 
   <ul class="mods__list">
     {
-      modalities.map((m) => {
+      modalities.map((m, i) => {
         const status = modalityStatus(m.status);
         return (
-          <li class="mod">
+          /* El escalonado se corta en la cuarta fila a propósito: pasada esa,
+             la cascada deja de leerse como ritmo y empieza a hacer esperar. */
+          <li class="mod" data-reveal data-delay={Math.min(i + 1, 4)}>
             <div class="mod__id">
               <span class="mod__distance">{m.distance}</span>
               {m.label !== m.distance && <span class="mod__name">{m.label}</span>}

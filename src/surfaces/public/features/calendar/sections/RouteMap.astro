@@ -34,9 +34,13 @@ const esCircuito = Boolean(start && finish && start === finish);
 <section class="route">
   <SectionHeading kicker="// Por dónde se corre" title={title ?? 'El recorrido'} />
 
-  {description && <p class="route__text">{description}</p>}
+  {description && (
+    <p class="route__text" data-reveal data-delay="1">
+      {description}
+    </p>
+  )}
 
-  <figure class="route__fig">
+  <figure class="route__fig" data-reveal data-delay="2">
     <Image
       class="route__map"
       src={map}
@@ -49,7 +53,7 @@ const esCircuito = Boolean(start && finish && start === finish);
 
   {
     (start || finish) && (
-      <dl class="route__points">
+      <dl class="route__points" data-reveal data-delay="3">
         {esCircuito ? (
           <div class="route__point">
             <dt>Salida y llegada</dt>
