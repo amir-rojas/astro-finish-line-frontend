@@ -1,0 +1,132 @@
+---
+// RouteMap — "El recorrido" del detalle: el mapa real del circuito.
+//
+// Va ANTES de Modalidades a propósito: le vende la carrera al corredor antes de
+// pedirle plata. Y respeta la adyacencia que arreglamos en el P0 — Modalidades y
+// El kit quedan pegados, para que la fila "Con polera · 230 Bs" y la foto de la
+// polera sigan a media pantalla una de otra.
+//
+// El mapa es una captura (no un SVG vectorial): va sobre placa BLANCA porque el
+// fondo del mapa es claro y sobre crema se ensuciaría el borde. `contain`, nunca
+// `cover`: un recorrido recortado es un recorrido equivocado.
+import { Image } from 'astro:assets';
+import SectionHeading from './SectionHeading.astro';
+
+interface Props {
+  map: ImageMetadata;
+  alt?: string;
+  /** Titular del recorrido, p.ej. "10 KM y 5 KM". Si falta, el encabezado cae al genérico. */
+  title?: string;
+  /** Párrafo del recorrido. Opcional: el mapa ya dice mucho solo. */
+  description?: string;
+  /** Punto de partida y de llegada, si el contenido los trae. */
+  start?: string;
+  finish?: string;
+}
+const { map, alt, title, description, start, finish } = Astro.props;
+
+// Salida y llegada en el mismo punto es un CIRCUITO, y decirlo así ahorra una
+// lectura: dos filas idénticas ("Partida: Plaza Avaroa" / "Meta: Plaza Avaroa")
+// obligan al corredor a compararlas para darse cuenta.
+const esCircuito = Boolean(start && finish && start === finish);
+---
+
+<section class="route">
+  <SectionHeading kicker="// Por dónde se corre" title={title ?? 'El recorrido'} />
+
+  {description && <p class="route__text">{description}</p>}
+
+  <figure class="route__fig">
+    <Image
+      class="route__map"
+      src={map}
+      alt={alt ?? 'Mapa del recorrido de la carrera.'}
+      widths={[480, 720, 960]}
+      sizes="(max-width: 900px) 92vw, 640px"
+      loading="lazy"
+    />
+  </figure>
+
+  {
+    (start || finish) && (
+      <dl class="route__points">
+        {esCircuito ? (
+          <div class="route__point">
+            <dt>Salida y llegada</dt>
+            <dd>{start}</dd>
+          </div>
+        ) : (
+          <>
+            {start && (
+              <div class="route__point">
+                <dt>Salida</dt>
+                <dd>{start}</dd>
+              </div>
+            )}
+            {finish && (
+              <div class="route__point">
+                <dt>Llegada</dt>
+                <dd>{finish}</dd>
+              </div>
+            )}
+          </>
+        )}
+      </dl>
+    )
+  }
+</section>
+
+<style>
+  .route__text {
+    margin: 0 0 clamp(16px, 2.4vw, 22px);
+    max-width: 62ch;
+    font-size: 16px;
+    line-height: 1.6;
+    text-wrap: pretty;
+    color: var(--fl-on-cream-muted);
+  }
+
+  .route__fig {
+    margin: 0;
+    /* Placa blanca: el mapa tiene fondo claro propio y sobre crema el borde se
+       ensucia. Esquinas rectas, como todo el surface. */
+    background: var(--fl-surface);
+    border: 1px solid var(--fl-hairline-ink);
+    padding: clamp(10px, 1.6vw, 16px);
+  }
+  .route__map {
+    display: block;
+    width: 100%;
+    height: auto;
+    /* `contain` por definición: un recorrido recortado es un recorrido equivocado. */
+    object-fit: contain;
+  }
+
+  /* Salida y llegada: dos datos, no una tabla. Fila tensa, separada del mapa por
+     el mismo hairline que separa las modalidades. */
+  .route__points {
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp(20px, 4vw, 44px);
+    margin: clamp(16px, 2.4vw, 22px) 0 0;
+    padding-top: clamp(14px, 2vw, 18px);
+    border-top: 1px solid var(--fl-hairline-ink);
+  }
+  .route__point {
+    min-width: 0;
+  }
+  .route__point dt {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--fl-on-cream-faint);
+  }
+  .route__point dd {
+    margin: 6px 0 0;
+    font-family: 'Archivo', sans-serif;
+    font-weight: 800;
+    font-size: clamp(15px, 1.9vw, 17px);
+    color: var(--fl-ink);
+  }
+</style>

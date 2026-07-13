@@ -18,6 +18,10 @@ const events = defineCollection({
     country: z.string().optional(),
     courseTitle: z.string().optional(),            // titular de la sección recorrido
     courseDescription: z.string().optional(),      // párrafo del recorrido
+    // Mapa del recorrido. Sin él, la sección "El recorrido" no se renderiza: un
+    // encabezado sin mapa no informa nada.
+    routeMap: image().optional(),
+    routeMapAlt: z.string().optional(),
     altitudeM: z.number().optional(),              // altitud en metros (hilo conductor)
     altitudeNote: z.string().optional(),           // "La ciudad más alta del mundo"
     distances: z.array(z.string()).default([]),    // ["5K", "10K", "21K", "42K"]

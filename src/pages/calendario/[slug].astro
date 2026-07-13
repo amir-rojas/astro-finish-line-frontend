@@ -10,6 +10,7 @@ import SiteFooter from '@public/components/SiteFooter.astro';
 import DetailHero from '@public/features/calendar/sections/DetailHero.astro';
 import Description from '@public/features/calendar/sections/Description.astro';
 import Modalities from '@public/features/calendar/sections/Modalities.astro';
+import RouteMap from '@public/features/calendar/sections/RouteMap.astro';
 import EventInfo from '@public/features/calendar/sections/EventInfo.astro';
 import RaceRewards from '@public/features/calendar/sections/RaceRewards.astro';
 import type { RewardItem } from '@public/features/calendar/sections/RaceRewards.astro';
@@ -112,13 +113,24 @@ const ogImage = event.heroImage
 
     <div class="detail">
       <div class="detail__inner">
+        {/* El orden ES el camino de conversión: qué es → por dónde se corre →
+            cuánto cuesta → qué me llevo. El recorrido va ANTES del precio (le vende
+            la carrera antes de pedirle plata) y, sobre todo, NO se mete entre
+            Modalidades y el kit: esos dos tienen que quedar pegados, o la foto de la
+            polera vuelve a alejarse de la fila "Con polera · 230 Bs" que la explica. */}
         <div class="detail__main">
           {event.descriptionRaw && <Description markdown={event.descriptionRaw} />}
+          {event.routeMap && (
+            <RouteMap
+              map={event.routeMap}
+              alt={event.routeMapAlt}
+              title={event.courseTitle}
+              description={event.courseDescription}
+              start={event.location}
+              finish={event.finishLocation}
+            />
+          )}
           {event.modalities.length > 0 && <Modalities modalities={event.modalities} />}
-          {/* El merch va DESPUÉS de los precios, no antes. Como banda previa al
-              contenido era un anzuelo: prometía la polera 1550px antes de contar que
-              se paga aparte. Acá abajo es lo contrario — el argumento de venta del
-              kit, a menos de una pantalla de la fila "Con polera · 230 Bs". */}
           <RaceRewards items={rewards} />
           {event.infoBlocks.length > 0 && <EventInfo blocks={event.infoBlocks} />}
         </div>
@@ -154,10 +166,13 @@ const ogImage = event.heroImage
       height: calc(84px + env(safe-area-inset-bottom, 0px));
     }
   }
+  /* El padding superior era de 80px y se sumaba a los 72px con que cerraba el hero:
+     152px de hueco muerto que nadie decidió. El hero ya cierra ajustado; acá queda
+     la separación de sección, una sola vez. */
   .detail__inner {
     max-width: var(--fl-container);
     margin: 0 auto;
-    padding: clamp(40px, 6vw, 80px) clamp(20px, 5vw, 56px);
+    padding: clamp(32px, 4.5vw, 60px) clamp(20px, 5vw, 56px) clamp(48px, 7vw, 88px);
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
     gap: clamp(32px, 5vw, 72px);
@@ -169,8 +184,8 @@ const ogImage = event.heroImage
     gap: clamp(36px, 5vw, 56px);
     min-width: 0;
   }
-  /* La sidebar acompaña el scroll en pantallas amplias (contenido largo de
-     descripción/modalidades); en móvil se apila debajo, sin sticky. */
+  /* La ficha acompaña el scroll: el corredor lee el recorrido y los precios con la
+     fecha, la hora y el botón siempre a la vista. */
   .detail__side {
     position: sticky;
     top: 96px;
@@ -180,8 +195,12 @@ const ogImage = event.heroImage
     .detail__inner {
       grid-template-columns: 1fr;
     }
+    /* En una sola columna la ficha va PRIMERO, no al final: es la respuesta a las
+       preguntas que el corredor trae (cuándo, dónde, desde cuánto). Apilada abajo,
+       el precio quedaba a 2000px de scroll y la hora directamente no se veía. */
     .detail__side {
       position: static;
+      order: -1;
     }
   }
 </style>

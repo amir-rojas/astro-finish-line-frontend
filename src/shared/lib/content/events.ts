@@ -55,6 +55,9 @@ export interface RaceEvent {
   /** Punto de partida ("Plaza Avaroa"). Es el DÓNDE fino del detalle. Opcional:
       una carrera vieja que solo vive como recap puede no tenerlo. */
   location?: string;
+  /** Punto de llegada. Si coincide con `location`, la sección del recorrido lo dice
+      como "salida y llegada" en vez de repetir el mismo lugar dos veces. */
+  finishLocation?: string;
   /** Ciudad. Es el DÓNDE grueso: lo que sirve para escanear una lista de carreras
       de un organizador que corre en todo el país. */
   city?: string;
@@ -68,6 +71,14 @@ export interface RaceEvent {
   altitudeNote?: string;
   /** Hora de largada normalizada a "HH:mm". Alimenta el countdown junto con `date`. */
   startTime?: string;
+  /** Hora de concentración ("07:00"). El corredor la necesita tanto como la largada:
+      es a la que tiene que estar ahí. Estaba en el contenido y no llegaba a la vista. */
+  gatheringTime?: string;
+  /** Titular y párrafo del recorrido, más el mapa. */
+  courseTitle?: string;
+  courseDescription?: string;
+  routeMap?: ImageMetadata;
+  routeMapAlt?: string;
   /** Estado de la carrera (chip del hero). */
   status?: 'proximo' | 'inscripciones_abiertas' | 'cerrado' | 'finalizado';
   /** Co-organizador, p.ej. "Alcaldía de La Paz" (chip del hero). */
@@ -169,6 +180,7 @@ export function toRaceEvent(entry: EventEntry): RaceEvent {
     title: data.title,
     date: data.date,
     location: data.location,
+    finishLocation: data.finishLocation,
     city: data.city,
     // Si hay modalidades reales, las distancias se derivan de ahí (misma regla
     // que Strapi); si no, cae al legacy `distances[]` (compat con contenido viejo).
@@ -177,6 +189,11 @@ export function toRaceEvent(entry: EventEntry): RaceEvent {
     altitudeM: data.altitudeM,
     altitudeNote: data.altitudeNote,
     startTime: data.startTime,
+    gatheringTime: data.gatheringTime,
+    courseTitle: data.courseTitle,
+    courseDescription: data.courseDescription,
+    routeMap: data.routeMap,
+    routeMapAlt: data.routeMapAlt,
     status: STATUS_MAP[data.status],
     coorganizer: data.coorganizer,
     isRunTour: data.isRunTour,
