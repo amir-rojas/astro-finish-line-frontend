@@ -8,7 +8,7 @@ import { upcomingRaces } from '@shared/lib/race-date';
 // `shared`: las comparten la home y el detalle del calendario. Antes la fecha
 // larga era `heroDate()` y vivía acá, y el detalle se colgaba de este feature
 // para usarla.
-import { capitalize as cap, datePart as part } from '@shared/lib/date-format';
+import { capitalize as cap, datePart as part, startDateTimeISO } from '@shared/lib/date-format';
 
 export type EventData = CollectionEntry<'events'>['data'];
 
@@ -76,12 +76,11 @@ export function upcomingByMonth(events: RaceEvent[], now: Date = new Date()): Ag
   return [...months.values()];
 }
 
-/** ISO con offset, p.ej. "2026-07-12T08:00:00-04:00" para el countdown.
- *  Decoplado de EventData para que también lo use el hero data-driven (RaceEvent). */
+/** ISO con offset para el countdown. A diferencia del `startDateTimeISO` que usa el
+ *  JSON-LD, el countdown SIEMPRE necesita un instante: sin hora de largada cae a
+ *  medianoche, porque una cuenta regresiva a una fecha pelada no se puede calcular. */
 export function countdownISOFrom(date: Date, startTime?: string, tz = '-04:00'): string {
-  const ymd = date.toISOString().slice(0, 10);
-  const time = startTime ?? '00:00';
-  return `${ymd}T${time}:00${tz}`;
+  return startDateTimeISO(date, startTime ?? '00:00', tz);
 }
 
 /** ISO del countdown a partir de un evento de la colección local. */

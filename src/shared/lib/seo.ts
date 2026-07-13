@@ -61,6 +61,30 @@ export function organizationJsonLd(base: URL): Record<string, unknown> {
 }
 
 /**
+ * `BreadcrumbList` — la miga de pan. Google la usa para mostrar
+ * "Inicio › Calendario › Renacer" en el resultado, en vez de la URL cruda.
+ *
+ * Los `crumbs` van de la raíz a la página actual, SIN incluirla: la página donde
+ * vive la miga es el último eslabón y schema.org espera que se declare igual, así
+ * que el caller pasa la ruta completa y acá se numera.
+ */
+export function breadcrumbJsonLd(
+  crumbs: { name: string; path: string }[],
+  base: URL,
+): Record<string, unknown> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: crumbs.map((c, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: c.name,
+      item: abs(c.path, base),
+    })),
+  };
+}
+
+/**
  * `ItemList` de las carreras: le dice a Google que esta es una página resumen y
  * dónde vive el detalle de cada una.
  *
