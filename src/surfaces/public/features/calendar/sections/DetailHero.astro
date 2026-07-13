@@ -12,26 +12,76 @@ import { heroDate } from '../format';
 
 interface Props {
   event: CalendarEvent;
+  /** Link de inscripción VIVO (undefined si la carrera ya se corrió o está agotada).
+      Lo resuelve el orquestador, que es quien sabe el estado. Cuando la imagen es el
+      afiche, este link lo vuelve clickeable — ver `posterHref` abajo. */
+  registrationHref?: string;
 }
-const { event } = Astro.props;
+const { event, registrationHref } = Astro.props;
 
 const distances = [...new Set(event.distances)];
+
+// Qué imagen manda, en orden:
+//  1. `poster` — el afiche oficial. Solo tiene sentido ACÁ, donde la imagen va
+//     contenida y sin texto encima: un afiche se lee como afiche. En la home, que
+//     superpone su propio copy, produciría tipografía sobre tipografía.
+//  2. `heroImage` — la foto de la carrera.
+//  3. `recapImage` — la foto del recap. Las carreras viejas (Titicaca, Francofonía)
+//     TIENEN su foto cargada y aun así el detalle mostraba el panel vacío con la
+//     franja: un placeholder donde había una foto de verdad.
+const isPoster = Boolean(event.poster);
+const image = event.poster ?? event.heroImage ?? event.recapImage;
+// El alt describe la imagen que SE VE, no la primera que exista. Encadenar los alt
+// con `??` fallaba en silencio: el adaptador le da a `heroImageAlt` un default (el
+// título), así que nunca era null y las carreras que muestran su foto de recap se
+// anunciaban con el nombre pelado en vez de con su alt real.
+const imageAlt = event.poster
+  ? (event.posterAlt ?? event.title)
+  : event.heroImage
+    ? (event.heroImageAlt ?? event.title)
+    : (event.recapImageAlt ?? event.title);
+
+// El afiche de Renacer trae un botón DIBUJADO que dice "Inscríbete ahora". La gente
+// lo va a tocar: parece un botón. Si el link de inscripción está vivo, el afiche
+// entero es ese link y el botón dibujado hace lo que promete. Si la carrera ya se
+// corrió o está agotada, no hay link y el afiche queda inerte — un botón muerto es
+// feo, pero uno que te manda a pagar una carrera que ya pasó es peor.
+const posterHref = isPoster ? registrationHref : undefined;
 ---
 
 <section class="dh">
   <div class="dh__inner">
-    <div class:list={['dh__media', { 'dh__media--noimg': !event.heroImage }]}>
+    <div
+      class:list={[
+        'dh__media',
+        { 'dh__media--noimg': !image, 'dh__media--poster': isPoster },
+      ]}
+    >
       {
-        event.heroImage ? (
-          <Image
-            class="dh__img"
-            src={event.heroImage}
-            alt={event.heroImageAlt ?? event.title}
-            widths={[768, 1180, 1600]}
-            sizes="(max-width: 1180px) 100vw, 1180px"
-            loading="eager"
-            fetchpriority="high"
-          />
+        image ? (
+          posterHref ? (
+            <a class="dh__poster-link" href={posterHref} target="_blank" rel="noopener noreferrer">
+              <Image
+                class="dh__img"
+                src={image}
+                alt={imageAlt}
+                widths={[768, 1180, 1600]}
+                sizes="(max-width: 1180px) 100vw, 1180px"
+                loading="eager"
+                fetchpriority="high"
+              />
+            </a>
+          ) : (
+            <Image
+              class="dh__img"
+              src={image}
+              alt={imageAlt}
+              widths={[768, 1180, 1600]}
+              sizes="(max-width: 1180px) 100vw, 1180px"
+              loading="eager"
+              fetchpriority="high"
+            />
+          )
         ) : (
           <span class="dh__stripe" aria-hidden="true" />
         )
@@ -77,6 +127,28 @@ const distances = [...new Set(event.distances)];
     /* El padding inferior da aire a UBICACIÓN/FECHA antes del borde de la
        siguiente sección; sin él el bloque de datos choca con la divisoria. */
     padding: clamp(28px, 4vw, 48px) clamp(20px, 5vw, 56px) clamp(40px, 6vw, 72px);
+  }
+
+  /* Un AFICHE no se recorta: está compuesto para verse entero, y el recorte de
+     16/7 le cortaba el botón de abajo por la mitad. Suelta el aspect-ratio y toma
+     el suyo. Una FOTO sí se recorta, porque el encuadre lo decide la página. */
+  /* Especificidad doble a propósito: `.dh__media` (y su media query de móvil, que
+     baja a 16/10) vienen después y si no le ganarían. */
+  .dh__media.dh__media--poster {
+    aspect-ratio: auto;
+  }
+  .dh__media.dh__media--poster .dh__img {
+    height: auto;
+    object-fit: contain;
+  }
+  /* El afiche trae un botón dibujado: si la inscripción está viva, el afiche entero
+     es ese link y el botón hace lo que promete. */
+  .dh__poster-link {
+    display: block;
+  }
+  .dh__poster-link:focus-visible {
+    outline: 2px solid var(--fl-orange);
+    outline-offset: 3px;
   }
 
   /* Imagen contenida (no a sangre): esquinas rectas para no romper el lenguaje
