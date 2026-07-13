@@ -17,6 +17,7 @@ import DetailSidebar from '@public/features/calendar/sections/DetailSidebar.astr
 import MobileCta from '@public/features/calendar/sections/MobileCta.astro';
 import { getImage } from 'astro:assets';
 import { getEvents } from '@shared/lib/content/events';
+import { hasRaced } from '@shared/lib/race-date';
 import { calendarEventJsonLd, raceStatus, isFreeEvent } from '@public/features/calendar/format';
 import type { CalendarEvent } from '@shared/lib/content/events';
 
@@ -31,11 +32,16 @@ interface Props {
 const { event } = Astro.props;
 
 const pageUrl = Astro.url.href;
+// El lugar es opcional (una carrera vieja puede no tenerlo): sin guarda, la meta
+// description publicada decía "Renacer — undefined.".
+const place = event.location ?? event.city;
 const description =
-  `${event.title} — ${event.location}. ` +
-  (event.distances.length > 0
-    ? `Distancias: ${[...new Set(event.distances)].join(', ')}.`
-    : 'Inscripciones y detalles de la carrera.');
+  [
+    place ? `${event.title} — ${place}.` : `${event.title}.`,
+    event.distances.length > 0
+      ? `Distancias: ${[...new Set(event.distances)].join(', ')}.`
+      : 'Inscripciones y detalles de la carrera.',
+  ].join(' ');
 
 const jsonLd = calendarEventJsonLd(event, pageUrl);
 
@@ -60,6 +66,14 @@ if (event.medal) {
 
 // Estado de inscripción, calculado una sola vez y compartido por la sidebar y la
 // barra móvil, para que nunca se contradigan (una agotada, la otra ofreciendo).
+//
+// `finished` va PRIMERO y manda: una carrera ya corrida no ofrece inscripción,
+// punto. Antes esto se derivaba SOLO de las modalidades, y una carrera sin
+// modalidades cargadas daba `raceStatus(null)` → `soldOut = false` → la página de
+// una carrera que ya se había corrido seguía mostrando el CTA naranja "Iniciar
+// inscripción" apuntando a Eventrid. El dato estaba (`status: finalizado`); la
+// vista no lo miraba.
+const finished = hasRaced(event);
 const soldOut = raceStatus(event.modalities)?.tone === 'closed';
 const isFree = isFreeEvent(event.modalities);
 
@@ -98,19 +112,20 @@ const ogImage = event.heroImage
           {event.infoBlocks.length > 0 && <EventInfo blocks={event.infoBlocks} />}
         </div>
         <div class="detail__side">
-          <DetailSidebar {event} {soldOut} />
+          <DetailSidebar {event} {soldOut} {finished} />
         </div>
       </div>
     </div>
 
-    <MobileCta {soldOut} registrationUrl={event.registrationUrl} {isFree} />
+    {/* Una carrera corrida no lleva barra de inscripción: no hay nada que ofrecer. */}
+    {!finished && <MobileCta {soldOut} registrationUrl={event.registrationUrl} {isFree} />}
   </main>
 
   <SiteFooter />
 
   {/* Reserva el alto de la barra fija móvil al final del documento, para que no
       tape el pie. Solo cuando la barra realmente se muestra. */}
-  {(soldOut || event.registrationUrl) && <div class="mcta-gap" aria-hidden="true" />}
+  {!finished && (soldOut || event.registrationUrl) && <div class="mcta-gap" aria-hidden="true" />}
 </PublicLayout>
 
 <style>

@@ -14,15 +14,19 @@ interface Props {
       `raceStatus()` en el orquestador para que la sidebar y la barra móvil
       nunca se contradigan. */
   soldOut?: boolean;
+  /** La carrera YA SE CORRIÓ (`hasRaced()`). Manda sobre todo lo demás: no se
+      ofrece inscripción a algo que ya pasó. No es lo mismo que `soldOut`: agotada
+      es indisponibilidad, finalizada es pasado. */
+  finished?: boolean;
 }
-const { event, soldOut = false } = Astro.props;
+const { event, soldOut = false, finished = false } = Astro.props;
 const { registrationDeadline, registrationUrl, categories } = event;
 const isFree = isFreeEvent(event.modalities);
 ---
 
 <aside class="sb">
   {
-    registrationDeadline && (
+    !finished && registrationDeadline && (
       <div class="sb__deadline">
         <span class="sb__deadline-label">Cierre de inscripción</span>
         <span class="sb__deadline-date">{longDate(registrationDeadline)}</span>
@@ -31,7 +35,13 @@ const isFree = isFreeEvent(event.modalities);
   }
 
   {
-    soldOut ? (
+    finished ? (
+      <div class="sb__closed">
+        <span class="sb__closed-label">Esta carrera</span>
+        <span class="sb__closed-state">Ya se corrió</span>
+        <p class="sb__soon-note">Se corrió el {longDate(event.date)}. Gracias a todos los que largaron.</p>
+      </div>
+    ) : soldOut ? (
       <div class="sb__closed">
         <span class="sb__closed-label">Inscripciones</span>
         <span class="sb__closed-state">Agotadas</span>
