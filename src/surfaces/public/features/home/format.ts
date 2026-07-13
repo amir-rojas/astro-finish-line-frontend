@@ -3,7 +3,7 @@
 // instantes). El countdown sí usa el offset real del evento.
 import type { CollectionEntry } from 'astro:content';
 import type { RaceEvent } from '@shared/lib/content/events';
-import { raceDayKey, todayInRaceTimezone } from '@shared/lib/race-date';
+import { upcomingRaces } from '@shared/lib/race-date';
 
 export type EventData = CollectionEntry<'events'>['data'];
 
@@ -33,6 +33,14 @@ export function shortDate(date: Date): string {
   return `${wd} ${day} ${mon}`;
 }
 
+/** "Julio 2026 · La Paz" — el sello de una carrera ya corrida. Sin día: a la
+ *  distancia de un recap, el mes y el lugar es lo que ubica al lector; el día
+ *  exacto es precisión que ya no le sirve a nadie. La ciudad se omite si falta. */
+export function recapDate(date: Date, city?: string): string {
+  const mon = cap(part(date, { month: 'long' }));
+  return [`${mon} ${date.getUTCFullYear()}`, city].filter(Boolean).join(' · ');
+}
+
 /** "01 Jul" */
 export function dayMonth(date: Date): string {
   const day = part(date, { day: '2-digit' });
@@ -55,19 +63,17 @@ export interface AgendaMonth {
   races: RaceEvent[];
 }
 
-/** Agrupa las carreras FUTURAS por mes, en orden cronológico.
- *  - El filtro `date >= hoy` (día en America/La_Paz) lo define `race-date.ts`,
- *    compartido con el listado /calendario — a diferencia del compare de
- *    instante crudo de `getNextRace`.
+/** Agrupa las carreras que TODAVÍA NO SE CORRIERON, por mes, en orden cronológico.
+ *  - Quién ya se corrió lo decide `upcomingRaces`/`hasRaced` (`race-date.ts`), la
+ *    regla ÚNICA que comparten la home, /calendario y el hero. Antes esta función
+ *    filtraba solo por fecha, con un `<` que dejaba pasar la carrera de HOY y que
+ *    era ciego al `status: finalizado`: la agenda anunciaba como "próxima" una
+ *    carrera ya corrida mientras el hero, que sí miraba el estado, la salteaba.
  *  - Asume `events` ya ordenado `fecha:asc` (lo garantiza `getEvents`); preserva
  *    ese orden dentro de cada mes y entre meses. */
 export function upcomingByMonth(events: RaceEvent[], now: Date = new Date()): AgendaMonth[] {
-  const todayKey = todayInRaceTimezone(now);
-
   const months = new Map<string, AgendaMonth>();
-  for (const race of events) {
-    if (raceDayKey(race.date) < todayKey) continue;
-
+  for (const race of upcomingRaces(events, now)) {
     const y = race.date.getUTCFullYear();
     const m = race.date.getUTCMonth() + 1;
     const key = `${y}-${String(m).padStart(2, '0')}`;
@@ -165,16 +171,21 @@ export function eventJsonLd(
     url,
     ...(event.description && { description: event.description }),
     ...(image && { image: [image] }),
-    location: {
-      '@type': 'Place',
-      name: event.location,
-      address: {
-        '@type': 'PostalAddress',
-        ...(event.location && { streetAddress: event.location }),
-        ...(event.city && { addressLocality: event.city }),
-        ...(event.country && { addressCountry: event.country }),
+    // `location` es opcional: se cae a la ciudad. Sin ninguno de los dos, el Place
+    // se omite entero — declararle a Google un lugar con `name: undefined` es peor
+    // que no declarar lugar.
+    ...((event.location ?? event.city) && {
+      location: {
+        '@type': 'Place',
+        name: event.location ?? event.city,
+        address: {
+          '@type': 'PostalAddress',
+          ...(event.location && { streetAddress: event.location }),
+          ...(event.city && { addressLocality: event.city }),
+          ...(event.country && { addressCountry: event.country }),
+        },
       },
-    },
+    }),
     ...(offers && { offers }),
     ...(event.organizer && {
       organizer: { '@type': 'Organization', name: event.organizer, url: organizerUrl },

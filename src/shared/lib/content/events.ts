@@ -52,7 +52,12 @@ export interface RaceEvent {
   slug: string;
   title: string;
   date: Date;
-  location: string;
+  /** Punto de partida ("Plaza Avaroa"). Es el DÓNDE fino del detalle. Opcional:
+      una carrera vieja que solo vive como recap puede no tenerlo. */
+  location?: string;
+  /** Ciudad. Es el DÓNDE grueso: lo que sirve para escanear una lista de carreras
+      de un organizador que corre en todo el país. */
+  city?: string;
   /** Distancias derivadas de `modalities[].distance` (si hay modalidades) o del legacy `distances[]`. */
   distances: string[];
   /** Titular display multilínea del hero. Si falta, el hero cae al `title`. */
@@ -74,6 +79,17 @@ export interface RaceEvent {
   runTourStage?: number;
   heroImage?: ImageMetadata;
   heroImageAlt?: string;
+  /** Variante apaisada del hero para pantallas anchas. Si falta, desktop reusa
+      `heroImage`. Es art direction: no es la misma foto más grande, es otra toma. */
+  heroImageDesktop?: ImageMetadata;
+  /** Álbum de fotos de la carrera (hoy, Facebook). Solo las carreras que de verdad
+      tienen fotos lo traen: gobierna si su tarjeta de recap es clickeable. */
+  photosUrl?: string;
+  /** Foto de la vitrina "Así se vivió". Cae a `heroImage` si falta. */
+  recapImage?: ImageMetadata;
+  recapImageAlt?: string;
+  /** `object-position` de la foto del recap. Default "50% 40%". */
+  recapImageFocus?: string;
   /** Polera oficial del evento (foto de merch). Opcional: no todos los eventos la tienen. */
   shirt?: ImageMetadata;
   shirtAlt?: string;
@@ -145,6 +161,7 @@ export function toRaceEvent(entry: EventEntry): RaceEvent {
     title: data.title,
     date: data.date,
     location: data.location,
+    city: data.city,
     // Si hay modalidades reales, las distancias se derivan de ahí (misma regla
     // que Strapi); si no, cae al legacy `distances[]` (compat con contenido viejo).
     distances: data.modalities.length > 0 ? data.modalities.map((m) => m.distance) : data.distances,
@@ -158,6 +175,14 @@ export function toRaceEvent(entry: EventEntry): RaceEvent {
     runTourStage: data.runTourStage,
     heroImage: data.heroImage,
     heroImageAlt: data.heroImageAlt ?? data.title,
+    heroImageDesktop: data.heroImageDesktop,
+    photosUrl: data.photosUrl,
+    // La foto del recap cae a la del hero: casi siempre es la misma carrera vista
+    // desde la misma cámara, y obligar a cargar dos veces la misma imagen sería
+    // trabajo de autoría sin ganancia.
+    recapImage: data.recapImage ?? data.heroImage,
+    recapImageAlt: data.recapImageAlt ?? data.heroImageAlt ?? data.title,
+    recapImageFocus: data.recapImageFocus ?? '50% 40%',
     shirt: data.shirt,
     shirtAlt: data.shirtAlt ?? `Polera oficial de ${data.title}`,
     medal: data.medal,
@@ -208,22 +233,17 @@ export async function getEvent(slug: string): Promise<RaceEvent | null> {
 }
 
 /**
- * La "próxima carrera" para el hero de la home: la primera que todavía no
- * pasó (la lista viene ordenada por fecha asc). Si no hay ninguna futura, cae
- * a la más reciente (última). Devuelve null solo si no hay carreras.
+ * La "próxima carrera" para el hero de la home: la primera que todavía no se
+ * corrió (la lista viene ordenada por fecha asc). Si no queda ninguna, cae a la
+ * más reciente (última) para no dejar el hero vacío. Null solo si no hay carreras.
  *
- * Usa `upcomingRaces` —la misma regla que la agenda y /calendario— a
- * granularidad de día en La Paz (ver `race-date.ts`).
+ * El "ya se corrió" lo decide `upcomingRaces`/`hasRaced` (`race-date.ts`), que es
+ * la MISMA regla que usan la agenda de la home y /calendario. Antes esta función
+ * tenía su propio filtro de `finalizado` y las otras dos no: por eso el hero
+ * salteaba correctamente la carrera corrida mientras la agenda la anunciaba.
  */
 export async function getNextRace(): Promise<RaceEvent | null> {
   const events = await getEvents();
   if (events.length === 0) return null;
-  // Una carrera ya corrida (`finalizado`) NO es "la próxima", aunque su día en
-  // Bolivia todavía no haya terminado (el hero anunciaría una carrera pasada).
-  // Se excluye del pool; si no queda ninguna viva, se cae al set completo para
-  // no dejar el hero vacío. `/calendario` sigue usando `upcomingRaces` directo,
-  // así que este filtro no afecta al listado del calendario.
-  const live = events.filter((event) => event.status !== 'finalizado');
-  const pool = live.length > 0 ? live : events;
-  return upcomingRaces(pool)[0] ?? pool[pool.length - 1];
+  return upcomingRaces(events)[0] ?? events[events.length - 1];
 }

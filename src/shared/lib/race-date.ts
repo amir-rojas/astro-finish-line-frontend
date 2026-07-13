@@ -22,14 +22,52 @@ export function raceDayKey(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-/** Una carrera es "pasada" solo cuando su día quedó atrás en Bolivia. */
+/** ¿Esta FECHA ya quedó atrás en Bolivia? Es una regla sobre una fecha suelta —el
+ *  plazo de inscripción, por ejemplo—, NO sobre una carrera: para eso está
+ *  `hasRaced()`, que además mira el estado editorial. */
 export function isPastRace(date: Date, now: Date = new Date()): boolean {
   return raceDayKey(date) < todayInRaceTimezone(now);
 }
 
-/** Filtra las carreras que todavía no pasaron, preservando el orden recibido
+/** Lo mínimo que la regla necesita saber de una carrera. Estructural a propósito:
+ *  `race-date.ts` no puede importar `RaceEvent` porque `content/events.ts` importa
+ *  de acá — sería un ciclo. */
+export interface RaceTiming {
+  date: Date;
+  status?: 'proximo' | 'inscripciones_abiertas' | 'cerrado' | 'finalizado';
+}
+
+/**
+ * ¿La carrera YA SE CORRIÓ? Regla ÚNICA del sitio. Dos señales, en este orden:
+ *
+ *  1. `status === 'finalizado'`: override editorial, y GANA sobre la fecha incluso
+ *     el mismo día. Es la única señal confiable de "ya largó", porque el sitio es
+ *     estático: el `now` de abajo es la hora del BUILD, no la del visitante, así
+ *     que nada se voltea solo a las 08:00 de la mañana de la carrera. Marcar la
+ *     carrera como finalizada en su JSON ES lo que dispara el deploy — por eso el
+ *     estado editorial es el contrato, y la fecha es apenas la red de contención.
+ *  2. Si no, el día ya quedó atrás en Bolivia. Best-effort: solo se actualiza
+ *     cuando hay un build (ver `home-ssg-staleness`).
+ *
+ * NO contesta "¿me puedo inscribir?". Esa es otra pregunta y vive en las
+ * modalidades (`calendar/format.ts`). Mezclarlas es lo que hizo que una carrera
+ * ya corrida siguiera ofreciendo su botón de inscripción.
+ */
+export function hasRaced(race: RaceTiming, now: Date = new Date()): boolean {
+  if (race.status === 'finalizado') return true;
+  return isPastRace(race.date, now);
+}
+
+/** Carreras que todavía no se corrieron, preservando el orden recibido
  *  (`getEvents()` ya devuelve `fecha:asc`). */
-export function upcomingRaces<T extends { date: Date }>(races: T[], now: Date = new Date()): T[] {
-  const today = todayInRaceTimezone(now);
-  return races.filter((race) => raceDayKey(race.date) >= today);
+export function upcomingRaces<T extends RaceTiming>(races: T[], now: Date = new Date()): T[] {
+  return races.filter((race) => !hasRaced(race, now));
+}
+
+/** Carreras YA CORRIDAS, de la más reciente a la más vieja — el orden en que se
+ *  cuenta lo que pasó ("Así se vivió"). Misma regla que `upcomingRaces`, del otro
+ *  lado: una carrera está en exactamente una de las dos listas, nunca en ambas ni
+ *  en ninguna. */
+export function pastRaces<T extends RaceTiming>(races: T[], now: Date = new Date()): T[] {
+  return races.filter((race) => hasRaced(race, now)).reverse();
 }
