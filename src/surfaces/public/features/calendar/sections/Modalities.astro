@@ -69,6 +69,9 @@ const { modalities } = Astro.props;
     color: var(--fl-ink);
     line-height: 1;
   }
+  /* "SIN POLERA" / "CON POLERA" no es un subtítulo decorativo: es el dato que
+     separa 105 Bs de 230. Va en `muted` (6.70:1) y no en `faint`: el label que
+     decide la compra no puede ser el texto más tenue de la fila. */
   .mod__name {
     display: block;
     margin-top: 8px;
@@ -76,7 +79,7 @@ const { modalities } = Astro.props;
     font-size: 12px;
     letter-spacing: 1px;
     text-transform: uppercase;
-    color: var(--fl-on-cream-faint);
+    color: var(--fl-on-cream-muted);
   }
 
   /* El precio es el ancla de la decisión: número grande Archivo Black, no un

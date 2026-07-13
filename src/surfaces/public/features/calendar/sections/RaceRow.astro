@@ -122,7 +122,10 @@ const status = raceStatus(event.modalities);
     font-size: 12px;
     letter-spacing: 1.5px;
     text-transform: uppercase;
-    color: var(--fl-orange-strong);
+    /* `-ink` (5.18:1), no `-strong` (4.23:1): esto es naranja COMO TEXTO sobre
+       crema, que es el rol de `-ink`. `-strong` fue hecho para texto blanco ENCIMA
+       del naranja, y usado al revés reprueba AA — DESIGN.md lo advierte. */
+    color: var(--fl-orange-ink);
     text-decoration: none;
     white-space: nowrap;
     transition: gap 160ms var(--ease-out);

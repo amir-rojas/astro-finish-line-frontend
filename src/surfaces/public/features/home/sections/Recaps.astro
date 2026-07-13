@@ -152,7 +152,9 @@ const facebookUrl = site.socials.find((s) => s.icon === 'facebook')?.href;
     font-weight: 700;
     letter-spacing: 3px;
     text-transform: uppercase;
-    /* on-cream-faint falla AA a este tamaño: se usa muted, igual que RunTour. */
+    /* Muted, igual que RunTour. (Este comentario decía que `faint` fallaba AA: era
+       cierto, y en vez de arreglar el token se lo esquivó acá. El token ya está
+       arreglado — ahora es una elección de jerarquía, no un parche.) */
     color: var(--fl-on-cream-muted);
   }
   .recaps__title {
