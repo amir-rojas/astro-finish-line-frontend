@@ -88,16 +88,23 @@ const countdownNote =
     ? `Inscripciones hasta el ${dayMonth(race.registrationDeadline)}`
     : undefined;
 
-// Art direction del hero: en pantalla ancha entra una toma APAISADA, y el celular
-// se queda con la vertical. No es la misma foto en dos tamaños —eso ya lo resuelve
-// el srcset— sino DOS ENCUADRES: recortar la vertical a lo ancho dejaba una franja
-// sin acción. Por eso hace falta un `<picture>` a mano: `<Image>` de Astro escala,
-// no cambia de foto según el viewport.
+// Art direction opcional del hero: una carrera PUEDE traer una toma distinta para
+// pantalla ancha (`heroImageDesktop`). No es la misma foto más grande —eso ya lo
+// resuelve el srcset— sino otro ENCUADRE, para cuando recortar la foto principal a
+// lo ancho deja una franja sin acción. Hace falta un `<picture>` a mano porque el
+// `<Image>` de Astro escala, pero no cambia de foto según el viewport.
 //
-// El <source> del desktop es opcional: si la carrera no trae toma apaisada, el
-// navegador cae al <img> y todo sigue funcionando con una sola foto.
-const heroMobile = race.heroImage
-  ? await getImage({ src: race.heroImage, widths: [640, 768, 1024], format: 'webp' })
+// Si la carrera no trae toma apaisada (el caso de Renacer: la misma foto sirve en
+// las dos, porque la multitud llena el cuadro y cualquier recorte muestra
+// corredores), el navegador ignora el <source> y usa el <img>. Por eso el <img>
+// tiene que cubrir TODA la rampa, del celular al monitor ancho: es el que se sirve
+// siempre que no haya art direction.
+const heroBase = race.heroImage
+  ? await getImage({
+      src: race.heroImage,
+      widths: [640, 768, 1024, 1440, 1920],
+      format: 'webp',
+    })
   : null;
 const heroDesktop = race.heroImageDesktop
   ? await getImage({ src: race.heroImageDesktop, widths: [1200, 1600, 2000], format: 'webp' })
@@ -106,7 +113,7 @@ const heroDesktop = race.heroImageDesktop
 
 <section id="carrera" class="hero">
   {
-    heroMobile && (
+    heroBase && (
       <picture>
         {heroDesktop && (
           <source
@@ -118,12 +125,12 @@ const heroDesktop = race.heroImageDesktop
         )}
         <img
           class="hero__photo"
-          src={heroMobile.src}
-          srcset={heroMobile.srcSet.attribute}
+          src={heroBase.src}
+          srcset={heroBase.srcSet.attribute}
           sizes="100vw"
           alt={race.heroImageAlt ?? race.title}
-          width={heroMobile.attributes.width}
-          height={heroMobile.attributes.height}
+          width={heroBase.attributes.width}
+          height={heroBase.attributes.height}
           loading="eager"
           fetchpriority="high"
         />
@@ -253,29 +260,27 @@ const heroDesktop = race.heroImageDesktop
       );
   }
 
-  /* En desktop entra la toma apaisada: una largada real, la calle entera llena de
-     corredores. Es una foto MUY cargada —cientos de dorsales, ropa de todos los
-     colores— y el velo base, pensado para una foto más tranquila, no sostenía el
-     texto chico: el lockup, la fecha y el tagline se perdían sobre la multitud.
-     Este refuerza el lado del copy lo justo para que el texto gane, sin apagar la
-     foto: a la izquierda se siguen viendo corredores, no un bloque navy muerto.
-     El lado derecho queda limpio, que es donde la multitud tiene que respirar. */
+  /* La foto es una largada real: la calle entera llena de corredores. Muy cargada
+     —cientos de dorsales, ropa de todos los colores—, así que el texto chico (el
+     lockup, la fecha, el tagline) necesita algo de piso o se pierde sobre la
+     multitud. En desktop el velo se cierra un poco más del lado del copy, pero se
+     retira TEMPRANO: la multitud es el argumento de venta y tiene que verse. */
   @media (min-width: 900px) {
     .hero__scrim {
       background:
         linear-gradient(
           to top,
           var(--fl-navy) 2%,
-          rgba(14, 28, 48, 0.86) 24%,
-          rgba(14, 28, 48, 0.42) 55%,
-          rgba(14, 28, 48, 0.08) 80%
+          rgba(14, 28, 48, 0.84) 22%,
+          rgba(14, 28, 48, 0.34) 52%,
+          rgba(14, 28, 48, 0.05) 78%
         ),
         linear-gradient(
           to right,
-          rgba(14, 28, 48, 0.93) 0%,
-          rgba(14, 28, 48, 0.8) 26%,
-          rgba(14, 28, 48, 0.42) 48%,
-          transparent 70%
+          rgba(14, 28, 48, 0.9) 0%,
+          rgba(14, 28, 48, 0.6) 22%,
+          rgba(14, 28, 48, 0.2) 40%,
+          transparent 56%
         );
     }
   }
@@ -295,6 +300,18 @@ const heroDesktop = race.heroImageDesktop
      la familia de los labels: la serie es identidad, no metadato. Va en crema y no
      en naranja porque el bloque se apoya sobre la foto, donde el naranja pierde
      contraste sobre las luces (misma razón que `.chip--tag`). */
+  /* TODO el texto del hero va en crema, y lleva sombra. El hero se apoya sobre una
+     FOTO, no sobre navy plano: los grises suaves (`--fl-on-navy-soft`) y el naranja
+     se calcularon contra un fondo liso y sobre la multitud —ropa clara, dorsales
+     blancos— caen por debajo de AA. Es la misma regla que DESIGN.md ya fijó para
+     Recaps ("todo el texto sobre foto va en --fl-cream"). La sombra no es adorno:
+     es el piso de contraste que la foto no garantiza en ningún punto concreto.
+     El naranja queda donde significa algo: el CTA y la bandera de meta. */
+  .hero__copy :is(.hero__series, .hero__date, .hero__tagline, .hero__loc, .hero__stats) {
+    text-shadow:
+      0 1px 12px rgba(14, 28, 48, 0.85),
+      0 1px 3px rgba(14, 28, 48, 0.7);
+  }
   .hero__series {
     display: flex;
     align-items: center;
@@ -306,12 +323,13 @@ const heroDesktop = race.heroImageDesktop
     text-transform: uppercase;
     color: var(--fl-cream);
   }
-  /* La etapa es el dato de la serie: se separa con una divisoria y toma el acento.
-     Es corta y va sobre la zona baja del scrim, donde el naranja sí aguanta. */
+  /* La etapa es el dato de la serie: se separa con una divisoria. En crema, no en
+     naranja — sobre la foto el naranja no llega a AA (ver arriba). El acento de la
+     serie lo pone la bandera de meta, que es un gráfico y no tiene que leerse. */
   .hero__series-stage {
     padding-left: 12px;
     border-left: 1px solid var(--fl-edge);
-    color: var(--fl-orange);
+    color: var(--fl-cream);
   }
   /* La bandera de meta: EL motivo de marca (DESIGN.md), que hasta ahora no
      aparecía en el hero. Le da peso al lockup sin robarle rango al h1. */
@@ -330,7 +348,7 @@ const heroDesktop = race.heroImageDesktop
     font-size: clamp(13px, 1.8vw, 15px);
     letter-spacing: 2px;
     text-transform: uppercase;
-    color: var(--fl-on-navy-soft);
+    color: var(--fl-cream);
   }
 
   /* El H1 es el nombre de la carrera. Protagonista. */
@@ -375,7 +393,7 @@ const heroDesktop = race.heroImageDesktop
     gap: 8px;
     margin: 18px 0 0;
     font-size: clamp(15px, 1.8vw, 17px);
-    color: var(--fl-on-navy-soft);
+    color: var(--fl-cream);
   }
   .hero__loc svg {
     width: 17px;
@@ -457,9 +475,11 @@ const heroDesktop = race.heroImageDesktop
     line-height: 0.9;
     color: var(--fl-cream);
   }
+  /* "m s. n. m." es el texto más chico del hero (0.5em) y va sobre la parte clara
+     de la foto: en naranja no llegaba a AA ni de cerca. Crema, como todo el resto. */
   .hero__alt-unit {
     font-size: 0.5em;
-    color: var(--fl-orange);
+    color: var(--fl-cream);
     margin-left: 3px;
   }
 
