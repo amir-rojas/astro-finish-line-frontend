@@ -5,12 +5,17 @@
 // dinámicos de una carrera puntual (no hay una sola carrera protagonista).
 // El motivo de marca es la franja diagonal naranja sobre navy — mismo
 // lenguaje visual que el resto del surface público.
+//
+// Cierra SIN padding de sección abajo: la banda de la próxima carrera (NextRace)
+// continúa el mismo navy sin corte, y los dos se leen como un solo bloque arriba
+// de la página. Por eso el kicker ya no dice "Próximas carreras": la página dejó
+// de ser solo lo que viene y pasó a ser el año entero, corridas incluidas.
 ---
 
 <section class="lh">
   <div class="lh__stripe" aria-hidden="true"></div>
   <div class="lh__inner">
-    <p class="lh__kicker">Próximas carreras · Finish Line</p>
+    <p class="lh__kicker">Finish Line · Bolivia</p>
     <h1 class="lh__title">Calendario de carreras</h1>
   </div>
 </section>
@@ -40,7 +45,7 @@
     z-index: 1;
     max-width: var(--fl-container);
     margin: 0 auto;
-    padding: clamp(48px, 8vw, 88px) clamp(20px, 5vw, 56px) clamp(36px, 5vw, 64px);
+    padding: clamp(48px, 8vw, 88px) clamp(20px, 5vw, 56px) clamp(28px, 4vw, 44px);
   }
   .lh__kicker {
     margin: 0 0 14px;

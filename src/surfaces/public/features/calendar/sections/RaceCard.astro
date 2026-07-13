@@ -1,0 +1,352 @@
+---
+// RaceCard — una carrera como AFICHE: la tarjeta de la grilla de /calendario.
+//
+// Sustituye a la fila de texto del listado viejo (RaceRow). La diferencia no es
+// cosmética: una carrera se reconoce por su flyer, no por su nombre en una lista.
+// La forma sale de la referencia que trajo César (runner.com.bo): imagen grande,
+// badge de fecha encima y tag de ciudad; traducida a la paleta de marca
+// (naranja/navy en vez del rosa de ellos).
+//
+// --- El afiche NO se recorta ------------------------------------------------
+// Los afiches reales llegan en tamaños distintos: Francofonía es 4:5 (1080x1350)
+// y La Paz 10K y Titicaca son CUADRADOS (500x500, 1080x1080). Un marco fijo con
+// `cover` les comería ~10% de cada lado, que es justo donde el flyer pone su
+// texto. Por eso la regla es por NATURALEZA del archivo, no por tamaño:
+//
+//   · afiche -> `contain`, apoyado ARRIBA. Se ve entero, siempre. El sobrante de
+//     abajo (el que dejan los cuadrados) no es un hueco: es la barra donde cae el
+//     título, sobre el navy del marco.
+//   · foto    -> `cover` con `objectPosition`. Una foto SÍ se encuadra: no es una
+//     composición, y el recorte por defecto decapita corredores (mismo problema y
+//     misma solución que la vitrina de la home).
+//
+// Marco 4:5 porque es el formato en que se publican los flyers; el afiche más
+// alto que tenemos lo llena exacto y los cuadrados caen adentro sin deformarse.
+import { Image } from 'astro:assets';
+import type { CalendarEvent } from '@shared/lib/content/events';
+import { cardDate, raceStatus } from '../format';
+
+interface Props {
+  event: CalendarEvent;
+  /** Carrera ya corrida: la tarjeta baja el tono y lleva al álbum de fotos. */
+  past?: boolean;
+}
+const { event, past = false } = Astro.props;
+
+const { day, month, year } = cardDate(event.date);
+
+// Afiche primero; si no hay, la foto (el adaptador ya resolvió recapImage ?? heroImage).
+const isPoster = Boolean(event.poster);
+const image = event.poster ?? event.recapImage;
+const imageAlt = isPoster
+  ? (event.posterAlt ?? `Afiche de ${event.title}`)
+  : (event.recapImageAlt ?? event.title);
+
+// Una carrera CORRIDA lleva al ÁLBUM, no al detalle: lo que queda de una carrera
+// que ya pasó son sus fotos, y su página de detalle hoy está flaca (sin recorrido,
+// sin modalidades). Mismo destino que las tarjetas de "Así se vivió" en la home.
+// Sin álbum cargado, cae al detalle en vez de quedar inerte.
+const album = past ? event.photosUrl : undefined;
+const href = album ?? `/calendario/${event.slug}`;
+const external = Boolean(album);
+
+// Una carrera corrida no tiene estado de inscripción que mostrar.
+const status = past ? null : raceStatus(event.modalities);
+const distances = [...new Set(event.distances)];
+---
+
+<li class:list={['rc', past && 'rc--past']}>
+  <a
+    class="rc__link"
+    href={href}
+    target={external ? '_blank' : undefined}
+    rel={external ? 'noopener noreferrer' : undefined}
+  >
+    <div class="rc__frame">
+      {
+        image ? (
+          <Image
+            class:list={['rc__img', isPoster ? 'rc__img--poster' : 'rc__img--photo']}
+            src={image}
+            alt=""
+            /* La tarjeta mide ~360px en desktop y ~92vw en el celular: a 2-3x de
+               densidad eso pide hasta ~1200px reales. Los afiches vienen en 2048px,
+               así que el techo lo pone la pantalla, no el archivo. */
+            widths={[400, 720, 1200]}
+            sizes="(max-width: 640px) 92vw, (max-width: 980px) 46vw, 360px"
+            style={isPoster ? undefined : `object-position: ${event.recapImageFocus ?? '50% 40%'}`}
+          />
+        ) : (
+          /* Sin imagen la tarjeta no se rompe: queda el panel navy con el badge y el
+             título, que es exactamente la información que la tarjeta promete. */
+          <div class="rc__img rc__img--empty" />
+        )
+      }
+
+      <div class="rc__stamp">
+        <div class="rc__date">
+          <span class="rc__day">{day}</span>
+          <span class="rc__month">{month}</span>
+          <span class="rc__year">{year}</span>
+        </div>
+        {event.city && <span class="rc__city">{event.city}</span>}
+      </div>
+
+      <div class="rc__foot">
+        {/* El `alt` de la imagen va VACÍO a propósito: el afiche repite este mismo
+            título, y anunciarlo dos veces al lector de pantalla es ruido. El nombre
+            accesible del link sale de acá. */}
+        <h3 class="rc__title">{event.title}</h3>
+
+        <div class="rc__meta">
+          {distances.map((d) => <span class="rc__chip">{d}</span>)}
+          {status && <span class={`rc__status rc__status--${status.tone}`}>{status.label}</span>}
+          {past && !album && <span class="rc__status rc__status--past">Finalizada</span>}
+        </div>
+
+        {/* El link sale del sitio: el destino se ANUNCIA, no se descubre al hacer
+            clic. Es texto del link, así que también lo lee el lector de pantalla. */}
+        {album && (
+          <p class="rc__album">
+            Ver fotos en Facebook <span aria-hidden="true">↗</span>
+          </p>
+        )}
+      </div>
+    </div>
+  </a>
+</li>
+
+<style>
+  .rc {
+    list-style: none;
+  }
+  .rc__link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .rc__frame {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    /* Vertical: es el formato en que se publican los flyers de carrera. */
+    aspect-ratio: 4 / 5;
+    background: var(--fl-navy);
+    transition: transform 240ms var(--ease-out);
+  }
+  .rc__img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transition: transform 600ms var(--ease-out), filter 240ms var(--ease-out);
+  }
+  /* El afiche, ENTERO y apoyado arriba (ver cabecera). El sobrante de abajo lo usa
+     el pie del título. */
+  .rc__img--poster {
+    object-fit: contain;
+    object-position: top center;
+  }
+  /* La foto SÍ se encuadra: `objectPosition` viaja inline desde el contenido. */
+  .rc__img--photo {
+    object-fit: cover;
+  }
+  .rc__img--empty {
+    background: var(--fl-navy-2);
+  }
+
+  /* El archivo se lee como archivo: la imagen baja de intensidad, pero el TEXTO no
+     — el pie y los badges conservan su contraste completo. Al hover recupera el
+     color: la carrera vuelve a estar viva cuando la mirás. */
+  .rc--past .rc__img {
+    filter: saturate(0.55) brightness(0.82);
+  }
+
+  @media (hover: hover) {
+    .rc__link:hover .rc__frame {
+      transform: translateY(-4px);
+    }
+    /* El zoom es solo para la FOTO. Un afiche contenido no se escala: crecer lo
+       sacaría del marco y le cortaría los bordes — justo lo que este componente
+       existe para no hacer. */
+    .rc__link:hover .rc__img--photo {
+      transform: scale(1.04);
+    }
+    .rc--past .rc__link:hover .rc__img {
+      filter: none;
+    }
+  }
+
+  /* --- Badge de fecha + ciudad (arriba a la derecha) ------------------------ */
+  .rc__stamp {
+    position: absolute;
+    top: 0;
+    right: clamp(10px, 2vw, 14px);
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+  .rc__date {
+    display: flex;
+    flex-direction: column;
+    /* `-strong`: naranja como SUPERFICIE con texto blanco encima (4.8:1 AA). */
+    background: var(--fl-orange-strong);
+    color: #fff;
+    padding: 10px 12px 8px;
+  }
+  /* La carrera corrida pierde el naranja: el acento de marca señala lo que está
+     vivo. El archivo lleva el navy profundo. */
+  .rc--past .rc__date {
+    background: var(--fl-navy-3);
+    color: var(--fl-cream);
+  }
+  .rc__day {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(20px, 2.4vw, 24px);
+    line-height: 1;
+  }
+  .rc__month {
+    margin-top: 3px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+  .rc__year {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    opacity: 0.85;
+  }
+  .rc__city {
+    background: var(--fl-navy-3);
+    color: var(--fl-cream);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 5px 8px;
+  }
+  .rc--past .rc__city {
+    background: var(--fl-ink);
+  }
+
+  /* --- Pie sobre la imagen -------------------------------------------------- */
+  .rc__foot {
+    position: absolute;
+    inset: auto 0 0 0;
+    z-index: 1;
+    padding: clamp(40px, 8vw, 56px) clamp(14px, 2.4vw, 18px) clamp(14px, 2.4vw, 18px);
+    /* Scrim: el título va SIEMPRE sobre un degradado propio, nunca directo sobre la
+       imagen. Sobre la grava clara de Titicaca el texto sin scrim cae por debajo de
+       AA — ya pasó en la vitrina de la home. Donde el afiche no llega (el sobrante
+       de un cuadrado), el degradado cae sobre el navy del marco y se funde con él. */
+    background: linear-gradient(
+      to top,
+      rgba(10, 21, 37, 0.94) 0%,
+      rgba(10, 21, 37, 0.78) 45%,
+      rgba(10, 21, 37, 0) 100%
+    );
+  }
+  .rc__title {
+    margin: 0;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(15px, 1.7vw, 18px);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    text-wrap: balance;
+    /* Crema sobre el scrim: verificado ≥4.5:1 en las fotos reales del contenido. */
+    color: var(--fl-cream);
+  }
+  .rc__meta {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+  .rc__meta:empty {
+    display: none;
+  }
+  .rc__chip {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border: 1px solid var(--fl-edge);
+    color: var(--fl-cream);
+    padding: 4px 7px;
+  }
+  .rc__status {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 4px 7px;
+    color: #fff;
+  }
+  .rc__status--open {
+    background: var(--fl-status-open);
+  }
+  .rc__status--warning {
+    background: var(--fl-status-warning);
+  }
+  .rc__status--closed {
+    background: var(--fl-status-closed);
+  }
+  .rc__status--past {
+    background: transparent;
+    border: 1px solid var(--fl-edge);
+    /* Crema, no `-on-navy-soft`: el scrim no es navy opaco, deja pasar ~6% del
+       afiche, y sobre un afiche de fondo claro el gris azulado cae a ~3.2:1. */
+    color: var(--fl-cream);
+  }
+
+  .rc__album {
+    margin: 10px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    /* Crema y NO naranja, aunque sea un CTA: esto es texto sobre IMAGEN. El naranja
+       de marca sobre un afiche claro cae a ~2.5:1 y reprueba AA — es exactamente el
+       error que ya se corrigió en la vitrina de la home. El acento naranja de esta
+       tarjeta vive en el badge de fecha, que sí es superficie sólida. */
+    color: var(--fl-cream);
+    transition: gap 160ms var(--ease-out);
+  }
+  @media (hover: hover) {
+    .rc__link:hover .rc__album {
+      gap: 12px;
+    }
+  }
+
+  /* El foco tiene que verse sobre la imagen, no solo sobre el navy. */
+  .rc__link:focus-visible {
+    outline: 3px solid var(--fl-orange);
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rc__frame,
+    .rc__img,
+    .rc__album {
+      transition: none;
+    }
+    .rc__link:hover .rc__frame,
+    .rc__link:hover .rc__img {
+      transform: none;
+    }
+  }
+</style>

@@ -97,6 +97,33 @@ export function dayMonth(date: Date): { day: string; month: string } {
   };
 }
 
+/**
+ * Bloque de fecha del badge de una tarjeta de la grilla ("16 / AGO / 2026").
+ * A diferencia de `dayMonth()`, incluye el AÑO: la grilla mezcla carreras de
+ * años distintos (el archivo llega hasta 2025) y sin año dos tarjetas del mismo
+ * día de meses iguales quedan indistinguibles. UTC por el mismo motivo que
+ * `dayMonth()`.
+ */
+export function cardDate(date: Date): { day: string; month: string; year: string } {
+  return {
+    day: String(date.getUTCDate()).padStart(2, '0'),
+    month: MONTHS_ES[date.getUTCMonth()],
+    year: String(date.getUTCFullYear()),
+  };
+}
+
+/**
+ * Precio de entrada de la carrera ("Desde 105 Bs" / "GRATIS"): el MÍNIMO de sus
+ * modalidades. Es el número que decide si el corredor sigue leyendo, y el mínimo
+ * es el único honesto para un "desde". Null si la carrera no tiene modalidades
+ * cargadas — ahí no hay precio que prometer.
+ */
+export function fromPrice(modalities: CalendarModality[]): string | null {
+  if (modalities.length === 0) return null;
+  const min = Math.min(...modalities.map((m) => m.price));
+  return formatPrice(min);
+}
+
 export interface RaceStatus {
   label: string;
   tone: 'open' | 'warning' | 'closed';
