@@ -1,0 +1,48 @@
+---
+// SectionHeading — encabezado compartido de las secciones del detalle
+// (Descripción, Modalidades, Información del evento). Unifica las tres bajo la
+// MISMA gramática que usa la home: un kicker `// texto` en Space Mono + un
+// título en Archivo Black. Antes cada sección repetía su propio mini-label
+// (tres bloques CSS idénticos) y convivían tres lenguajes de contenedor
+// distintos; este header las vuelve un solo sistema y las alinea con el resto
+// del surface público (Course/RunTour/Recaps usan el mismo `// kicker` + título).
+interface Props {
+  /** Kicker de marca, ya con el prefijo `//` (p.ej. "// La carrera"). */
+  kicker: string;
+  title: string;
+}
+const { kicker, title } = Astro.props;
+---
+
+{/* El reveal vive acá y no en cada sección: todas abren con este header, así que
+    una sola línea le da a Descripción, Modalidades, Recorrido, Kit e Información
+    la MISMA entrada. El encabezado llega primero y el contenido lo sigue
+    escalonado — la sección se lee en el orden en que se escribió. */}
+<header class="sh" data-reveal>
+  <p class="sh__kicker">{kicker}</p>
+  <h2 class="sh__title">{title}</h2>
+</header>
+
+<style>
+  .sh {
+    margin: 0 0 clamp(20px, 3vw, 28px);
+  }
+  .sh__kicker {
+    margin: 0;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--fl-on-cream-faint);
+  }
+  .sh__title {
+    margin: 10px 0 0;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(26px, 3.2vw, 38px);
+    line-height: 0.98;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    text-wrap: balance;
+    color: var(--fl-ink);
+  }
+</style>

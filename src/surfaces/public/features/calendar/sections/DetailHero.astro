@@ -1,0 +1,221 @@
+---
+// DetailHero — cabecera del detalle de carrera. A diferencia de la home
+// (`Hero.astro`, foto a sangre completa con el texto encima), acá la imagen va
+// CONTENIDA al ancho de página, sin scrim, y el bloque de texto (distancias →
+// título → UBICACIÓN/FECHA) vive debajo sobre crema. Así el detalle se diferencia
+// de la home en vez de calcar su hero, y respira más. Si la carrera no trae
+// heroImage, la imagen degrada a un panel crema con la franja diagonal de marca
+// (mismo motivo que ListHeader) — no se muestra un hueco ni un placeholder roto.
+import { Image } from 'astro:assets';
+import type { CalendarEvent } from '@shared/lib/content/events';
+
+interface Props {
+  event: CalendarEvent;
+  /** Link de inscripción VIVO (undefined si la carrera ya se corrió o está agotada).
+      Lo resuelve el orquestador, que es quien sabe el estado. Cuando la imagen es el
+      afiche, este link lo vuelve clickeable — ver `posterHref` abajo. */
+  registrationHref?: string;
+}
+const { event, registrationHref } = Astro.props;
+
+const distances = [...new Set(event.distances)];
+
+// Qué imagen manda, en orden:
+//  1. `poster` — el afiche oficial. Solo tiene sentido ACÁ, donde la imagen va
+//     contenida y sin texto encima: un afiche se lee como afiche. En la home, que
+//     superpone su propio copy, produciría tipografía sobre tipografía.
+//  2. `heroImage` — la foto de la carrera.
+//  3. `recapImage` — la foto del recap. Las carreras viejas (Titicaca, Francofonía)
+//     TIENEN su foto cargada y aun así el detalle mostraba el panel vacío con la
+//     franja: un placeholder donde había una foto de verdad.
+const isPoster = Boolean(event.poster);
+const image = event.poster ?? event.heroImage ?? event.recapImage;
+// El alt describe la imagen que SE VE, no la primera que exista. Encadenar los alt
+// con `??` fallaba en silencio: el adaptador le da a `heroImageAlt` un default (el
+// título), así que nunca era null y las carreras que muestran su foto de recap se
+// anunciaban con el nombre pelado en vez de con su alt real.
+const imageAlt = event.poster
+  ? (event.posterAlt ?? event.title)
+  : event.heroImage
+    ? (event.heroImageAlt ?? event.title)
+    : (event.recapImageAlt ?? event.title);
+
+// El afiche de Renacer trae un botón DIBUJADO que dice "Inscríbete ahora". La gente
+// lo va a tocar: parece un botón. Si el link de inscripción está vivo, el afiche
+// entero es ese link y el botón dibujado hace lo que promete. Si la carrera ya se
+// corrió o está agotada, no hay link y el afiche queda inerte — un botón muerto es
+// feo, pero uno que te manda a pagar una carrera que ya pasó es peor.
+const posterHref = isPoster ? registrationHref : undefined;
+
+// El link envuelve SOLO la imagen, así que sin esto su nombre accesible sería el
+// alt del afiche ("Afiche de Renacer, etapa del Run Tour…"): un link que se anuncia
+// como una imagen y que en realidad te lleva a PAGAR, en otra pestaña. El nombre
+// tiene que decir a dónde va y que se va del sitio (WCAG 2.4.4).
+const posterLabel = `Inscribirse en ${event.title} (sitio de inscripción, se abre en otra pestaña)`;
+---
+
+<section class="dh">
+  <div class="dh__inner">
+    <div
+      class:list={[
+        'dh__media',
+        { 'dh__media--noimg': !image, 'dh__media--poster': isPoster },
+      ]}
+    >
+      {
+        image ? (
+          posterHref ? (
+            <a
+              class="dh__poster-link"
+              href={posterHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={posterLabel}
+            >
+              {/* `alt` vacío: el nombre del link ya lo da el `aria-label` de arriba, y
+                  dejar el alt del afiche haría que el lector de pantalla anuncie las dos
+                  cosas — la descripción de la imagen y el destino — para un solo control. */}
+              <Image
+                class="dh__img"
+                src={image}
+                alt=""
+                widths={[768, 1180, 1600]}
+                sizes="(max-width: 1180px) 100vw, 1180px"
+                loading="eager"
+                fetchpriority="high"
+              />
+            </a>
+          ) : (
+            <Image
+              class="dh__img"
+              src={image}
+              alt={imageAlt}
+              widths={[768, 1180, 1600]}
+              sizes="(max-width: 1180px) 100vw, 1180px"
+              loading="eager"
+              fetchpriority="high"
+            />
+          )
+        ) : (
+          <span class="dh__stripe" aria-hidden="true" />
+        )
+      }
+    </div>
+
+    <div class="dh__meta">
+      {
+        distances.length > 0 && (
+          <p class="dh__distances">{distances.join(' · ')}</p>
+        )
+      }
+      {/* La ficha (ubicación, fecha, largada, precio desde) se mudó a la columna
+          lateral, que existía y estaba vacía: 77px de contenido contra 1343px de
+          la columna principal, o sea 1266px de crema muerta a la derecha. Los datos
+          estaban acá, a lo ancho, mientras la columna que existe para sostenerlos no
+          hacía nada. Ver DetailSidebar. */}
+      <h1 class="dh__title">{event.title}</h1>
+    </div>
+  </div>
+</section>
+
+<style>
+  .dh {
+    background: var(--fl-cream);
+  }
+  .dh__inner {
+    max-width: var(--fl-container);
+    margin: 0 auto;
+    /* El padding inferior da aire a UBICACIÓN/FECHA antes del borde de la
+       siguiente sección; sin él el bloque de datos choca con la divisoria. */
+    /* El padding inferior era de 72px y chocaba con los 80px del contenedor de
+       abajo: 152px de hueco muerto entre el título y la primera sección, que nadie
+       decidió — era una suma. Ahora el hero cierra ajustado y la separación entre
+       secciones la pone UNA sola regla (`.detail__inner`). */
+    padding: clamp(28px, 4vw, 48px) clamp(20px, 5vw, 56px) clamp(20px, 2.6vw, 32px);
+  }
+
+  /* Un AFICHE no se recorta: está compuesto para verse entero, y el recorte de
+     16/7 le cortaba el botón de abajo por la mitad. Suelta el aspect-ratio y toma
+     el suyo. Una FOTO sí se recorta, porque el encuadre lo decide la página. */
+  /* Especificidad doble a propósito: `.dh__media` (y su media query de móvil, que
+     baja a 16/10) vienen después y si no le ganarían. */
+  .dh__media.dh__media--poster {
+    aspect-ratio: auto;
+  }
+  .dh__media.dh__media--poster .dh__img {
+    height: auto;
+    object-fit: contain;
+  }
+  /* El afiche trae un botón dibujado: si la inscripción está viva, el afiche entero
+     es ese link y el botón hace lo que promete. */
+  .dh__poster-link {
+    display: block;
+  }
+  .dh__poster-link:focus-visible {
+    outline: 2px solid var(--fl-orange);
+    outline-offset: 3px;
+  }
+
+  /* Imagen contenida (no a sangre): esquinas rectas para no romper el lenguaje
+     editorial del surface, que no usa border-radius en ningún lado. */
+  .dh__media {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 16 / 7;
+    background: var(--fl-cream-2);
+  }
+  .dh__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 50% 38%;
+    display: block;
+  }
+
+  /* Fallback sin foto: panel crema con la franja diagonal naranja de marca. */
+  .dh__media--noimg {
+    background: var(--fl-cream-2);
+  }
+  .dh__stripe {
+    position: absolute;
+    right: -6%;
+    top: -25%;
+    width: 42%;
+    height: 150%;
+    background: var(--fl-orange);
+    opacity: 0.14;
+    transform: skewX(-12deg);
+  }
+
+  .dh__meta {
+    padding-top: clamp(22px, 3vw, 34px);
+  }
+
+  .dh__distances {
+    margin: 0;
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(13px, 1.6vw, 16px);
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--fl-orange-ink);
+  }
+
+  .dh__title {
+    margin: clamp(10px, 1.4vw, 16px) 0 0;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(30px, 5.4vw, 60px);
+    line-height: 0.98;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    color: var(--fl-ink);
+    max-width: 16ch;
+  }
+
+
+  @media (max-width: 640px) {
+    .dh__media {
+      aspect-ratio: 16 / 10;
+    }
+  }
+</style>

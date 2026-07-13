@@ -1,48 +1,74 @@
 ---
 // Ruta pública raíz "/" — la home (landing) del surface público.
-// THIN: carga el evento destacado y orquesta las secciones del feature `home`.
-import { getCollection } from 'astro:content';
-import { getImage } from 'astro:assets';
+// THIN: carga las carreras y orquesta las secciones del feature `home`.
 import PublicLayout from '@public/layouts/PublicLayout.astro';
-import SiteHeader from '@public/features/home/sections/SiteHeader.astro';
+import SiteHeader from '@public/components/SiteHeader.astro';
 import Hero from '@public/features/home/sections/Hero.astro';
-import Price from '@public/features/home/sections/Price.astro';
-import Course from '@public/features/home/sections/Course.astro';
-import Sponsors from '@public/features/home/sections/Sponsors.astro';
-import SiteFooter from '@public/features/home/sections/SiteFooter.astro';
-import { eventJsonLd, seoTitle } from '@public/features/home/format';
+import RunTour from '@public/features/home/sections/RunTour.astro';
+import Recaps from '@public/features/home/sections/Recaps.astro';
+import Agenda from '@public/features/home/sections/Agenda.astro';
+import SiteFooter from '@public/components/SiteFooter.astro';
+import { upcomingByMonth } from '@public/features/home/format';
+import { organizationJsonLd, racesItemListJsonLd } from '@shared/lib/seo';
+import { raceOgImage } from '@shared/lib/og';
+import { getNextRace, getEvents } from '@shared/lib/content/events';
+import { pastRaces } from '@shared/lib/race-date';
 
-const events = await getCollection('events');
-const entry = events.find((e) => e.data.featured) ?? events[0];
-if (!entry) throw new Error('No hay eventos en la colección `events` para la home.');
-const event = entry.data;
+// La home es la página del ORGANIZADOR, no la de la próxima carrera: su título y
+// su descripción NO rotan cuando cambia el hero. Antes salían de la carrera
+// destacada, y con eso la home cambiaba de tema cada dos meses y le competía a la
+// página de detalle por la misma búsqueda. El porqué completo, en `shared/lib/seo.ts`.
+const TITLE = 'Carreras en Bolivia · Run Tour';
+const DESCRIPTION =
+  'Finish Line organiza carreras en Bolivia. Consulta el calendario del año, las distancias, los precios y las inscripciones abiertas.';
 
-// Imagen para compartir (Open Graph): render dedicado 1200×630 desde la foto
-// del evento. Se pasa relativa al layout (que la vuelve absoluta) y absoluta
-// al JSON-LD.
-const ogImage = event.heroImage
-  ? (await getImage({ src: event.heroImage, width: 1200, height: 630, format: 'jpeg' })).src
-  : undefined;
+const races = await getEvents();
+
+// La próxima carrera gobierna el hero. Y solo el hero.
+const nextRace = await getNextRace();
+if (!nextRace) throw new Error('No hay carreras en la colección `events` para la home.');
+
+// Agenda (Módulo 4).
+const agendaMonths = upcomingByMonth(races, new Date());
+// El total gobierna la nota de cierre de la agenda: con una agenda flaca (≤2), la
+// sección tiene que decir qué falta en vez de dejar al visitante contando filas.
+const agendaTotal = agendaMonths.reduce((n, m) => n + m.races.length, 0);
+
+// Recaps (Módulo 3): las carreras YA CORRIDAS, de la más reciente a la más vieja.
+// Misma colección, misma regla que la agenda —`pastRaces` es la contraparte de
+// `upcomingRaces`—, así que una carrera nunca puede estar en las dos listas ni
+// caerse de ambas. Tope de 3: es una vitrina, no un archivo.
+const recaps = pastRaces(races).slice(0, 3);
+
+// Imagen para compartir: la cara de la próxima carrera. La preview SÍ puede rotar,
+// y no le cuesta nada al SEO (og:image no es señal de ranking).
+const ogImage = await raceOgImage(nextRace);
 
 const siteBase = Astro.site ?? Astro.url;
-const ogImageAbsolute = ogImage ? new URL(ogImage, siteBase).href : undefined;
 
-// Datos estructurados SportsEvent para rich results de Google.
-const jsonLd = eventJsonLd(event, {
-  url: Astro.url.href,
-  image: ogImageAbsolute,
-  organizerUrl: siteBase.href,
-});
+// Datos estructurados: quién es Finish Line, y qué carreras enlaza esta página.
+// El `SportsEvent` de cada carrera vive SOLO en su página de detalle.
+const jsonLd = [
+  organizationJsonLd(siteBase),
+  racesItemListJsonLd([...agendaMonths.flatMap((m) => m.races), ...recaps], siteBase),
+];
 ---
 
-<PublicLayout title={seoTitle(event)} description={event.description} ogImage={ogImage}>
-  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} is:inline />
-  <SiteHeader {event} />
-  <main>
-    <Hero {event} />
-    <Price {event} />
-    <Course {event} />
-    <Sponsors />
+<PublicLayout title={TITLE} description={DESCRIPTION} ogImage={ogImage}>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} is:inline />
+  </Fragment>
+  <SiteHeader />
+  <main id="contenido">
+    {/* El futuro antes del pasado. La agenda —lo único accionable de la home—
+        estaba tras tres carreras ya corridas: quien llegaba buscando "cuándo es
+        la próxima" y no era la del hero, tenía que atravesar la serie y los
+        recaps para encontrarla. Recaps queda como cierre emocional, justo antes
+        del footer, que es el mapa del sitio. */}
+    <Hero race={nextRace} />
+    <RunTour />
+    <Agenda months={agendaMonths} total={agendaTotal} />
+    <Recaps {recaps} />
   </main>
-  <SiteFooter {event} />
+  <SiteFooter />
 </PublicLayout>

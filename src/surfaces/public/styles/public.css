@@ -3,9 +3,17 @@
 
 :root {
   --fl-header-h: 74px; /* alto del header sticky; lo usan Hero (calc) y SiteHeader */
+
+  /* Escala semántica de apilamiento. Nunca escribir z-index a mano: si algo
+     necesita un nivel nuevo, se nombra acá y se ordena contra el resto.
+     El grano va sobre el header a propósito (cubre toda la página y no
+     intercepta punteros); el skip-link tiene que ganarle a todo. */
+  --z-header: 50;
+  --z-grain: 70;
+  --z-skip: 100;
 }
 
-/* Los anclas (#carrera, #recorrido…) compensan el header sticky al saltar. */
+/* Los anclas (#run-tour, #recaps…) compensan el header sticky al saltar. */
 html {
   scroll-padding-top: var(--fl-header-h);
 }
@@ -26,7 +34,7 @@ html {
   content: '';
   position: fixed;
   inset: 0;
-  z-index: 70;
+  z-index: var(--z-grain);
   pointer-events: none;
   opacity: 0.045;
   mix-blend-mode: overlay;
@@ -41,11 +49,16 @@ html {
 }
 
 /* --- Sistema de revelado ------------------------------------------------
-   Por defecto TODO es visible (no-JS / headless / reduced-motion). El estado
-   oculto inicial solo se aplica cuando el script añade `.reveal-ready` al
-   surface, y únicamente si el usuario no pidió reducir movimiento. */
+   Por defecto TODO es visible. Solo se oculta lo que el script ARMA con
+   `data-armed`, y el script solo arma lo que está DEBAJO del fold al cargar.
+   Nada que el usuario pueda estar mirando se esconde nunca.
+
+   Antes el gate era `.reveal-ready` en el surface, que ocultaba los 31
+   `[data-reveal]` de la home de una sola vez: si el observer no llegaba a
+   cruzarlos (render sin scroll, impresión), la página quedaba en blanco de la
+   mitad para abajo. */
 @media (prefers-reduced-motion: no-preference) {
-  .public-surface.reveal-ready [data-reveal] {
+  .public-surface [data-reveal][data-armed] {
     opacity: 0;
     transform: translateY(18px);
     filter: blur(4px);
@@ -54,16 +67,25 @@ html {
       transform 0.5s var(--ease-out),
       filter 0.5s var(--ease-out);
   }
-  .public-surface.reveal-ready [data-reveal].is-in {
+  .public-surface [data-reveal][data-armed].is-in {
     opacity: 1;
     transform: none;
     filter: none;
   }
   /* Stagger corto (30-80ms) para grupos. */
-  .public-surface.reveal-ready [data-reveal][data-delay='1'] { transition-delay: 0.06s; }
-  .public-surface.reveal-ready [data-reveal][data-delay='2'] { transition-delay: 0.12s; }
-  .public-surface.reveal-ready [data-reveal][data-delay='3'] { transition-delay: 0.18s; }
-  .public-surface.reveal-ready [data-reveal][data-delay='4'] { transition-delay: 0.24s; }
+  .public-surface [data-reveal][data-armed][data-delay='1'] { transition-delay: 0.06s; }
+  .public-surface [data-reveal][data-armed][data-delay='2'] { transition-delay: 0.12s; }
+  .public-surface [data-reveal][data-armed][data-delay='3'] { transition-delay: 0.18s; }
+  .public-surface [data-reveal][data-armed][data-delay='4'] { transition-delay: 0.24s; }
+}
+
+/* Al imprimir no hay scroll ni observer: el papel se lleva todo visible. */
+@media print {
+  .public-surface [data-reveal][data-armed] {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

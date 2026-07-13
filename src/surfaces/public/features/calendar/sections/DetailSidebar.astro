@@ -1,0 +1,369 @@
+---
+// DetailSidebar — la FICHA DE DECISIÓN del detalle: todo lo que el corredor
+// necesita para decir que sí, junto y a la mano.
+//
+// Antes era un botón suelto en una columna vacía: 77px de contenido contra 1343px
+// de la columna principal, o sea 1266px de crema muerta a la derecha. Y los datos
+// que le daban sentido (fecha, lugar) vivían en el hero, a lo ancho. El layout
+// tenía los muebles en la habitación equivocada.
+//
+// Ahora concentra: cuándo (fecha + largada + concentración), dónde, desde cuánto,
+// y el botón. Sticky en desktop, así te sigue mientras leés el recorrido y los
+// precios. En móvil sube al TOPE de la columna (`order: -1` en el orquestador):
+// el corredor ve la hora y el precio de entrada, en vez de a 2000px de scroll.
+import type { CalendarEvent } from '@shared/lib/content/events';
+import { longDate, isFreeEvent, formatPrice } from '../format';
+// La fecha larga es de los DOS features (el hero de la home la muestra igual), así
+// que vive en shared. Antes se importaba de `features/home/format` — el calendario
+// colgándose de la home.
+import { weekdayDate } from '@shared/lib/date-format';
+
+interface Props {
+  event: CalendarEvent;
+  /** La carrera está agotada (todas las modalidades cerradas). Deriva de
+      `raceStatus()` en el orquestador para que la sidebar y la barra móvil
+      nunca se contradigan. */
+  soldOut?: boolean;
+  /** La carrera YA SE CORRIÓ (`hasRaced()`). Manda sobre todo lo demás: no se
+      ofrece inscripción a algo que ya pasó. No es lo mismo que `soldOut`: agotada
+      es indisponibilidad, finalizada es pasado. */
+  finished?: boolean;
+}
+const { event, soldOut = false, finished = false } = Astro.props;
+const { registrationDeadline, registrationUrl, categories } = event;
+const isFree = isFreeEvent(event.modalities);
+
+const place = event.location ?? event.city;
+
+// "Desde X Bs": el precio de entrada, arriba, sin obligar a bajar hasta la tabla.
+// La pregunta #1 del corredor era "cuánto cuesta" y la respuesta estaba a 2112px.
+// No reemplaza a Modalidades —ahí se explica la matriz completa—, la anticipa.
+const desde =
+  !finished && event.modalities.length > 0
+    ? Math.min(...event.modalities.map((m) => m.price))
+    : null;
+---
+
+<aside class="sb">
+  {/* Los datos duros primero: son los que el corredor viene a buscar y los que
+      necesita para decidir. La carrera corrida los conserva —siguen siendo su
+      registro— pero pierde el precio y el botón. */}
+  <dl class="sb__facts">
+    <div class="sb__fact">
+      <dt>Fecha</dt>
+      <dd>{weekdayDate(event.date)}</dd>
+    </div>
+    {
+      event.startTime && (
+        <div class="sb__fact">
+          <dt>Largada</dt>
+          <dd>{event.startTime}</dd>
+        </div>
+      )
+    }
+    {
+      event.gatheringTime && (
+        <div class="sb__fact">
+          <dt>Concentración</dt>
+          <dd>{event.gatheringTime}</dd>
+        </div>
+      )
+    }
+    {
+      place && (
+        <div class="sb__fact">
+          <dt>Lugar</dt>
+          <dd>{place}</dd>
+        </div>
+      )
+    }
+    {
+      desde !== null && (
+        <div class="sb__fact sb__fact--price">
+          <dt>Desde</dt>
+          <dd>{formatPrice(desde)}</dd>
+        </div>
+      )
+    }
+  </dl>
+
+  {
+    !finished && registrationDeadline && (
+      <div class="sb__deadline">
+        <span class="sb__deadline-label">Cierre de inscripción</span>
+        <span class="sb__deadline-date">{longDate(registrationDeadline)}</span>
+      </div>
+    )
+  }
+
+  {
+    finished ? (
+      <div class="sb__closed">
+        <span class="sb__closed-label">Esta carrera</span>
+        <span class="sb__closed-state">Ya se corrió</span>
+        <p class="sb__soon-note">Se corrió el {longDate(event.date)}. Gracias a todos los que largaron.</p>
+      </div>
+    ) : soldOut ? (
+      <div class="sb__closed">
+        <span class="sb__closed-label">Inscripciones</span>
+        <span class="sb__closed-state">Agotadas</span>
+      </div>
+    ) : registrationUrl ? (
+      <a
+        class="sb__cta"
+        href={registrationUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span class="sb__cta-text">{isFree ? 'Inscribirse gratis' : 'Iniciar inscripción'}</span>
+        <span class="sb__cta-arrow" aria-hidden="true">→</span>
+      </a>
+    ) : (
+      <div class="sb__soon">
+        <span class="sb__closed-label">Inscripciones</span>
+        <span class="sb__soon-state">Próximamente</span>
+        <p class="sb__soon-note">Pronto anunciamos precios, categorías y el recorrido.</p>
+      </div>
+    )
+  }
+
+  {
+    categories.length > 0 && (
+      <div class="sb__cats">
+        <h2 class="sb__cats-label">Categorías por edad</h2>
+        <dl class="sb__cats-list">
+          {categories.map((c) => (
+            <div class="sb__cat">
+              <dt>{c.name}</dt>
+              <dd>{c.range}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    )
+  }
+</aside>
+
+<style>
+  .sb {
+    display: flex;
+    flex-direction: column;
+    /* Tenso adentro de la ficha (los datos son un grupo), generoso entre bloques.
+       El ritmo lo hace el contraste, no un gap uniforme. */
+    gap: 16px;
+  }
+
+  /* La ficha de datos: placa blanca sobre crema, mismo lenguaje que el resto del
+     surface (esquinas rectas, hairline). Es el objeto que el corredor mira para
+     decidir, así que se lee como UN objeto, no como cuatro líneas sueltas. */
+  .sb__facts {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--fl-surface);
+    border: 1px solid var(--fl-hairline-ink);
+  }
+  .sb__fact {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px clamp(16px, 2vw, 20px);
+  }
+  .sb__fact + .sb__fact {
+    border-top: 1px solid var(--fl-hairline-ink);
+  }
+  .sb__fact dt {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--fl-on-cream-faint);
+    flex-shrink: 0;
+  }
+  .sb__fact dd {
+    margin: 0;
+    font-family: 'Archivo', sans-serif;
+    font-weight: 800;
+    font-size: 15px;
+    line-height: 1.3;
+    text-align: right;
+    text-transform: uppercase;
+    color: var(--fl-ink);
+  }
+  /* El precio es la respuesta a la pregunta #1: se lee como cifra, no como dato.
+     Archivo Black y más grande — es el único salto de escala de la ficha, y por eso
+     funciona sin necesitar color. */
+  .sb__fact--price dd {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(20px, 2.4vw, 24px);
+    letter-spacing: -0.01em;
+  }
+
+  .sb__deadline {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: clamp(18px, 2.2vw, 22px);
+    background: var(--fl-surface);
+  }
+  .sb__deadline-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--fl-on-cream-faint);
+  }
+  .sb__deadline-date {
+    font-family: 'Archivo', sans-serif;
+    font-size: clamp(16px, 2vw, 18px);
+    font-weight: 800;
+    color: var(--fl-navy);
+  }
+
+  /* Carrera agotada: nada de naranja de conversión. Bloque apagado, honesto —
+     no ofrece una acción que ya no existe (spec de marca: honestidad sin teatro). */
+  .sb__closed {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: clamp(20px, 2.4vw, 26px);
+    background: var(--fl-cream-2);
+  }
+  .sb__closed-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--fl-on-cream-faint);
+  }
+  .sb__closed-state {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(18px, 2.4vw, 22px);
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    color: var(--fl-status-closed);
+  }
+
+  /* Carrera anunciada pero sin inscripción todavía (sin precio ni link): el
+     bloque ocupa el lugar del CTA sin fingir una acción que no existe. Mismo
+     criterio apagado que `.sb__closed`, pero en tono neutro: no es un cierre,
+     es un "todavía no". */
+  .sb__soon {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: clamp(20px, 2.4vw, 26px);
+    background: var(--fl-cream-2);
+  }
+  .sb__soon-state {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(18px, 2.4vw, 22px);
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    color: var(--fl-navy);
+  }
+  .sb__soon-note {
+    margin: 4px 0 0;
+    font-family: 'Archivo', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--fl-on-cream-faint);
+  }
+
+  /* En móvil la acción vive UNA sola vez, en la barra fija del pulgar. La sidebar
+     se apila al final de la columna, así que su CTA quedaba visible AL MISMO TIEMPO
+     que la barra fija: dos botones naranjas idénticos en pantalla, y el usuario
+     teniendo que deducir si son el mismo. La sidebar conserva la información
+     (cierre de inscripción, categorías, estado); la acción, no. */
+  /* Especificidad doble a propósito: la regla base de `.sb__cta` viene después y un
+     media query no suma especificidad, así que sin esto no ganaría. */
+  @media (max-width: 900px) {
+    .sb .sb__cta {
+      display: none;
+    }
+  }
+
+  .sb__cta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: clamp(20px, 2.4vw, 26px);
+    background: var(--fl-orange-strong);
+    color: #fff;
+    text-decoration: none;
+    font-family: 'Archivo', sans-serif;
+    font-weight: 800;
+    font-size: clamp(15px, 1.9vw, 17px);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    line-height: 1.15;
+    transition:
+      background 160ms var(--ease-out),
+      transform 160ms var(--ease-out);
+  }
+  .sb__cta-arrow {
+    font-size: 22px;
+    flex-shrink: 0;
+    transition: transform 160ms var(--ease-out);
+  }
+  @media (hover: hover) {
+    .sb__cta:hover {
+      background: var(--fl-orange-hover);
+    }
+    .sb__cta:hover .sb__cta-arrow {
+      transform: translateX(4px);
+    }
+  }
+  /* El botón que decide la conversión de la página era el ÚNICO que no se hundía
+     al apretarlo: el CTA móvil y el footer ya lo hacían. Va FUERA del bloque
+     `hover`, porque el acuse de recibo del toque importa sobre todo en el dedo,
+     que es justo donde no hay hover que confirme nada. */
+  .sb__cta:active {
+    transform: scale(0.97);
+  }
+
+  .sb__cats-label {
+    margin: 0 0 4px;
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--fl-navy);
+  }
+  .sb__cats-list {
+    margin: 0;
+  }
+  .sb__cat {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--fl-hairline-ink);
+  }
+  .sb__cat:last-child {
+    border-bottom: none;
+  }
+  .sb__cat dt {
+    font-family: 'Archivo', sans-serif;
+    font-size: 15px;
+    color: var(--fl-on-cream-muted);
+  }
+  .sb__cat dd {
+    margin: 0;
+    font-family: 'Archivo', sans-serif;
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--fl-navy);
+    white-space: nowrap;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sb__cta,
+    .sb__cta-arrow {
+      transition: none;
+    }
+  }
+</style>

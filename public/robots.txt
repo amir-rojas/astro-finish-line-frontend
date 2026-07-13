@@ -1,5 +1,8 @@
-# Finish Line Bolivia — https://finishlinebolivia.com
+# Finish Line Bolivia — https://www.finishlinebolivia.com
+# El host debe coincidir con `site` en astro.config.mjs: es el que sale en los
+# <link rel="canonical"> y el que usa @astrojs/sitemap. Declarar el sitemap en
+# otro host (sin www) lo dejaba fuera del dominio canónico.
 User-agent: *
 Allow: /
 
-Sitemap: https://finishlinebolivia.com/sitemap-index.xml
+Sitemap: https://www.finishlinebolivia.com/sitemap-index.xml

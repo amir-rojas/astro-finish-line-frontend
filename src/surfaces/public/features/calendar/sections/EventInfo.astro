@@ -1,0 +1,159 @@
+---
+// EventInfo — bloque "INFORMACIÓN DEL EVENTO" del detalle: ficha abierta
+// (NO acordeón, cero JS), todo el contenido visible a la vez. Cada bloque
+// (`InfoBlock`) trae su título, su markdown (sanitizado vía `renderMarkdown`,
+// única frontera de sanitización — nunca `contentRaw` crudo a set:html) y sus
+// PDFs adjuntos, si tiene. Los PDFs viven DENTRO de su bloque, no en una fila
+// aparte al final. El caller decide si montar este componente: acá se asume
+// que `blocks` no está vacío, pero se guarda una salida defensiva por si acaso.
+import { renderMarkdown, formatFileSize } from '../format';
+import SectionHeading from './SectionHeading.astro';
+import type { InfoBlock } from '@shared/lib/content/events';
+
+interface Props {
+  blocks: InfoBlock[];
+}
+const { blocks } = Astro.props;
+---
+
+{
+  blocks.length > 0 && (
+    <section class="einfo">
+      <SectionHeading kicker="// Antes de correr" title="Información del evento" />
+
+      <div class="einfo__list">
+        {blocks.map((block, i) => (
+          /* Igual que en Modalidades: el escalonado se corta en el cuarto bloque.
+             Más allá, la cascada deja de ser ritmo y pasa a ser espera. */
+          <article class="einfo__block" data-reveal data-delay={Math.min(i + 1, 4)}>
+            <h3 class="einfo__title">{block.title}</h3>
+            <div class="einfo__body" set:html={renderMarkdown(block.contentRaw)} />
+
+            {block.files.length > 0 && (
+              <ul class="einfo__files">
+                {block.files.map((file) => (
+                  <li>
+                    <a class="einfo__dl" href={file.url} download>
+                      <span class="einfo__dl-icon" aria-hidden="true">↓</span>
+                      <span class="einfo__dl-name">{file.name}</span>
+                      <span class="einfo__dl-meta">(PDF · {formatFileSize(file.sizeKb)})</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </article>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+<style>
+  .einfo__list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .einfo__block {
+    padding: clamp(24px, 3.4vw, 32px) 0;
+    border-top: 1px solid var(--fl-hairline-ink);
+  }
+  .einfo__block:first-child {
+    padding-top: 0;
+    border-top: none;
+  }
+
+  .einfo__title {
+    margin: 0 0 12px;
+    font-family: 'Archivo', sans-serif;
+    font-weight: 800;
+    font-size: clamp(17px, 2.2vw, 20px);
+    color: var(--fl-navy);
+  }
+
+  .einfo__body {
+    font-family: 'Archivo', sans-serif;
+    font-size: clamp(15px, 1.9vw, 17px);
+    line-height: 1.7;
+    color: var(--fl-on-cream-muted);
+  }
+  /* El HTML sanitizado no lleva clases; se estiliza por selector de descendiente,
+     mismo patrón que `Description.astro` (una sola frontera de sanitización, un
+     solo tratamiento tipográfico para markdown renderizado en el detalle). */
+  .einfo__body :global(p) {
+    margin: 0 0 1em;
+  }
+  .einfo__body :global(p:last-child) {
+    margin-bottom: 0;
+  }
+  .einfo__body :global(h2),
+  .einfo__body :global(h3),
+  .einfo__body :global(h4) {
+    font-family: 'Archivo', sans-serif;
+    font-weight: 800;
+    color: var(--fl-navy);
+    margin: 1.4em 0 0.5em;
+  }
+  .einfo__body :global(a) {
+    color: var(--fl-orange-ink);
+    text-underline-offset: 3px;
+  }
+  .einfo__body :global(ul),
+  .einfo__body :global(ol) {
+    margin: 0 0 1em;
+    padding-left: 1.3em;
+  }
+  .einfo__body :global(li) {
+    margin: 0.3em 0;
+  }
+  .einfo__body :global(blockquote) {
+    margin: 1em 0;
+    padding-left: 1em;
+    border-left: 2px solid var(--fl-cream-3);
+    color: var(--fl-navy);
+    font-style: italic;
+  }
+
+  .einfo__files {
+    list-style: none;
+    margin: 16px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .einfo__dl {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    width: fit-content;
+    max-width: 100%;
+    color: var(--fl-orange-ink);
+    text-decoration: none;
+    font-family: 'Archivo', sans-serif;
+    font-size: clamp(14px, 1.8vw, 16px);
+    font-weight: 700;
+  }
+  .einfo__dl-icon {
+    flex-shrink: 0;
+  }
+  .einfo__dl-name {
+    text-underline-offset: 3px;
+    text-decoration: underline;
+    overflow-wrap: anywhere;
+  }
+  .einfo__dl-meta {
+    flex-shrink: 0;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    color: var(--fl-on-cream-muted);
+  }
+  @media (hover: hover) {
+    .einfo__dl:hover {
+      color: var(--fl-orange-hover);
+    }
+  }
+</style>

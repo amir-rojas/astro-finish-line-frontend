@@ -33,9 +33,64 @@ Valores tal cual la referencia (hex; equivalentes OKLCH al migrar a tokens).
 | Papel cálido 3 | `--fl-cream-3` | `#e1d6bd` | Placeholder del mapa de recorrido |
 | Superficie card | `--fl-surface` | `#ffffff` | Cards sobre crema |
 
+Variantes del naranja (según de qué lado del contraste esté):
+- `--fl-orange` `#ee5314` — el acento puro: mark, motivos, foco. NO como texto sobre crema (3.15:1, no llega a AA).
+- `--fl-orange-strong` `#cf3f0d` — texto **blanco ENCIMA** del naranja (relleno de CTA): 4.8:1.
+- `--fl-orange-ink` `#b83609` — naranja **como TEXTO** sobre claro (links en crema): 5.18:1 AA. Es el que va en links; `-strong` reprueba (4.23:1) porque no fue hecho para eso.
+
 Neutrales de texto (derivados, contraste ya verificado para AA):
 - Sobre navy: `#aebbcb`, `#b9c6d6` (cuerpo), `#cdd7e2` (chips), `#8295aa` / `#5d6f86` (meta tenue).
-- Sobre crema: `#6b6456` / `#5a5346` (cuerpo), `#9a8f78` (labels/meta).
+- Sobre crema: `#5a5346` = `--fl-on-cream-muted` (cuerpo) · `#6b6456` = `--fl-on-cream-faint` (labels/meta).
+
+> **`#9a8f78` está PROHIBIDO como color de texto.** Estuvo listado acá como
+> "verificado" y no lo estaba: da **2.81:1** sobre crema, **2.60:1** sobre crema-2 y
+> **3.19:1** sobre blanco — reprueba AA en los tres. Se comía los labels
+> `SIN POLERA` / `CON POLERA` del detalle, o sea el dato que separa 105 Bs de 230.
+> `--fl-on-cream-faint` pasó a `#6b6456` (5.16 / 4.77 / 5.86:1), que es el gris más
+> claro que pasa AA sobre los tres fondos reales: sigue siendo "tenue" sin mentir.
+
+### Alfa por rol — divisorias, bordes y hovers
+
+No son colores nuevos: son los de marca a baja opacidad. **Un token por rol, no
+por valor.** Nunca escribir el `rgba()` a mano en una sección: si aparece un rol
+que no está acá, se agrega el token, no un literal. (Las pantallas de
+calendario/detalle/home se calcaron de un mockup con otra paleta; por eso quedan
+`rgba()` navy sueltos que se están migrando a estos tokens.)
+
+| Token | Valor | Rol |
+| --- | --- | --- |
+| `--fl-hairline` | crema @ .12 | Reglas y divisorias entre bloques, **sobre navy** |
+| `--fl-hairline-ink` | tinta (`--fl-ink`) @ .10 | Reglas y divisorias entre bloques, **sobre crema** |
+| `--fl-edge` | crema @ .18 | Borde de chips, tarjetas y botones ghost, sobre navy |
+| `--fl-wash` | crema @ .06 | Fondo de hover neutro sobre navy |
+| `--fl-wash-orange` | naranja @ .10 | Fondo de hover naranja sobre navy |
+
+Pendiente (mismo origen): el lado crema aún no tiene contraparte de `--fl-edge`
+ni de `--fl-wash` — los bordes de card y hovers sobre crema siguen con `rgba()`
+literal. Migrar cuando una pantalla los toque.
+
+### Estado de inscripción — extensión funcional, fuera del ramp de marca
+
+| Token | Hex | Uso |
+| --- | --- | --- |
+| `--fl-status-open` | `#1f7a4d` | "Abiertas". Relleno con texto blanco (5.32:1) o tinta sobre superficie clara |
+| `--fl-status-warning` | `#a15c00` | "Últimos cupos". Ídem (5.19:1) |
+| `--fl-status-closed` | `#52525b` | "Agotado". Ídem (7.73:1) |
+| `--fl-status-open-ink` | `#8ee0ac` | Tinta/borde de "abiertas" sobre navy (10.92:1) |
+
+Estos cuatro son la **única** excepción a "un solo acento". El semáforo verde /
+ámbar / gris es una convención universal que el usuario ya trae aprendida, y la
+paleta de marca no tiene un tercer acento para codificar urgencia: el naranja
+significa *inscribirse*, y si empieza a significar también *disponible* deja de
+significar nada.
+
+Reglas:
+- **Solo para estado.** Nunca para branding, decoración ni jerarquía.
+- **Nunca color-only.** El label textual ("Agotado") siempre acompaña al color.
+- **Agotado es gris, no rojo.** No es un error del usuario, es indisponibilidad.
+- Los tres primeros pasan AA con texto blanco encima *y* como tinta sobre crema
+  o `--fl-surface`: el mismo token sirve para el relleno del listado y para el
+  texto del detalle.
 
 Reglas:
 - El naranja es el **único** acento. No introducir segundos acentos.
@@ -95,7 +150,14 @@ Escala display (clamp, fiel a la referencia):
 - **Bandera de meta a cuadros** (`repeating-linear-gradient` naranja/navy): franjas
   delgadas que enmarcan la sección de precio y como acento bajo el hero. Es EL
   símbolo de marca (línea de meta), no decoración.
-- **Cuadrado naranja sólido** (~12–13px) junto al wordmark = logo mark.
+- **Isotipo** (`components/BrandIsotype.astro`): la corona — tres picos y el
+  corredor con los brazos en alto — trazada plana desde el emblema real. Va junto
+  al wordmark en el header. Cada capa se pinta con tokens (`--iso-peaks`,
+  `--iso-runner`), así que sirve sobre navy y sobre crema. Reemplaza al cuadrado
+  naranja que hacía de mark provisional.
+- **Emblema completo** (con la cinta y las letras, `assets/images/logo.png`): solo
+  en el footer, sobre placa crema, como firma del organizador. A tamaño de header
+  la cinta se come el logo.
 - **Hatch diagonal** muy sutil (naranja a baja opacidad) en el hero.
 - **Números gigantes** Archivo Black como anclas visuales (precio, countdown, 10K).
 

@@ -1,0 +1,238 @@
+---
+// Ruta pública "/calendario/[slug]" — detalle de una carrera.
+// SSG: `getStaticPaths` genera una página por carrera publicada a partir del
+// mismo `getEvents()` (fetch único enriquecido, sin N+1 por-slug). El `event`
+// completo viaja como prop; un slug inexistente no se genera → Astro sirve 404.
+// THIN: solo orquesta el chrome del surface y las secciones del feature.
+import PublicLayout from '@public/layouts/PublicLayout.astro';
+import SiteHeader from '@public/components/SiteHeader.astro';
+import SiteFooter from '@public/components/SiteFooter.astro';
+import DetailHero from '@public/features/calendar/sections/DetailHero.astro';
+import Description from '@public/features/calendar/sections/Description.astro';
+import Modalities from '@public/features/calendar/sections/Modalities.astro';
+import RouteMap from '@public/features/calendar/sections/RouteMap.astro';
+import EventInfo from '@public/features/calendar/sections/EventInfo.astro';
+import RaceRewards from '@public/features/calendar/sections/RaceRewards.astro';
+import type { RewardItem } from '@public/features/calendar/sections/RaceRewards.astro';
+import DetailSidebar from '@public/features/calendar/sections/DetailSidebar.astro';
+import MobileCta from '@public/features/calendar/sections/MobileCta.astro';
+import { getEvents } from '@shared/lib/content/events';
+import { hasRaced } from '@shared/lib/race-date';
+import { calendarEventJsonLd, raceStatus, isFreeEvent } from '@public/features/calendar/format';
+import { raceSeoTitle, breadcrumbJsonLd, metaDescription } from '@shared/lib/seo';
+import { raceOgImage } from '@shared/lib/og';
+import type { CalendarEvent } from '@shared/lib/content/events';
+
+export async function getStaticPaths() {
+  const events = await getEvents();
+  return events.map((event) => ({ params: { slug: event.slug }, props: { event } }));
+}
+
+interface Props {
+  event: CalendarEvent;
+}
+const { event } = Astro.props;
+
+const pageUrl = Astro.url.href;
+
+// La descripción REAL de la carrera manda: es la que Google muestra en el
+// resultado y la que decide si alguien hace clic. Renacer tiene 154 caracteres
+// escritos y la página publicaba en su lugar un resumen armado a mano de 44
+// ("Renacer — Plaza Avaroa. Distancias: 10K, 5K."), que el JSON-LD sí usaba y la
+// <meta> ignoraba.
+//
+// El resumen sobrevive como RESPALDO, para las carreras viejas que no traen texto
+// propio. El lugar es opcional ahí: sin guarda, la meta decía "Renacer — undefined.".
+const place = event.location ?? event.city;
+const fallbackDescription = [
+  place ? `${event.title} — ${place}.` : `${event.title}.`,
+  event.distances.length > 0
+    ? `Distancias: ${[...new Set(event.distances)].join(', ')}.`
+    : 'Inscripciones y detalles de la carrera.',
+].join(' ');
+const description = event.descriptionRaw
+  ? metaDescription(event.descriptionRaw)
+  : fallbackDescription;
+
+const jsonLd = [
+  calendarEventJsonLd(event, pageUrl),
+  breadcrumbJsonLd(
+    [
+      { name: 'Inicio', path: '/' },
+      { name: 'Calendario', path: '/calendario' },
+      { name: event.title, path: `/calendario/${event.slug}` },
+    ],
+    Astro.site ?? Astro.url,
+  ),
+];
+
+// Merch de la carrera. Una pieza entra SOLO si trae su condición (`*Terms`): sin
+// ella, la foto es una promesa que la carrera puede no cumplir. Es exactamente lo
+// que pasaba — la polera se exhibía como incluida cuando en realidad es lo único
+// que separa la vía de 105 Bs de la de 230. Omitir la foto es peor comercialmente
+// y mejor moralmente que mostrarla mintiendo; y como la guarda es estructural, el
+// bug no puede volver por un olvido de carga.
+//
+// `media` describe la NATURALEZA del archivo, no su importancia: la polera llega
+// como recorte con transparencia y la medalla como foto de escena, con su fondo y
+// su luz quemados en el píxel. De ahí sale cómo se enmarca y cuánto puede crecer
+// cada una (ver RaceRewards). Está fijo acá y no en el contenido porque hoy es una
+// propiedad de los assets que tenemos, no una decisión editorial por carrera: si
+// algún día llega un recorte de la medalla en alta, esto pasa a 'render' —o al
+// esquema, si deja de ser parejo entre carreras.
+const rewards: RewardItem[] = [];
+if (event.shirt && event.shirtTerms) {
+  rewards.push({
+    src: event.shirt,
+    alt: event.shirtAlt ?? `Polera oficial de ${event.title}`,
+    label: 'Polera oficial',
+    terms: event.shirtTerms,
+    media: 'render',
+  });
+}
+if (event.medal && event.medalTerms) {
+  rewards.push({
+    src: event.medal,
+    alt: event.medalAlt ?? `Medalla finisher de ${event.title}`,
+    label: 'Medalla finisher',
+    terms: event.medalTerms,
+    media: 'photo',
+  });
+}
+
+// Estado de inscripción, calculado una sola vez y compartido por la sidebar y la
+// barra móvil, para que nunca se contradigan (una agotada, la otra ofreciendo).
+//
+// `finished` va PRIMERO y manda: una carrera ya corrida no ofrece inscripción,
+// punto. Antes esto se derivaba SOLO de las modalidades, y una carrera sin
+// modalidades cargadas daba `raceStatus(null)` → `soldOut = false` → la página de
+// una carrera que ya se había corrido seguía mostrando el CTA naranja "Iniciar
+// inscripción" apuntando a Eventrid. El dato estaba (`status: finalizado`); la
+// vista no lo miraba.
+const finished = hasRaced(event);
+const soldOut = raceStatus(event.modalities)?.tone === 'closed';
+const isFree = isFreeEvent(event.modalities);
+
+// Imagen para compartir (Open Graph): foto encuadrada o, si la carrera no tiene
+// foto, el afiche contenido sobre el navy. Antes, sin foto, no había preview.
+const ogImage = await raceOgImage(event);
+---
+
+<PublicLayout
+  title={raceSeoTitle(event.title, event.date)}
+  description={description}
+  ogImage={ogImage}
+  canonical={pageUrl}
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} is:inline />
+  </Fragment>
+
+  <SiteHeader />
+
+  <main id="contenido">
+    {/* El link solo viaja si de verdad se puede inscribir: el afiche trae un botón
+        dibujado, y mandarlo a pagar una carrera ya corrida o agotada sería peor que
+        dejarlo inerte. */}
+    <DetailHero
+      {event}
+      registrationHref={!finished && !soldOut ? event.registrationUrl : undefined}
+    />
+
+    <div class="detail">
+      <div class="detail__inner">
+        {/* El orden ES el camino de conversión: qué es → por dónde se corre →
+            cuánto cuesta → qué me llevo. El recorrido va ANTES del precio (le vende
+            la carrera antes de pedirle plata) y, sobre todo, NO se mete entre
+            Modalidades y el kit: esos dos tienen que quedar pegados, o la foto de la
+            polera vuelve a alejarse de la fila "Con polera · 230 Bs" que la explica. */}
+        <div class="detail__main">
+          {event.descriptionRaw && <Description markdown={event.descriptionRaw} />}
+          {/* La sección se planta si hay MAPA o si hay TEXTO. Condicionarla solo al
+              mapa tiraba el recorrido de La Paz 10K, que tiene `courseTitle` y
+              `courseDescription` cargados y ningún mapa dibujado: ese texto no
+              aparecía en ninguna página del sitio. */}
+          {(event.routeMap || event.courseDescription) && (
+            <RouteMap
+              map={event.routeMap}
+              alt={event.routeMapAlt}
+              title={event.courseTitle}
+              description={event.courseDescription}
+              start={event.location}
+              finish={event.finishLocation}
+            />
+          )}
+          {event.modalities.length > 0 && <Modalities modalities={event.modalities} />}
+          <RaceRewards items={rewards} />
+          {event.infoBlocks.length > 0 && <EventInfo blocks={event.infoBlocks} />}
+        </div>
+        <div class="detail__side">
+          <DetailSidebar {event} {soldOut} {finished} />
+        </div>
+      </div>
+    </div>
+
+    {/* Una carrera corrida no lleva barra de inscripción: no hay nada que ofrecer. */}
+    {!finished && <MobileCta {soldOut} registrationUrl={event.registrationUrl} {isFree} />}
+  </main>
+
+  <SiteFooter />
+
+  {/* Reserva el alto de la barra fija móvil al final del documento, para que no
+      tape el pie. Solo cuando la barra realmente se muestra. */}
+  {!finished && (soldOut || event.registrationUrl) && <div class="mcta-gap" aria-hidden="true" />}
+</PublicLayout>
+
+<style>
+  .detail {
+    background: var(--fl-cream);
+  }
+  /* Alto de la barra fija móvil (ver MobileCta.astro). En ≥900px la barra no
+     existe, así que el spacer tampoco ocupa. */
+  .mcta-gap {
+    display: none;
+  }
+  @media (max-width: 900px) {
+    .mcta-gap {
+      display: block;
+      height: calc(84px + env(safe-area-inset-bottom, 0px));
+    }
+  }
+  /* El padding superior era de 80px y se sumaba a los 72px con que cerraba el hero:
+     152px de hueco muerto que nadie decidió. El hero ya cierra ajustado; acá queda
+     la separación de sección, una sola vez. */
+  .detail__inner {
+    max-width: var(--fl-container);
+    margin: 0 auto;
+    padding: clamp(32px, 4.5vw, 60px) clamp(20px, 5vw, 56px) clamp(48px, 7vw, 88px);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+    gap: clamp(32px, 5vw, 72px);
+    align-items: start;
+  }
+  .detail__main {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(36px, 5vw, 56px);
+    min-width: 0;
+  }
+  /* La ficha acompaña el scroll: el corredor lee el recorrido y los precios con la
+     fecha, la hora y el botón siempre a la vista. */
+  .detail__side {
+    position: sticky;
+    top: 96px;
+  }
+
+  @media (max-width: 900px) {
+    .detail__inner {
+      grid-template-columns: 1fr;
+    }
+    /* En una sola columna la ficha va PRIMERO, no al final: es la respuesta a las
+       preguntas que el corredor trae (cuándo, dónde, desde cuánto). Apilada abajo,
+       el precio quedaba a 2000px de scroll y la hora directamente no se veía. */
+    .detail__side {
+      position: static;
+      order: -1;
+    }
+  }
+</style>

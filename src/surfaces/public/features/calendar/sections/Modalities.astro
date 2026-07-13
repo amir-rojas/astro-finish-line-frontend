@@ -1,0 +1,150 @@
+---
+// Modalities — bloque "MODALIDADES DISPONIBLES" del detalle. Una fila por
+// modalidad real de Strapi (distancia + label, precio, estado propio). El
+// estado sale del dato real (`modalityStatus`), nunca de lógica de UI simulada.
+// Si la carrera no tiene modalidades, el caller no monta este componente.
+import type { CalendarModality } from '@shared/lib/content/events';
+import { formatPrice, modalityStatus } from '../format';
+import SectionHeading from './SectionHeading.astro';
+
+interface Props {
+  modalities: CalendarModality[];
+}
+const { modalities } = Astro.props;
+---
+
+<section class="mods">
+  <SectionHeading kicker="// Distancias y precios" title="Modalidades" />
+
+  <ul class="mods__list">
+    {
+      modalities.map((m, i) => {
+        const status = modalityStatus(m.status);
+        return (
+          /* El escalonado se corta en la cuarta fila a propósito: pasada esa,
+             la cascada deja de leerse como ritmo y empieza a hacer esperar. */
+          <li class="mod" data-reveal data-delay={Math.min(i + 1, 4)}>
+            <div class="mod__id">
+              <span class="mod__distance">{m.distance}</span>
+              {m.label !== m.distance && <span class="mod__name">{m.label}</span>}
+            </div>
+            <span class="mod__price">{formatPrice(m.price)}</span>
+            <div class="mod__status">
+              <span class="mod__status-label">Estado</span>
+              <span class={`mod__status-value mod__status-value--${status.tone}`}>{status.label}</span>
+            </div>
+          </li>
+        );
+      })
+    }
+  </ul>
+</section>
+
+<style>
+  .mods__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Filas editoriales: sin tarjeta, separadas por hairline — misma gramática
+     que Información del evento. El peso lo dan los números Archivo Black, no una
+     caja: Modalidades es LA decisión, y se lee como la sección más fuerte de la
+     columna sin necesitar un contenedor propio. */
+  .mod {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: baseline;
+    gap: clamp(16px, 4vw, 44px);
+    padding: clamp(18px, 2.6vw, 26px) 0;
+  }
+  .mod + .mod {
+    border-top: 1px solid var(--fl-hairline-ink);
+  }
+
+  .mod__distance {
+    display: block;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(22px, 3vw, 30px);
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    color: var(--fl-ink);
+    line-height: 1;
+  }
+  /* "SIN POLERA" / "CON POLERA" no es un subtítulo decorativo: es el dato que
+     separa 105 Bs de 230. Va en `muted` (6.70:1) y no en `faint`: el label que
+     decide la compra no puede ser el texto más tenue de la fila. */
+  .mod__name {
+    display: block;
+    margin-top: 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--fl-on-cream-muted);
+  }
+
+  /* El precio es el ancla de la decisión: número grande Archivo Black, no un
+     dato en letra chica. */
+  .mod__price {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(20px, 2.6vw, 28px);
+    line-height: 1;
+    letter-spacing: -0.01em;
+    color: var(--fl-ink);
+    white-space: nowrap;
+  }
+
+  .mod__status {
+    text-align: right;
+    min-width: 120px;
+  }
+  .mod__status-label {
+    display: block;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--fl-on-cream-faint);
+  }
+  .mod__status-value {
+    display: block;
+    margin-top: 4px;
+    font-family: 'Archivo', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  /* Mismos tokens de estado que el listado (ver PublicLayout). Acá se usan como
+     TINTA sobre `--fl-surface`, no como relleno: 5.32 / 5.19 / 7.73:1.
+     "Agotado" era rojo (#b23b2e) mientras el listado lo pintaba gris: la misma
+     carrera se veía de dos colores. Agotado no es un error, es indisponibilidad.
+     El label textual siempre acompaña al color (nunca color-only). */
+  .mod__status-value--open {
+    color: var(--fl-status-open);
+  }
+  .mod__status-value--warning {
+    color: var(--fl-status-warning);
+  }
+  .mod__status-value--closed {
+    color: var(--fl-status-closed);
+  }
+
+  @media (max-width: 560px) {
+    .mod {
+      grid-template-columns: 1fr auto;
+      row-gap: 14px;
+    }
+    .mod__status {
+      grid-column: 1 / -1;
+      text-align: left;
+    }
+    .mod__status-label {
+      display: inline;
+    }
+    .mod__status-value {
+      display: inline;
+      margin-top: 0;
+      margin-left: 8px;
+    }
+  }
+</style>

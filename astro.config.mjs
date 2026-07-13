@@ -24,6 +24,22 @@ export default defineConfig({
         access: 'secret',
         optional: true,
       }),
+      // PARKED: Strapi ya no alimenta ningún build (ver `strapi-client.ts`, el
+      // contenido de carreras vive en `src/content/events/*.json`). Se
+      // mantienen declaradas y opcionales SOLO para que `strapi-client.ts`
+      // (conservado para cuando el CMS+Go esté hosteado) siga tipando bajo
+      // `astro:env/server` mientras está parked. Nada las lee en runtime.
+      STRAPI_URL: envField.string({
+        context: 'server',
+        access: 'public',
+        optional: true,
+        default: 'http://localhost:1337',
+      }),
+      STRAPI_TOKEN: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
     },
   },
   vite: {

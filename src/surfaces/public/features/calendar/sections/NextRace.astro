@@ -1,0 +1,280 @@
+---
+// NextRace — la carrera destacada del listado /calendario: la primera que
+// todavía no se corrió.
+//
+// NO es "una tarjeta más grande" de la grilla. Es una BANDA de ancho completo,
+// con su propio fondo navy, porque la próxima carrera no es más de lo mismo con
+// otro tamaño: es la única que se puede inscribir hoy. Esa asimetría es real y
+// la vista la hace visible.
+//
+// Y tiene una consecuencia práctica que decidió la forma: Finish Line es un
+// ORGANIZADOR, no un agregador — casi siempre va a haber UNA sola carrera por
+// delante. Una tarjeta sola en una grilla de tres columnas grita "vacío"; una
+// banda que ocupa el ancho, no. La página se sostiene con una sola próxima.
+//
+// Continúa el navy del ListHeader sin corte: los dos son un mismo bloque navy
+// arriba de la página (por eso acá no hay padding-top propio de sección).
+import { Image } from 'astro:assets';
+import type { CalendarEvent } from '@shared/lib/content/events';
+import { longDate, raceStatus, fromPrice } from '../format';
+
+interface Props {
+  event: CalendarEvent;
+}
+const { event } = Astro.props;
+
+const href = `/calendario/${event.slug}`;
+// El afiche es la pieza que la carrera de verdad publica. Si no hay, cae a la
+// foto del evento (el adaptador ya resolvió recapImage ?? heroImage).
+const image = event.poster ?? event.recapImage;
+const imageAlt = event.poster
+  ? (event.posterAlt ?? `Afiche de ${event.title}`)
+  : (event.recapImageAlt ?? event.title);
+
+const distances = [...new Set(event.distances)];
+const status = raceStatus(event.modalities);
+const price = fromPrice(event.modalities);
+// El lockup de serie degrada solo: sin etapa, queda el nombre de la serie.
+const series = event.isRunTour
+  ? event.runTourStage
+    ? `Run Tour · Etapa ${String(event.runTourStage).padStart(2, '0')}`
+    : 'Run Tour'
+  : null;
+const place = [event.city, event.country].filter(Boolean).join(', ');
+---
+
+<section class="nr" aria-labelledby="nr-title">
+  <div class="nr__inner">
+    {
+      image && (
+        <a class="nr__poster" href={href} tabindex="-1" aria-hidden="true" data-reveal data-delay="2">
+          <Image src={image} alt={imageAlt} widths={[480, 760, 1100]} sizes="(max-width: 900px) 92vw, 50vw" />
+        </a>
+      )
+    }
+
+    {/* El bloque de texto entra como uno solo: es UNA ficha, no seis líneas sueltas.
+        En una pantalla alta la banda queda sobre el fold y el reveal no llega a
+        armarse — el script solo arma lo que está estrictamente por debajo. */}
+    <div class="nr__body" data-reveal data-delay="1">
+      <p class="nr__kicker">// Próxima carrera</p>
+      {series && <p class="nr__series">{series}</p>}
+
+      <h2 class="nr__title" id="nr-title">
+        <a class="nr__link" href={href}>{event.title}</a>
+      </h2>
+
+      <p class="nr__when">
+        {longDate(event.date)}
+        {place && <span class="nr__sep" aria-hidden="true">·</span>}
+        {place}
+      </p>
+
+      <div class="nr__meta">
+        {distances.map((d) => <span class="nr__chip">{d}</span>)}
+        {status && <span class={`nr__status nr__status--${status.tone}`}>{status.label}</span>}
+      </div>
+
+      {price && (
+        <p class="nr__price">
+          <span class="nr__price-label">Desde</span> {price}
+        </p>
+      )}
+
+      {/* El CTA lleva al DETALLE, nunca a la inscripción externa: la decisión de
+          pagar se toma con el recorrido, las modalidades y el reglamento delante,
+          y eso vive en el detalle. */}
+      <a class="nr__cta" href={href}>
+        Ver carrera <span aria-hidden="true">→</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .nr {
+    background: var(--fl-navy);
+  }
+  .nr__inner {
+    max-width: var(--fl-container);
+    margin: 0 auto;
+    padding: 0 clamp(20px, 5vw, 56px) clamp(48px, 7vw, 80px);
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    gap: clamp(28px, 5vw, 64px);
+    align-items: center;
+  }
+
+  /* El afiche entero, sin recortar: es una pieza gráfica compuesta (nombre, fecha,
+     distancias) y un `cover` le corta justo lo que la hace legible. Se apoya en un
+     panel apenas más claro para que un afiche de fondo oscuro no se funda con el
+     navy de la banda. Inerte para el teclado y el lector de pantalla (aria-hidden +
+     tabindex -1): es la MISMA carrera que el título de al lado, y duplicar el
+     destino solo agrega una parada muerta en el recorrido de tabulación. */
+  .nr__poster {
+    display: block;
+    background: var(--fl-navy-2);
+    border: 1px solid var(--fl-hairline);
+    padding: clamp(10px, 1.4vw, 16px);
+    line-height: 0;
+    transition: transform 220ms var(--ease-out);
+  }
+  .nr__poster :global(img) {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  @media (hover: hover) {
+    .nr__poster:hover {
+      transform: translateY(-3px);
+    }
+  }
+
+  .nr__body {
+    min-width: 0;
+  }
+  .nr__kicker {
+    margin: 0;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--fl-orange);
+  }
+  .nr__series {
+    margin: 14px 0 0;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--fl-on-navy-muted);
+  }
+  .nr__title {
+    margin: 10px 0 0;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(30px, 4.4vw, 52px);
+    line-height: 0.98;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    text-wrap: balance;
+  }
+  .nr__link {
+    color: var(--fl-cream);
+    text-decoration: none;
+  }
+  @media (hover: hover) {
+    .nr__link:hover {
+      color: var(--fl-orange);
+    }
+  }
+
+  .nr__when {
+    margin: 16px 0 0;
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    color: var(--fl-on-navy-muted);
+  }
+  .nr__sep {
+    margin: 0 8px;
+    color: var(--fl-orange);
+  }
+
+  .nr__meta {
+    margin-top: 18px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+  .nr__chip {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    /* Sobre navy el chip se invierte respecto del listado viejo (que vivía sobre
+       crema): contorno crema en vez de bloque sólido. */
+    border: 1px solid var(--fl-edge);
+    color: var(--fl-cream);
+    padding: 5px 9px;
+  }
+  .nr__status {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 6px 10px;
+    color: #fff;
+  }
+  .nr__status--open {
+    background: var(--fl-status-open);
+  }
+  .nr__status--warning {
+    background: var(--fl-status-warning);
+  }
+  .nr__status--closed {
+    background: var(--fl-status-closed);
+  }
+
+  .nr__price {
+    margin: 20px 0 0;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(20px, 2.4vw, 26px);
+    color: var(--fl-cream);
+  }
+  .nr__price-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--fl-on-navy-muted);
+  }
+
+  .nr__cta {
+    margin-top: clamp(22px, 3vw, 30px);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    /* `-strong`, no `-orange`: acá el naranja es SUPERFICIE con texto blanco encima
+       (4.8:1 AA). El `-orange` de marca reprueba en ese rol — ver DESIGN.md. */
+    background: var(--fl-orange-strong);
+    color: #fff;
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    text-decoration: none;
+    padding: 15px 26px;
+    transition: background 160ms var(--ease-out);
+  }
+  @media (hover: hover) {
+    .nr__cta:hover {
+      background: var(--fl-orange-hover);
+    }
+  }
+
+  @media (max-width: 900px) {
+    .nr__inner {
+      grid-template-columns: 1fr;
+      gap: clamp(24px, 5vw, 32px);
+    }
+    /* El afiche primero: en el celular es lo que identifica la carrera de un
+       vistazo, antes que cualquier texto. */
+    .nr__poster {
+      order: -1;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nr__poster,
+    .nr__cta {
+      transition: none;
+    }
+    .nr__poster:hover {
+      transform: none;
+    }
+  }
+</style>

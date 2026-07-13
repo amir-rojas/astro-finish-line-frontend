@@ -1,0 +1,91 @@
+---
+// Ruta pública "/calendario" — el año de carreras de Finish Line.
+// THIN: carga los eventos y orquesta las secciones del feature `calendar`.
+//
+// La página dejó de ser SOLO lo que viene. Antes filtraba las corridas y, con un
+// organizador que tiene una carrera por delante a la vez, quedaba una única fila
+// de texto: una página vacía. Ahora tiene tres tiempos, en este orden:
+//
+//   1. La PRÓXIMA, como banda ancha (NextRace): la única que se puede inscribir
+//      hoy, y la única que necesita fecha, precio y botón.
+//   2. El resto de las que vienen, en grilla de afiches.
+//   3. Las que YA SE CORRIERON, en la misma grilla pero en tono de archivo.
+//
+// El bloque 3 no es relleno: es la prueba de que el organizador existe y corre.
+// Las corridas siguen apareciendo además en "Así se vivió" de la home — ahí son
+// una vitrina de 3; acá son el archivo completo.
+import PublicLayout from '@public/layouts/PublicLayout.astro';
+import SiteHeader from '@public/components/SiteHeader.astro';
+import SiteFooter from '@public/components/SiteFooter.astro';
+import ListHeader from '@public/features/calendar/sections/ListHeader.astro';
+import NextRace from '@public/features/calendar/sections/NextRace.astro';
+import RaceGrid from '@public/features/calendar/sections/RaceGrid.astro';
+import EmptyState from '@public/features/calendar/sections/EmptyState.astro';
+import { getEvents } from '@shared/lib/content/events';
+import { upcomingRaces, pastRaces } from '@shared/lib/race-date';
+import { raceOgImage } from '@shared/lib/og';
+import { racesItemListJsonLd, breadcrumbJsonLd } from '@shared/lib/seo';
+
+const events = await getEvents();
+const upcoming = upcomingRaces(events); // fecha asc
+const past = pastRaces(events); // más reciente primero
+
+// La destacada es la primera que viene; la grilla de próximas es todo lo demás.
+// Con una sola carrera por delante (el caso normal hoy), `rest` queda vacío y esa
+// grilla no se renderiza: la banda sola sostiene el bloque.
+const [next, ...rest] = upcoming;
+
+// Al compartir el calendario, la cara es la carrera que viene. Sin esto la página
+// no pasaba ninguna imagen y el layout caía a un `/og-default.jpg` inexistente.
+const ogImage = next ? await raceOgImage(next) : undefined;
+
+// Esta es LA página resumen del calendario: la lista completa y en orden. La home
+// también lleva un ItemList, pero con lo que ella enlaza (la agenda + 3 recaps);
+// acá va el archivo entero, próximas primero. Cada ListItem apunta al detalle, que
+// es donde vive el `SportsEvent` de esa carrera.
+const siteBase = Astro.site ?? Astro.url;
+const jsonLd = [
+  racesItemListJsonLd([...upcoming, ...past], siteBase),
+  breadcrumbJsonLd(
+    [
+      { name: 'Inicio', path: '/' },
+      { name: 'Calendario', path: '/calendario' },
+    ],
+    siteBase,
+  ),
+];
+---
+
+<PublicLayout
+  title="Calendario de carreras"
+  description="El calendario de carreras de Finish Line en Bolivia: próximas fechas, distancias, estado de inscripción y las ediciones que ya se corrieron."
+  ogImage={ogImage}
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} is:inline />
+  </Fragment>
+  <SiteHeader />
+  <main id="contenido">
+    <ListHeader />
+
+    {next ? <NextRace event={next} /> : <EmptyState />}
+
+    {
+      rest.length > 0 && (
+        <RaceGrid kicker="// Lo que viene" title="El resto del calendario" events={rest} />
+      )
+    }
+
+    {
+      past.length > 0 && (
+        <RaceGrid
+          kicker="// Ediciones pasadas"
+          title="Carreras que ya se corrieron"
+          events={past}
+          past
+        />
+      )
+    }
+  </main>
+  <SiteFooter />
+</PublicLayout>
