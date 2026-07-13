@@ -8,7 +8,7 @@ import { upcomingRaces } from '@shared/lib/race-date';
 // `shared`: las comparten la home y el detalle del calendario. Antes la fecha
 // larga era `heroDate()` y vivía acá, y el detalle se colgaba de este feature
 // para usarla.
-import { capitalize as cap, datePart as part } from '@shared/lib/date-format';
+import { capitalize as cap, datePart as part, startDateTimeISO } from '@shared/lib/date-format';
 
 export type EventData = CollectionEntry<'events'>['data'];
 
@@ -76,12 +76,11 @@ export function upcomingByMonth(events: RaceEvent[], now: Date = new Date()): Ag
   return [...months.values()];
 }
 
-/** ISO con offset, p.ej. "2026-07-12T08:00:00-04:00" para el countdown.
- *  Decoplado de EventData para que también lo use el hero data-driven (RaceEvent). */
+/** ISO con offset para el countdown. A diferencia del `startDateTimeISO` que usa el
+ *  JSON-LD, el countdown SIEMPRE necesita un instante: sin hora de largada cae a
+ *  medianoche, porque una cuenta regresiva a una fecha pelada no se puede calcular. */
 export function countdownISOFrom(date: Date, startTime?: string, tz = '-04:00'): string {
-  const ymd = date.toISOString().slice(0, 10);
-  const time = startTime ?? '00:00';
-  return `${ymd}T${time}:00${tz}`;
+  return startDateTimeISO(date, startTime ?? '00:00', tz);
 }
 
 /** ISO del countdown a partir de un evento de la colección local. */
@@ -94,88 +93,3 @@ export function placeLine(event: EventData): string {
   return [event.city, event.country].filter(Boolean).join(', ');
 }
 
-/** Título SEO con año, p.ej. "La Paz 10K 2026". El brand lo añade el layout. */
-export function seoTitle(event: EventData): string {
-  return `${event.title} ${event.date.getUTCFullYear()}`;
-}
-
-// --- SEO: datos estructurados ---------------------------------------------
-
-// Moneda mostrada (p.ej. "Bs") -> código ISO 4217 para schema.org/Offer.
-const CURRENCY_ISO: Record<string, string> = { Bs: 'BOB' };
-
-// Estado del evento -> disponibilidad de la oferta (schema.org/ItemAvailability).
-const AVAILABILITY: Record<EventData['status'], string> = {
-  upcoming: 'https://schema.org/PreOrder',
-  open: 'https://schema.org/InStock',
-  closed: 'https://schema.org/SoldOut',
-  finished: 'https://schema.org/SoldOut',
-};
-
-/**
- * JSON-LD `SportsEvent` para rich results de Google (listados de eventos).
- * `image` y `url` deben ser absolutas; el llamador las construye con Astro.site.
- */
-export function eventJsonLd(
-  event: EventData,
-  { url, image, organizerUrl }: { url: string; image?: string; organizerUrl: string },
-): Record<string, unknown> {
-  // `offers` refleja las vías de inscripción reales: si hay varias
-  // (registrationOptions: gratis + pago) se emite un array de ofertas; si no,
-  // cae al modelo legacy de precio único. schema.org acepta ambas formas.
-  const validThrough = event.registrationDeadline?.toISOString();
-  const offers =
-    event.registrationOptions.length > 0
-      ? event.registrationOptions.map((o) => ({
-          '@type': 'Offer',
-          url: o.url,
-          availability: AVAILABILITY[event.status],
-          price: o.price.amount,
-          priceCurrency: CURRENCY_ISO[o.price.currency] ?? o.price.currency,
-          ...(validThrough && { validThrough }),
-        }))
-      : event.registrationUrl
-        ? {
-            '@type': 'Offer',
-            url: event.registrationUrl,
-            availability: AVAILABILITY[event.status],
-            ...(event.price && {
-              price: event.price.amount,
-              priceCurrency: CURRENCY_ISO[event.price.currency] ?? event.price.currency,
-            }),
-            ...(validThrough && { validThrough }),
-          }
-        : undefined;
-
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'SportsEvent',
-    name: event.title,
-    sport: 'Running',
-    startDate: countdownISO(event),
-    eventStatus: 'https://schema.org/EventScheduled',
-    eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
-    url,
-    ...(event.description && { description: event.description }),
-    ...(image && { image: [image] }),
-    // `location` es opcional: se cae a la ciudad. Sin ninguno de los dos, el Place
-    // se omite entero — declararle a Google un lugar con `name: undefined` es peor
-    // que no declarar lugar.
-    ...((event.location ?? event.city) && {
-      location: {
-        '@type': 'Place',
-        name: event.location ?? event.city,
-        address: {
-          '@type': 'PostalAddress',
-          ...(event.location && { streetAddress: event.location }),
-          ...(event.city && { addressLocality: event.city }),
-          ...(event.country && { addressCountry: event.country }),
-        },
-      },
-    }),
-    ...(offers && { offers }),
-    ...(event.organizer && {
-      organizer: { '@type': 'Organization', name: event.organizer, url: organizerUrl },
-    }),
-  };
-}

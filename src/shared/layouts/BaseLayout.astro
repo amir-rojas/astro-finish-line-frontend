@@ -12,7 +12,7 @@ interface Props {
 const {
   title,
   description = 'Finish Line — inscripciones y resultados de carreras.',
-  ogImage = '/og-default.jpg',
+  ogImage,
   ogUrl = Astro.url.href,
   canonical = Astro.url.href,
 } = Astro.props;
@@ -20,7 +20,12 @@ const {
 // og:image y twitter:image deben ser URLs absolutas: muchos crawlers
 // (WhatsApp, Facebook, Twitter) descartan rutas relativas. Astro.site viene
 // del config; si ya nos pasan una URL absoluta, la respetamos.
-const absoluteOgImage = new URL(ogImage, Astro.site ?? Astro.url).href;
+//
+// SIN default: antes caía a `/og-default.jpg`, un archivo que NO EXISTE. Las
+// páginas sin imagen propia anunciaban una preview que daba 404 al compartirlas.
+// Omitir la meta es honesto —el crawler arma una tarjeta de solo texto—; apuntar
+// a una imagen rota no.
+const absoluteOgImage = ogImage ? new URL(ogImage, Astro.site ?? Astro.url).href : undefined;
 ---
 
 <!doctype html>
@@ -48,13 +53,13 @@ const absoluteOgImage = new URL(ogImage, Astro.site ?? Astro.url).href;
     <meta property="og:locale" content="es_BO" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:image" content={absoluteOgImage} />
+    {absoluteOgImage && <meta property="og:image" content={absoluteOgImage} />}
     <meta property="og:url" content={ogUrl} />
     <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:card" content={absoluteOgImage ? 'summary_large_image' : 'summary'} />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
-    <meta name="twitter:image" content={absoluteOgImage} />
+    {absoluteOgImage && <meta name="twitter:image" content={absoluteOgImage} />}
   </head>
   <body>
     <slot />

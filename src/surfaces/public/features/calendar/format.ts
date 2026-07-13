@@ -13,6 +13,7 @@
 import { marked } from 'marked';
 import sanitizeHtml from 'sanitize-html';
 import type { CalendarEvent, CalendarModality } from '@shared/lib/content/events';
+import { startDateTimeISO } from '@shared/lib/date-format';
 
 marked.setOptions({ async: false });
 
@@ -188,7 +189,7 @@ export function calendarEventJsonLd(event: CalendarEvent, pageUrl: string): Reco
     '@context': 'https://schema.org',
     '@type': 'SportsEvent',
     name: event.title,
-    startDate: event.date.toISOString().slice(0, 10),
+    startDate: startDateTimeISO(event.date, event.startTime, event.timezoneOffset),
     eventStatus: 'https://schema.org/EventScheduled',
     url: pageUrl,
     sport: 'Running',
@@ -206,9 +207,14 @@ export function calendarEventJsonLd(event: CalendarEvent, pageUrl: string): Reco
   if (event.descriptionRaw) jsonLd.description = event.descriptionRaw;
 
   if (event.modalities.length > 0) {
+    // El nombre de la oferta lleva la DISTANCIA, no solo el label. Renacer tiene 4
+    // modalidades reales (10K y 5K × con y sin polera) y el label solo dice "Con
+    // polera" / "Sin polera": Google recibía cuatro ofertas de dos nombres, mismo
+    // precio y misma URL — indistinguibles entre sí, o sea duplicadas. El adaptador
+    // cae `label` a `distance` cuando no hay label, y ahí no se repite el dato.
     jsonLd.offers = event.modalities.map((m) => ({
       '@type': 'Offer',
-      name: m.label,
+      name: m.label === m.distance ? m.distance : `${m.distance} · ${m.label}`,
       price: m.price,
       priceCurrency: 'BOB',
       availability:

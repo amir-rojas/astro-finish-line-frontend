@@ -71,6 +71,9 @@ export interface RaceEvent {
   altitudeNote?: string;
   /** Hora de largada normalizada a "HH:mm". Alimenta el countdown junto con `date`. */
   startTime?: string;
+  /** Huso de la carrera ("-04:00"). Sin él, `startTime` es una hora sin lugar: el
+      countdown y el `startDate` del JSON-LD no pueden fijar el instante real. */
+  timezoneOffset: string;
   /** Hora de concentración ("07:00"). El corredor la necesita tanto como la largada:
       es a la que tiene que estar ahí. Estaba en el contenido y no llegaba a la vista. */
   gatheringTime?: string;
@@ -189,6 +192,7 @@ export function toRaceEvent(entry: EventEntry): RaceEvent {
     altitudeM: data.altitudeM,
     altitudeNote: data.altitudeNote,
     startTime: data.startTime,
+    timezoneOffset: data.timezoneOffset,
     gatheringTime: data.gatheringTime,
     courseTitle: data.courseTitle,
     courseDescription: data.courseDescription,
