@@ -9,11 +9,19 @@
 // El mapa es una captura (no un SVG vectorial): va sobre placa BLANCA porque el
 // fondo del mapa es claro y sobre crema se ensuciaría el borde. `contain`, nunca
 // `cover`: un recorrido recortado es un recorrido equivocado.
+//
+// El MAPA es opcional, el recorrido no. Una carrera puede tener descrito su
+// circuito en palabras y todavía no tener el mapa dibujado — es el caso de La Paz
+// 10K, que trae `courseTitle` y `courseDescription` cargados. Cuando la sección se
+// condicionaba al mapa, ese texto no aparecía en NINGUNA página: contenido escrito,
+// cargado, y tirado en silencio. Ahora la sección se planta con lo que tenga, y la
+// figura del mapa es la que se omite si no hay.
 import { Image } from 'astro:assets';
 import SectionHeading from './SectionHeading.astro';
 
 interface Props {
-  map: ImageMetadata;
+  /** Mapa del circuito. Opcional: sin él la sección se sostiene con el texto. */
+  map?: ImageMetadata;
   alt?: string;
   /** Titular del recorrido, p.ej. "10 KM y 5 KM". Si falta, el encabezado cae al genérico. */
   title?: string;
@@ -40,16 +48,18 @@ const esCircuito = Boolean(start && finish && start === finish);
     </p>
   )}
 
-  <figure class="route__fig" data-reveal data-delay="2">
-    <Image
-      class="route__map"
-      src={map}
-      alt={alt ?? 'Mapa del recorrido de la carrera.'}
-      widths={[480, 720, 960]}
-      sizes="(max-width: 900px) 92vw, 640px"
-      loading="lazy"
-    />
-  </figure>
+  {map && (
+    <figure class="route__fig" data-reveal data-delay="2">
+      <Image
+        class="route__map"
+        src={map}
+        alt={alt ?? 'Mapa del recorrido de la carrera.'}
+        widths={[480, 720, 960]}
+        sizes="(max-width: 900px) 92vw, 640px"
+        loading="lazy"
+      />
+    </figure>
+  )}
 
   {
     (start || finish) && (

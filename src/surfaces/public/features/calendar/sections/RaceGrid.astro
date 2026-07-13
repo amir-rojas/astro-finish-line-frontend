@@ -25,7 +25,7 @@ const { kicker, title, events, past = false } = Astro.props;
   <div class="rg__inner">
     <SectionHeading {kicker} {title} />
     <ul class="rg__grid">
-      {events.map((event) => <RaceCard {event} {past} />)}
+      {events.map((event, index) => <RaceCard {event} {past} {index} />)}
     </ul>
   </div>
 </section>

@@ -130,7 +130,11 @@ const ogImage = event.heroImage
             polera vuelve a alejarse de la fila "Con polera · 230 Bs" que la explica. */}
         <div class="detail__main">
           {event.descriptionRaw && <Description markdown={event.descriptionRaw} />}
-          {event.routeMap && (
+          {/* La sección se planta si hay MAPA o si hay TEXTO. Condicionarla solo al
+              mapa tiraba el recorrido de La Paz 10K, que tiene `courseTitle` y
+              `courseDescription` cargados y ningún mapa dibujado: ese texto no
+              aparecía en ninguna página del sitio. */}
+          {(event.routeMap || event.courseDescription) && (
             <RouteMap
               map={event.routeMap}
               alt={event.routeMapAlt}

@@ -47,13 +47,16 @@ const place = [event.city, event.country].filter(Boolean).join(', ');
   <div class="nr__inner">
     {
       image && (
-        <a class="nr__poster" href={href} tabindex="-1" aria-hidden="true">
+        <a class="nr__poster" href={href} tabindex="-1" aria-hidden="true" data-reveal data-delay="2">
           <Image src={image} alt={imageAlt} widths={[480, 760, 1100]} sizes="(max-width: 900px) 92vw, 50vw" />
         </a>
       )
     }
 
-    <div class="nr__body">
+    {/* El bloque de texto entra como uno solo: es UNA ficha, no seis líneas sueltas.
+        En una pantalla alta la banda queda sobre el fold y el reveal no llega a
+        armarse — el script solo arma lo que está estrictamente por debajo. */}
+    <div class="nr__body" data-reveal data-delay="1">
       <p class="nr__kicker">// Próxima carrera</p>
       {series && <p class="nr__series">{series}</p>}
 

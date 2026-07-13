@@ -13,7 +13,10 @@
 // el corredor ve la hora y el precio de entrada, en vez de a 2000px de scroll.
 import type { CalendarEvent } from '@shared/lib/content/events';
 import { longDate, isFreeEvent, formatPrice } from '../format';
-import { heroDate } from '@public/features/home/format';
+// La fecha larga es de los DOS features (el hero de la home la muestra igual), así
+// que vive en shared. Antes se importaba de `features/home/format` — el calendario
+// colgándose de la home.
+import { weekdayDate } from '@shared/lib/date-format';
 
 interface Props {
   event: CalendarEvent;
@@ -48,7 +51,7 @@ const desde =
   <dl class="sb__facts">
     <div class="sb__fact">
       <dt>Fecha</dt>
-      <dd>{heroDate(event.date)}</dd>
+      <dd>{weekdayDate(event.date)}</dd>
     </div>
     {
       event.startTime && (

@@ -46,6 +46,12 @@ const imageAlt = event.poster
 // corrió o está agotada, no hay link y el afiche queda inerte — un botón muerto es
 // feo, pero uno que te manda a pagar una carrera que ya pasó es peor.
 const posterHref = isPoster ? registrationHref : undefined;
+
+// El link envuelve SOLO la imagen, así que sin esto su nombre accesible sería el
+// alt del afiche ("Afiche de Renacer, etapa del Run Tour…"): un link que se anuncia
+// como una imagen y que en realidad te lleva a PAGAR, en otra pestaña. El nombre
+// tiene que decir a dónde va y que se va del sitio (WCAG 2.4.4).
+const posterLabel = `Inscribirse en ${event.title} (sitio de inscripción, se abre en otra pestaña)`;
 ---
 
 <section class="dh">
@@ -59,11 +65,20 @@ const posterHref = isPoster ? registrationHref : undefined;
       {
         image ? (
           posterHref ? (
-            <a class="dh__poster-link" href={posterHref} target="_blank" rel="noopener noreferrer">
+            <a
+              class="dh__poster-link"
+              href={posterHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={posterLabel}
+            >
+              {/* `alt` vacío: el nombre del link ya lo da el `aria-label` de arriba, y
+                  dejar el alt del afiche haría que el lector de pantalla anuncie las dos
+                  cosas — la descripción de la imagen y el destino — para un solo control. */}
               <Image
                 class="dh__img"
                 src={image}
-                alt={imageAlt}
+                alt=""
                 widths={[768, 1180, 1600]}
                 sizes="(max-width: 1180px) 100vw, 1180px"
                 loading="eager"

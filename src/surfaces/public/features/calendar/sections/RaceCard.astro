@@ -30,8 +30,14 @@ interface Props {
   event: CalendarEvent;
   /** Carrera ya corrida: la tarjeta baja el tono y lleva al álbum de fotos. */
   past?: boolean;
+  /** Posición en la grilla: escalona la entrada de las tarjetas. */
+  index?: number;
 }
-const { event, past = false } = Astro.props;
+const { event, past = false, index = 0 } = Astro.props;
+
+// El escalonado se corta en la cuarta tarjeta, igual que en Modalidades y en
+// EventInfo: pasada esa, la cascada deja de leerse como ritmo y hace esperar.
+const delay = Math.min(index + 1, 4);
 
 const { day, month, year } = cardDate(event.date);
 
@@ -53,9 +59,15 @@ const external = Boolean(album);
 // Una carrera corrida no tiene estado de inscripción que mostrar.
 const status = past ? null : raceStatus(event.modalities);
 const distances = [...new Set(event.distances)];
+// Si no hay chips, ni estado, ni sello, la fila de meta no existe — y hay que
+// decidirlo ACÁ, no en CSS. `.rc__meta:empty` no matchea: Astro deja saltos de
+// línea adentro del div, y `:empty` no considera vacío a un elemento con nodos de
+// texto en blanco. Titicaca (sin distancias ni modalidades, con álbum) sacaba un
+// div con cuatro espacios y 10px de margen muerto.
+const hasMeta = distances.length > 0 || status !== null || (past && !event.photosUrl);
 ---
 
-<li class:list={['rc', past && 'rc--past']}>
+<li class:list={['rc', past && 'rc--past']} data-reveal data-delay={delay}>
   <a
     class="rc__link"
     href={href}
@@ -98,11 +110,13 @@ const distances = [...new Set(event.distances)];
             accesible del link sale de acá. */}
         <h3 class="rc__title">{event.title}</h3>
 
-        <div class="rc__meta">
-          {distances.map((d) => <span class="rc__chip">{d}</span>)}
-          {status && <span class={`rc__status rc__status--${status.tone}`}>{status.label}</span>}
-          {past && !album && <span class="rc__status rc__status--past">Finalizada</span>}
-        </div>
+        {hasMeta && (
+          <div class="rc__meta">
+            {distances.map((d) => <span class="rc__chip">{d}</span>)}
+            {status && <span class={`rc__status rc__status--${status.tone}`}>{status.label}</span>}
+            {past && !album && <span class="rc__status rc__status--past">Finalizada</span>}
+          </div>
+        )}
 
         {/* El link sale del sitio: el destino se ANUNCIA, no se descubre al hacer
             clic. Es texto del link, así que también lo lee el lector de pantalla. */}
@@ -269,9 +283,6 @@ const distances = [...new Set(event.distances)];
     flex-wrap: wrap;
     align-items: center;
     gap: 6px;
-  }
-  .rc__meta:empty {
-    display: none;
   }
   .rc__chip {
     font-family: 'Space Mono', monospace;

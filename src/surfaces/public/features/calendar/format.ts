@@ -7,8 +7,9 @@
 // PR 3 (listado): `dayMonth()` (bloque de fecha de cada fila) y `raceStatus()`
 // (estado agregado por carrera — ver engram `sdd/strapi-content-connection/
 // list-status-badge`).
-// PR 4 (detalle): `heroDate()` (fecha larga del hero) y `calendarEventJsonLd()`
-// (JSON-LD SportsEvent de la página de detalle).
+// PR 4 (detalle): `longDate()` y `calendarEventJsonLd()` (JSON-LD SportsEvent de
+// la página de detalle). La fecha larga con día de semana NO vive acá: la comparte
+// con la home y por eso es `weekdayDate()` en `@shared/lib/date-format`.
 import { marked } from 'marked';
 import sanitizeHtml from 'sanitize-html';
 import type { CalendarEvent, CalendarModality } from '@shared/lib/content/events';
@@ -148,19 +149,8 @@ export function raceStatus(modalities: CalendarModality[]): RaceStatus | null {
 }
 
 /**
- * Fecha larga del hero del detalle ("12 / JUL / 2026"). Igual que `dayMonth()`
- * usa los getters UTC porque `date` viene de una fecha sin hora de Strapi:
- * leerla en horario local podría correr el día según el timezone del build.
- */
-export function heroDate(date: Date): string {
-  const day = String(date.getUTCDate()).padStart(2, '0');
-  const month = MONTHS_ES[date.getUTCMonth()];
-  return `${day} / ${month} / ${date.getUTCFullYear()}`;
-}
-
-/**
- * Fecha de cierre de inscripción en formato legible ("31 de Agosto, 2026") para
- * el sidebar del detalle. UTC por el mismo motivo que `heroDate()`.
+ * Fecha de cierre de inscripción en formato legible ("31 de agosto de 2026") para
+ * la ficha del detalle. UTC por el mismo motivo que `dayMonth()`.
  */
 // En español los meses van en MINÚSCULA dentro de una fecha, y el año se une con
 // "de", no con una coma: "12 de julio de 2026". "12 de Julio, 2026" es un calco
