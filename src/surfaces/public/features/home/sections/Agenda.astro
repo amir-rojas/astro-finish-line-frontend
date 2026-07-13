@@ -13,30 +13,42 @@
 // "Ver calendario completo →" apunta al listado `/calendario`, que muestra las
 // mismas carreras futuras sin agrupar por mes.
 //
-// Estado vacío (Strapi sin carreras futuras): la sección NUNCA se oculta —
-// muestra la cabecera + un mensaje breve y honesto ("Pronto anunciaremos
-// nuevas fechas."). Ocultar el módulo dejaría un salto abrupto al footer y
-// perdería el cierre narrativo de la home (Hero → serie → recaps → agenda).
+// Agenda flaca: la nota de cierre no es un "estado vacío" de cero carreras, es la
+// respuesta a una agenda que no se explica sola. Con una o dos fechas, el visitante
+// se pregunta si esto es todo lo que el organizador hace en el año — y el link "Ver
+// calendario completo" EMPEORA eso: promete un calendario y entrega las mismas dos
+// filas. Por eso, bajo el umbral, la nota aparece y el link se retira (la home ya
+// está mostrando el 100% del calendario; mandar a /calendario sería un tap perdido).
+// Con 3+ carreras la nota se va sola: un estado vacío que sobrevive a su necesidad
+// es relleno, y el relleno está prohibido (PRODUCT.md, "honestidad sin teatro").
 import type { AgendaMonth } from '@public/features/home/format';
 
 interface Props {
   months: AgendaMonth[];
+  /** Total de carreras futuras (suma de `months[].races`). Gobierna la nota de
+      cierre y la visibilidad del link al calendario. */
+  total: number;
 }
-const { months } = Astro.props;
+const { months, total } = Astro.props;
 const hasRaces = months.length > 0;
+const isSparse = total <= 2;
 ---
 
 <section id="agenda" class="agenda">
   <div class="agenda__inner">
     <header class="agenda__head">
       <h2 class="agenda__title" data-reveal>Próximas carreras</h2>
-      <a class="agenda__all" href="/calendario" data-reveal data-delay="1">
-        Ver calendario completo <span aria-hidden="true">→</span>
-      </a>
+      {
+        !isSparse && (
+          <a class="agenda__all" href="/calendario" data-reveal data-delay="1">
+            Ver calendario completo <span aria-hidden="true">→</span>
+          </a>
+        )
+      }
     </header>
 
     {
-      hasRaces ? (
+      hasRaces && (
         <ul class="months" data-reveal data-delay="1">
           {months.map((m) => (
             <li class="month">
@@ -74,9 +86,18 @@ const hasRaces = months.length > 0;
             </li>
           ))}
         </ul>
-      ) : (
-        <p class="agenda__empty" data-reveal data-delay="1">
-          Pronto anunciaremos nuevas fechas.
+      )
+    }
+
+    {
+      isSparse && (
+        <p class="agenda__note" data-reveal data-delay="2">
+          <strong>{hasRaces ? 'Quedan fechas por confirmar.' : 'No hay carreras próximas.'}</strong>{' '}
+          Cada carrera se publica acá apenas cierra su fecha; los anuncios salen primero en{' '}
+          <a href="https://www.instagram.com/finishlinebolivia" target="_blank" rel="noopener noreferrer">
+            @finishlinebolivia
+          </a>
+          .
         </p>
       )
     }
@@ -247,12 +268,34 @@ const hasRaces = months.length > 0;
   }
 
   /* ---- Estado vacío ---- */
-  .agenda__empty {
+  /* Nota de cierre de la agenda. NO es una tarjeta ni un banner: es la última
+     línea de la lista, separada por la misma regla que separa las filas. Una
+     línea de meta debajo de lo que hay — el motivo de marca, sin dibujarlo. */
+  .agenda__note {
+    margin: clamp(20px, 2.8vw, 30px) 0 0;
+    padding-top: 18px;
+    border-top: 1px solid var(--fl-hairline-ink);
+    max-width: 58ch;
     font-family: 'Space Mono', monospace;
-    font-size: 14px;
-    letter-spacing: 0.5px;
+    font-size: 13px;
+    line-height: 1.6;
+    letter-spacing: 0.3px;
     color: var(--fl-on-cream-muted);
-    margin: 0;
+  }
+  /* La afirmación en tinta plena; el resto, metadato. */
+  .agenda__note strong {
+    font-weight: 700;
+    color: var(--fl-ink);
+  }
+  .agenda__note a {
+    color: var(--fl-orange-ink);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    text-decoration-thickness: 1px;
+  }
+  .agenda__note a:focus-visible {
+    outline: 2px solid var(--fl-orange);
+    outline-offset: 3px;
   }
 
   @media (prefers-reduced-motion: reduce) {
