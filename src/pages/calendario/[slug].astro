@@ -45,22 +45,27 @@ const description =
 
 const jsonLd = calendarEventJsonLd(event, pageUrl);
 
-// Merch de la carrera: se muestra lo que traiga el contenido (`shirt`/`medal`).
-// Ambos opcionales — si el evento no los define, la banda de recompensas no se
-// renderiza (ver RaceRewards.astro).
+// Merch de la carrera. Una pieza entra SOLO si trae su condición (`*Terms`): sin
+// ella, la foto es una promesa que la carrera puede no cumplir. Es exactamente lo
+// que pasaba — la polera se exhibía como incluida cuando en realidad es lo único
+// que separa la vía de 105 Bs de la de 230. Omitir la foto es peor comercialmente
+// y mejor moralmente que mostrarla mintiendo; y como la guarda es estructural, el
+// bug no puede volver por un olvido de carga.
 const rewards: RewardItem[] = [];
-if (event.shirt) {
+if (event.shirt && event.shirtTerms) {
   rewards.push({
     src: event.shirt,
     alt: event.shirtAlt ?? `Polera oficial de ${event.title}`,
     label: 'Polera oficial',
+    terms: event.shirtTerms,
   });
 }
-if (event.medal) {
+if (event.medal && event.medalTerms) {
   rewards.push({
     src: event.medal,
     alt: event.medalAlt ?? `Medalla finisher de ${event.title}`,
     label: 'Medalla finisher',
+    terms: event.medalTerms,
   });
 }
 
@@ -97,18 +102,24 @@ const ogImage = event.heroImage
   <SiteHeader />
 
   <main id="contenido">
-    <DetailHero {event} />
-
-    {/* El gancho emocional (polera + medalla) va primero: el atleta ve lo que se
-        lleva mientras el CTA sigue presente. Las secciones de contenido quedan
-        como respaldo racional. */}
-    <RaceRewards items={rewards} />
+    {/* El link solo viaja si de verdad se puede inscribir: el afiche trae un botón
+        dibujado, y mandarlo a pagar una carrera ya corrida o agotada sería peor que
+        dejarlo inerte. */}
+    <DetailHero
+      {event}
+      registrationHref={!finished && !soldOut ? event.registrationUrl : undefined}
+    />
 
     <div class="detail">
       <div class="detail__inner">
         <div class="detail__main">
           {event.descriptionRaw && <Description markdown={event.descriptionRaw} />}
           {event.modalities.length > 0 && <Modalities modalities={event.modalities} />}
+          {/* El merch va DESPUÉS de los precios, no antes. Como banda previa al
+              contenido era un anzuelo: prometía la polera 1550px antes de contar que
+              se paga aparte. Acá abajo es lo contrario — el argumento de venta del
+              kit, a menos de una pantalla de la fila "Con polera · 230 Bs". */}
+          <RaceRewards items={rewards} />
           {event.infoBlocks.length > 0 && <EventInfo blocks={event.infoBlocks} />}
         </div>
         <div class="detail__side">

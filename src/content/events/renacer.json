@@ -22,6 +22,8 @@
     { "distance": "5K", "label": "Con polera", "price": 230, "status": "abierto" }
   ],
   "heroImage": "../../assets/images/hero-image.jpg",
+  "poster": "../../assets/images/renacer.png",
+  "posterAlt": "Afiche de Renacer, etapa del Run Tour Finish Line: La Paz, 16 de agosto, 10K y 5K.",
   "heroImageAlt": "Cientos de corredores con dorsal largan juntos y ocupan toda la avenida, en La Paz.",
   "description": "10K y 5K del Run Tour Finish Line, el circuito que premia la perseverancia de cada corredor. Salida y llegada en la Plaza Avaroa, en el corazón de La Paz.",
   "instagram": "@finishlinebolivia",
@@ -36,7 +38,9 @@
   "isRunTour": true,
   "runTourStage": 1,
   "shirt": "../../assets/shirts/renacer.png",
-  "shirtAlt": "Polera oficial de Renacer",
+  "shirtAlt": "Polera oficial de Renacer, con el diseño del Run Tour Finish Line.",
+  "shirtTerms": "Solo con la modalidad Con polera · 230 Bs",
   "medal": "../../assets/medals/renacer.png",
-  "medalAlt": "Medalla finisher de Renacer"
+  "medalAlt": "Medalla finisher de Renacer.",
+  "medalTerms": "Para todos los que cruzan la meta, en cualquier modalidad"
 }
