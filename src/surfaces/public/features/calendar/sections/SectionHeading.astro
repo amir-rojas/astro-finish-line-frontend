@@ -14,7 +14,11 @@ interface Props {
 const { kicker, title } = Astro.props;
 ---
 
-<header class="sh">
+{/* El reveal vive acá y no en cada sección: todas abren con este header, así que
+    una sola línea le da a Descripción, Modalidades, Recorrido, Kit e Información
+    la MISMA entrada. El encabezado llega primero y el contenido lo sigue
+    escalonado — la sección se lee en el orden en que se escribió. */}
+<header class="sh" data-reveal>
   <p class="sh__kicker">{kicker}</p>
   <h2 class="sh__title">{title}</h2>
 </header>

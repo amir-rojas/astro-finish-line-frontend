@@ -18,6 +18,10 @@ const events = defineCollection({
     country: z.string().optional(),
     courseTitle: z.string().optional(),            // titular de la sección recorrido
     courseDescription: z.string().optional(),      // párrafo del recorrido
+    // Mapa del recorrido. Sin él, la sección "El recorrido" no se renderiza: un
+    // encabezado sin mapa no informa nada.
+    routeMap: image().optional(),
+    routeMapAlt: z.string().optional(),
     altitudeM: z.number().optional(),              // altitud en metros (hilo conductor)
     altitudeNote: z.string().optional(),           // "La ciudad más alta del mundo"
     distances: z.array(z.string()).default([]),    // ["5K", "10K", "21K", "42K"]
@@ -56,6 +60,13 @@ const events = defineCollection({
     // resolución): la foto vertical que funciona en el celular queda mal recortada
     // a lo ancho. Si falta, desktop reusa `heroImage`.
     heroImageDesktop: image().optional(),
+    // Afiche oficial de la carrera. Va SOLO en el detalle, donde la imagen se
+    // muestra CONTENIDA y sin texto encima: ahí un afiche se lee como afiche. NO
+    // sirve para el hero de la home, que superpone su propio texto sobre la foto —
+    // un afiche ahí produce tipografía sobre tipografía. Si falta, el detalle reusa
+    // `heroImage`.
+    poster: image().optional(),
+    posterAlt: z.string().optional(),
     description: z.string().optional(),
     instagram: z.string().optional(),              // handle "@finishlinebolivia"
     instagramUrl: z.string().url().optional(),     // URL del perfil de Instagram
@@ -90,8 +101,14 @@ const events = defineCollection({
     // misma forma que heroImage (imagen + alt separado).
     shirt: image().optional(),
     shirtAlt: z.string().optional(),
+    // CONDICIÓN para llevarse la pieza ("Solo con la modalidad Con polera · 230 Bs").
+    // Sin ella la pieza NO se muestra: una foto de merch sin condición es una
+    // promesa que la carrera puede no cumplir, y eso ya pasó (la polera se exhibía
+    // como incluida cuando en realidad separa la vía de 105 de la de 230).
+    shirtTerms: z.string().optional(),
     medal: image().optional(),
     medalAlt: z.string().optional(),
+    medalTerms: z.string().optional(),
     // Modalidades reales de la carrera (distancia + precio + estado propio).
     // Si viene vacío, el listado/hero cae al legacy `distances[]`.
     modalities: z

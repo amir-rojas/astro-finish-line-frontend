@@ -1,0 +1,63 @@
+---
+// RaceGrid — grilla de tarjetas-afiche de /calendario, con su encabezado.
+//
+// Sustituye a RaceList (la lista de filas de texto). La usan los DOS bloques de
+// la página con el mismo componente y distinto contenido: las próximas que no
+// son la destacada, y el archivo de las ya corridas (`past`).
+//
+// Sobre crema: la banda navy de la destacada ya se llevó el peso visual arriba,
+// y la grilla es el terreno tranquilo donde se escanea.
+import type { CalendarEvent } from '@shared/lib/content/events';
+import SectionHeading from './SectionHeading.astro';
+import RaceCard from './RaceCard.astro';
+
+interface Props {
+  kicker: string;
+  title: string;
+  events: CalendarEvent[];
+  /** Marca todas las tarjetas como carreras ya corridas. */
+  past?: boolean;
+}
+const { kicker, title, events, past = false } = Astro.props;
+---
+
+<section class="rg">
+  <div class="rg__inner">
+    <SectionHeading {kicker} {title} />
+    <ul class="rg__grid">
+      {events.map((event, index) => <RaceCard {event} {past} {index} />)}
+    </ul>
+  </div>
+</section>
+
+<style>
+  .rg {
+    background: var(--fl-cream);
+  }
+  .rg__inner {
+    max-width: var(--fl-container);
+    margin: 0 auto;
+    padding: clamp(44px, 6vw, 72px) clamp(20px, 5vw, 56px);
+  }
+  /* `auto-fill`, no `auto-fit`: con `auto-fit` las columnas vacías COLAPSAN y dos
+     tarjetas se estiran hasta ocupar todo el ancho, cada afiche inflado al doble
+     de su tamaño. `auto-fill` mantiene la grilla y las tarjetas conservan su
+     escala — que es justo el caso real de esta página, donde el archivo puede
+     tener 2 o 3 carreras y no 6. */
+  .rg__grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: clamp(18px, 2.4vw, 28px);
+  }
+
+  @media (max-width: 640px) {
+    /* Una sola columna: a 2 columnas en un celular el afiche queda ilegible —
+       y el afiche ES la tarjeta. */
+    .rg__grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

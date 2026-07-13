@@ -35,3 +35,9 @@ skills-lock.json
 
 # caché de registro de skills (autogenerado, no se versiona)
 .atl/
+
+# material de referencia de diseño: mockups, fotos de producto y capturas que se
+# miran mientras se construye, pero que NO son fuente del sitio. Son 24 MB de
+# binarios que nadie importa desde `src/` (un solo PNG pesa 8 MB): infla el clone
+# para siempre y basta un `git add -A` distraído para que entren.
+design-reference/

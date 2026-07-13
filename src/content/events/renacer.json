@@ -9,7 +9,9 @@
   "finishLocation": "Plaza Avaroa",
   "city": "La Paz",
   "country": "Bolivia",
-  "courseTitle": "10 KM y 5 KM",
+  "courseTitle": "El recorrido",
+  "routeMap": "../../assets/images/ruta-renaceer.jpg",
+  "routeMapAlt": "Mapa del recorrido de Renacer: circuito que sale de la Plaza Avaroa, en Sopocachi, baja por la avenida Costanera hacia Obrajes y vuelve al mismo punto.",
   "altitudeM": 3640,
   "altitudeNote": "La ciudad más alta del mundo",
   "distances": ["10K", "5K"],
@@ -22,6 +24,8 @@
     { "distance": "5K", "label": "Con polera", "price": 230, "status": "abierto" }
   ],
   "heroImage": "../../assets/images/hero-image.jpg",
+  "poster": "../../assets/images/renacer.png",
+  "posterAlt": "Afiche de Renacer, etapa del Run Tour Finish Line: La Paz, 16 de agosto, 10K y 5K.",
   "heroImageAlt": "Cientos de corredores con dorsal largan juntos y ocupan toda la avenida, en La Paz.",
   "description": "10K y 5K del Run Tour Finish Line, el circuito que premia la perseverancia de cada corredor. Salida y llegada en la Plaza Avaroa, en el corazón de La Paz.",
   "instagram": "@finishlinebolivia",
@@ -36,7 +40,9 @@
   "isRunTour": true,
   "runTourStage": 1,
   "shirt": "../../assets/shirts/renacer.png",
-  "shirtAlt": "Polera oficial de Renacer",
+  "shirtAlt": "Polera oficial de Renacer, con el diseño del Run Tour Finish Line.",
+  "shirtTerms": "Solo con la modalidad Con polera · 230 Bs",
   "medal": "../../assets/medals/renacer.png",
-  "medalAlt": "Medalla finisher de Renacer"
+  "medalAlt": "Medalla finisher de Renacer.",
+  "medalTerms": "Para todos los que cruzan la meta, en cualquier modalidad"
 }

@@ -1,32 +1,63 @@
 ---
-// RaceRewards — banda de vitrina del detalle: muestra el merch tangible del
-// evento (polera oficial + medalla finisher) con foto real. Es un momento
-// "mostrar, no afirmar": el atleta ve lo que se lleva antes de inscribirse.
+// RaceRewards — qué incluye cada modalidad: el merch tangible de la carrera
+// (polera, medalla) con foto real y, sobre todo, CON SU CONDICIÓN.
 //
-// Banda sobre CREMA CÁLIDA (--fl-cream-2), enmarcada con hairlines: un escalón
-// tonal suave entre el hero y el detalle (ambos crema), no un salto de color.
-// Las fotos van en tarjetas blancas (--fl-surface), mismo lenguaje que las
-// tarjetas de Modalidades — consistencia visual del detalle.
+// Antes esto era una banda full-bleed titulada "Lo que te llevás", ubicada JUSTO
+// DESPUÉS DEL HERO — o sea, 1550px ANTES del primer precio. El corredor veía una
+// polera y una medalla a pantalla completa bajo una afirmación sin condiciones, y
+// recién dos pantallas más abajo descubría que existe una modalidad "Sin polera"
+// a 105 Bs. Quien no conectaba las dos cosas pagaba 105 y no recibía polera: la
+// promesa no se rompía en el sitio, se rompía en el mostrador de entrega de kits.
 //
-// Ambos ítems son OPCIONALES e INDEPENDIENTES. El componente recibe solo los
-// que existen; si la lista llega vacía, NO renderiza nada (la página se ve
-// completa sin la banda — mismo patrón que EventInfo sin bloques). Un solo
-// ítem se centra, sin dejar un hueco.
+// Ahora la sección vive DESPUÉS de Modalidades, dentro de la columna, y cada pieza
+// declara su condición (`terms`). Deja de ser un anzuelo y pasa a ser el argumento
+// de venta del kit: la fila "Con polera · 230 Bs" y la foto de la polera quedan a
+// menos de una pantalla de distancia.
 //
-// Tratamiento robusto para imágenes arbitrarias de Strapi: cada foto va en una
-// PLACA clara con object-fit: contain — nunca recorta (da igual proporción u
-// origen: render sobre blanco, foto oscura, PNG transparente) y unifica piezas
-// dispares sobre el navy.
+// `terms` es OBLIGATORIO. No es un campo opcional que se puede olvidar: una pieza
+// sin condición es exactamente el bug que esta sección vino a arreglar.
+//
+// --- Dos tarjetas iguales, y una caja de imagen del MISMO tamaño ------------
+// Las piezas se muestran como pares: misma tarjeta, misma caja cuadrada, mismo
+// peso. Lo que las distingue es el texto, no el tamaño.
+//
+// El encuadre, en cambio, SÍ depende de la naturaleza del archivo (`media`), y no
+// por gusto — los assets no son de la misma especie:
+//
+//   · La polera es un RENDER recortado (PNG con alpha, 918×1024). Al ir sobre la
+//     tarjeta blanca no necesita marco: flota, y por eso lleva aire interno.
+//   · La medalla es una FOTO de escena (RGB opaco, 591×591): trae su propio fondo
+//     oscuro, su sombra y sus rayos de luz quemados en el píxel. Va a sangre en la
+//     caja, sin relleno: un marco encima la delataría como imagen pegada.
+//
+// El techo de resolución manda sobre el tamaño: 591px de original significan que
+// la caja no puede pasar de ~300px CSS (en retina son 600px ≈ 1:1). Más grande, se
+// ablanda, y no hay un original mejor. Por eso la caja va capada — y la tarjeta,
+// que reparte la columna en dos, ya la deja holgadamente por debajo de ese techo.
+//
+// El día que llegue un recorte de la medalla en alta, se cambia `media` a 'render'
+// en la página y pasa sola al mismo trato que la polera. La regla vive en el dato.
 import { Image } from 'astro:assets';
+import SectionHeading from './SectionHeading.astro';
 
-/** Una foto local importada (ImageMetadata) o una URL remota de Strapi. */
+/** Una foto local importada (ImageMetadata) o una URL remota. */
 export type RewardSource = ImageMetadata | string;
+
+/**
+ * Naturaleza del asset, no su rol comercial:
+ * - `render`: recorte con transparencia. Flota sobre la tarjeta, con aire.
+ * - `photo`: foto con fondo propio. Va a sangre en la caja, sin relleno.
+ */
+export type RewardMedia = 'render' | 'photo';
 
 export interface RewardItem {
   src: RewardSource;
   alt: string;
-  /** Label grande de marca, p.ej. "Polera oficial". */
+  /** Label de marca, p.ej. "Polera oficial". */
   label: string;
+  /** Condición REAL para llevárselo. Obligatorio: sin esto la pieza miente. */
+  terms: string;
+  media: RewardMedia;
 }
 
 interface Props {
@@ -37,103 +68,150 @@ const { items } = Astro.props;
 
 {
   items.length > 0 && (
-    <section class="rewards" aria-labelledby="rewards-title">
-      <div class="rewards__inner">
-        <h2 id="rewards-title" class="rewards__title" data-reveal>
-          Lo que te llevás
-        </h2>
+    <section class="rewards">
+      <SectionHeading kicker="// Qué incluye" title="El kit de la carrera" />
 
-        <div class="rewards__grid">
-          {items.map((item, i) => (
-            <figure class="reward" data-reveal data-delay={i + 1}>
-              <div class="reward__tile">
-                <Image
-                  class="reward__img"
-                  src={item.src}
-                  alt={item.alt}
-                  inferSize={typeof item.src === 'string' ? true : undefined}
-                  widths={[320, 480, 640]}
-                  sizes="(max-width: 640px) 88vw, 380px"
-                  loading="lazy"
-                />
-              </div>
-              <figcaption class="reward__label">{item.label}</figcaption>
-            </figure>
-          ))}
-        </div>
+      <div class="rewards__grid">
+        {items.map((item, i) => (
+          <figure class="reward" data-media={item.media} data-reveal data-delay={i + 1}>
+            <div class="reward__frame">
+              <Image
+                class="reward__img"
+                src={item.src}
+                alt={item.alt}
+                inferSize={typeof item.src === 'string' ? true : undefined}
+                widths={[300, 600]}
+                sizes="300px"
+                loading="lazy"
+              />
+            </div>
+            <figcaption class="reward__cap">
+              <span class="reward__label">{item.label}</span>
+              <span class="reward__terms">{item.terms}</span>
+            </figcaption>
+          </figure>
+        ))}
       </div>
     </section>
   )
 }
 
 <style>
-  /* Full-bleed: la sección vive FUERA del contenedor del detalle, así que su
-     fondo sangra a todo el ancho y su contenido se recentra adentro. Crema
-     cálida + hairlines = banda distinta sin cortar el tono claro de la página. */
-  .rewards {
-    background: var(--fl-cream-2);
-    border-top: 1px solid var(--fl-hairline-ink);
-    border-bottom: 1px solid var(--fl-hairline-ink);
-  }
-  .rewards__inner {
-    max-width: var(--fl-container);
-    margin: 0 auto;
-    padding: clamp(56px, 8vw, 104px) clamp(20px, 5vw, 56px);
-  }
+  /* Ya no es una banda full-bleed: es una sección de la columna, como Descripción
+     y Modalidades. Antes era la ÚNICA sección centrada de la página y su título
+     pesaba más que el h1 de la carrera — la jerarquía apuntaba al merch. */
 
-  .rewards__title {
-    margin: 0 0 clamp(32px, 5vw, 56px);
-    font-family: 'Archivo Black', sans-serif;
-    font-size: clamp(32px, 4.4vw, 56px);
-    line-height: 0.98;
-    letter-spacing: -0.02em;
-    text-transform: uppercase;
-    text-wrap: balance;
-    text-align: center;
-    color: var(--fl-ink);
-  }
-
-  /* Flex-wrap centrado (no grid rígido): con un solo ítem queda centrado sin
-     dejar una columna vacía; con dos, lado a lado. */
+  /* Columnas iguales de verdad: `1fr 1fr` con `minmax(0, …)` para que una imagen
+     ancha no pueda reventar su columna (el clásico min-width:auto de los grid
+     items). Las tarjetas se estiran a la misma altura aunque una condición ocupe
+     dos líneas y la otra tres. */
   .rewards__grid {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: clamp(28px, 5vw, 56px);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(16px, 2.5vw, 24px);
+    align-items: stretch;
+    /* Tope: por debajo de 900px la ficha se apila y esta columna pasa a ocupar todo
+       el ancho. Sin freno, las tarjetas se irían a ~520px con la imagen de 300
+       flotando en el medio, y la tarjeta se volvería un marco vacío. */
+    max-width: 700px;
+  }
+  @media (max-width: 560px) {
+    .rewards__grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
 
+  /* Tarjeta recta, no el "blob" redondeado de la referencia: el surface público no
+     usa `border-radius` en NINGÚN lado, y esta sección no va a ser la excepción. */
   .reward {
     margin: 0;
-    flex: 0 1 380px;
-    max-width: 420px;
     display: flex;
     flex-direction: column;
+    align-items: center;
+    gap: clamp(14px, 2vw, 20px);
+    padding: clamp(18px, 2.6vw, 28px);
+    background: var(--fl-surface);
+    border: 1px solid var(--fl-hairline-ink);
+    min-width: 0;
   }
 
-  /* Placa clara: unifica render sobre blanco y foto oscura, y hace de marco.
-     Esquinas rectas, fiel al lenguaje del surface. */
-  .reward__tile {
-    aspect-ratio: 4 / 5;
-    background: var(--fl-surface);
-    overflow: hidden;
+  /* La caja cuadrada es la que iguala a las dos piezas: mismo tamaño para las dos,
+     pase lo que pase. El tope de 300px es el límite de la medalla (591px de
+     original), no una preferencia — y como las dos comparten caja, capar por la
+     más pobre es lo que mantiene la promesa de que se ven igual. */
+  .reward__frame {
+    width: 100%;
+    max-width: 300px;
+    aspect-ratio: 1 / 1;
+    overflow: hidden; /* el zoom de hover se recorta contra la caja, no contra la página */
   }
+
   .reward__img {
     width: 100%;
     height: 100%;
-    object-fit: contain;
-    /* Aire dentro del marco para que la pieza no toque los bordes. */
-    padding: clamp(18px, 3vw, 34px);
+    display: block;
+    object-fit: contain; /* nunca recortar: ni la prenda ni la medalla se tocan */
   }
 
-  /* Label protagonista: Archivo Black grande, no un mini-label del montón. */
-  .reward__label {
-    margin: clamp(16px, 2.2vw, 24px) 0 0;
-    font-family: 'Archivo Black', sans-serif;
-    font-size: clamp(22px, 3.2vw, 34px);
-    line-height: 1;
-    letter-spacing: -0.02em;
-    text-transform: uppercase;
+  /* Render: flota sobre la tarjeta (mismo fondo, sin marco) y respira. */
+  .reward[data-media='render'] .reward__frame {
+    background: var(--fl-surface);
+  }
+  .reward[data-media='render'] .reward__img {
+    padding: clamp(6px, 1.4vw, 14px);
+  }
+
+  /* Foto: a sangre. El navy sólo asoma si algún día llega una foto que no sea
+     cuadrada; la de hoy calza exacta. */
+  .reward[data-media='photo'] .reward__frame {
+    background: var(--fl-navy-3);
+  }
+
+  .reward__cap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     text-align: center;
+    gap: 8px;
+  }
+  .reward__label {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(17px, 2.2vw, 22px);
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
     color: var(--fl-ink);
+  }
+  /* La condición NO puede ser letra chica: es el dato que decide si el corredor se
+     lleva la pieza o no. Va en `--fl-on-cream-muted` (6.70:1), nunca en
+     `--fl-on-cream-faint`, que reprueba AA con 2.81:1. */
+  .reward__terms {
+    font-family: 'Space Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.5;
+    letter-spacing: 0.5px;
+    color: var(--fl-on-cream-muted);
+    text-wrap: balance;
+  }
+
+  /* --- Motion --------------------------------------------------------------
+     La medalla es una foto con la luz quemada en el píxel: inclinarla o pasarle un
+     brillo movería la ESCENA (fondo, sombra y rayos) y leería como una foto
+     manoseada, no como una medalla girando. El objeto no se anima.
+
+     Queda entonces el vocabulario de la casa: las tarjetas entran escalonadas con
+     el `data-reveal` global (subida + fade, sin JS nuevo) y la imagen respira al
+     pasar el puntero. Nada de elevar la tarjeta en hover: no es un enlace, y
+     fingir que se puede clickear es mentirle al usuario. */
+
+  /* Sólo con puntero fino: en táctil el hover se dispara al tocar y da falsos
+     positivos. `transform` y nada más — no toca layout ni pintura. */
+  @media (hover: hover) and (pointer: fine) {
+    .reward__img {
+      transition: transform 0.4s var(--ease-out);
+    }
+    .reward:hover .reward__img {
+      transform: scale(1.03);
+    }
   }
 </style>

@@ -7,8 +7,9 @@
 // PR 3 (listado): `dayMonth()` (bloque de fecha de cada fila) y `raceStatus()`
 // (estado agregado por carrera — ver engram `sdd/strapi-content-connection/
 // list-status-badge`).
-// PR 4 (detalle): `heroDate()` (fecha larga del hero) y `calendarEventJsonLd()`
-// (JSON-LD SportsEvent de la página de detalle).
+// PR 4 (detalle): `longDate()` y `calendarEventJsonLd()` (JSON-LD SportsEvent de
+// la página de detalle). La fecha larga con día de semana NO vive acá: la comparte
+// con la home y por eso es `weekdayDate()` en `@shared/lib/date-format`.
 import { marked } from 'marked';
 import sanitizeHtml from 'sanitize-html';
 import type { CalendarEvent, CalendarModality } from '@shared/lib/content/events';
@@ -97,6 +98,33 @@ export function dayMonth(date: Date): { day: string; month: string } {
   };
 }
 
+/**
+ * Bloque de fecha del badge de una tarjeta de la grilla ("16 / AGO / 2026").
+ * A diferencia de `dayMonth()`, incluye el AÑO: la grilla mezcla carreras de
+ * años distintos (el archivo llega hasta 2025) y sin año dos tarjetas del mismo
+ * día de meses iguales quedan indistinguibles. UTC por el mismo motivo que
+ * `dayMonth()`.
+ */
+export function cardDate(date: Date): { day: string; month: string; year: string } {
+  return {
+    day: String(date.getUTCDate()).padStart(2, '0'),
+    month: MONTHS_ES[date.getUTCMonth()],
+    year: String(date.getUTCFullYear()),
+  };
+}
+
+/**
+ * Precio de entrada de la carrera ("Desde 105 Bs" / "GRATIS"): el MÍNIMO de sus
+ * modalidades. Es el número que decide si el corredor sigue leyendo, y el mínimo
+ * es el único honesto para un "desde". Null si la carrera no tiene modalidades
+ * cargadas — ahí no hay precio que prometer.
+ */
+export function fromPrice(modalities: CalendarModality[]): string | null {
+  if (modalities.length === 0) return null;
+  const min = Math.min(...modalities.map((m) => m.price));
+  return formatPrice(min);
+}
+
 export interface RaceStatus {
   label: string;
   tone: 'open' | 'warning' | 'closed';
@@ -121,19 +149,8 @@ export function raceStatus(modalities: CalendarModality[]): RaceStatus | null {
 }
 
 /**
- * Fecha larga del hero del detalle ("12 / JUL / 2026"). Igual que `dayMonth()`
- * usa los getters UTC porque `date` viene de una fecha sin hora de Strapi:
- * leerla en horario local podría correr el día según el timezone del build.
- */
-export function heroDate(date: Date): string {
-  const day = String(date.getUTCDate()).padStart(2, '0');
-  const month = MONTHS_ES[date.getUTCMonth()];
-  return `${day} / ${month} / ${date.getUTCFullYear()}`;
-}
-
-/**
- * Fecha de cierre de inscripción en formato legible ("31 de Agosto, 2026") para
- * el sidebar del detalle. UTC por el mismo motivo que `heroDate()`.
+ * Fecha de cierre de inscripción en formato legible ("31 de agosto de 2026") para
+ * la ficha del detalle. UTC por el mismo motivo que `dayMonth()`.
  */
 // En español los meses van en MINÚSCULA dentro de una fecha, y el año se une con
 // "de", no con una coma: "12 de julio de 2026". "12 de Julio, 2026" es un calco

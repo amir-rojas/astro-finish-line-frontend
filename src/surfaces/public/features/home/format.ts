@@ -4,26 +4,13 @@
 import type { CollectionEntry } from 'astro:content';
 import type { RaceEvent } from '@shared/lib/content/events';
 import { upcomingRaces } from '@shared/lib/race-date';
+// Las primitivas (locale es-BO, UTC) y la fecha larga (`weekdayDate`) viven en
+// `shared`: las comparten la home y el detalle del calendario. Antes la fecha
+// larga era `heroDate()` y vivía acá, y el detalle se colgaba de este feature
+// para usarla.
+import { capitalize as cap, datePart as part } from '@shared/lib/date-format';
 
 export type EventData = CollectionEntry<'events'>['data'];
-
-const LOCALE = 'es-BO';
-
-function cap(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
-function part(date: Date, opts: Intl.DateTimeFormatOptions): string {
-  return new Intl.DateTimeFormat(LOCALE, { ...opts, timeZone: 'UTC' }).format(date);
-}
-
-/** "Domingo 12 / Jul / 2026" */
-export function heroDate(date: Date): string {
-  const wd = cap(part(date, { weekday: 'long' }));
-  const day = part(date, { day: 'numeric' });
-  const mon = cap(part(date, { month: 'short' }).replace('.', ''));
-  return `${wd} ${day} / ${mon} / ${date.getUTCFullYear()}`;
-}
 
 /** "Dom 12 Jul" */
 export function shortDate(date: Date): string {

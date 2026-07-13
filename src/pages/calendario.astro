@@ -1,30 +1,65 @@
 ---
-// Ruta pública "/calendario" — listado de las carreras que todavía no pasaron.
+// Ruta pública "/calendario" — el año de carreras de Finish Line.
 // THIN: carga los eventos y orquesta las secciones del feature `calendar`.
 //
-// Las ediciones pasadas NO se listan acá: viven en el módulo "Así se vivió" de
-// la home. Este es el calendario de lo que viene.
+// La página dejó de ser SOLO lo que viene. Antes filtraba las corridas y, con un
+// organizador que tiene una carrera por delante a la vez, quedaba una única fila
+// de texto: una página vacía. Ahora tiene tres tiempos, en este orden:
 //
+//   1. La PRÓXIMA, como banda ancha (NextRace): la única que se puede inscribir
+//      hoy, y la única que necesita fecha, precio y botón.
+//   2. El resto de las que vienen, en grilla de afiches.
+//   3. Las que YA SE CORRIERON, en la misma grilla pero en tono de archivo.
+//
+// El bloque 3 no es relleno: es la prueba de que el organizador existe y corre.
+// Las corridas siguen apareciendo además en "Así se vivió" de la home — ahí son
+// una vitrina de 3; acá son el archivo completo.
 import PublicLayout from '@public/layouts/PublicLayout.astro';
 import SiteHeader from '@public/components/SiteHeader.astro';
 import SiteFooter from '@public/components/SiteFooter.astro';
 import ListHeader from '@public/features/calendar/sections/ListHeader.astro';
-import RaceList from '@public/features/calendar/sections/RaceList.astro';
+import NextRace from '@public/features/calendar/sections/NextRace.astro';
+import RaceGrid from '@public/features/calendar/sections/RaceGrid.astro';
 import EmptyState from '@public/features/calendar/sections/EmptyState.astro';
 import { getEvents } from '@shared/lib/content/events';
-import { upcomingRaces } from '@shared/lib/race-date';
+import { upcomingRaces, pastRaces } from '@shared/lib/race-date';
 
-const races = upcomingRaces(await getEvents());
+const events = await getEvents();
+const upcoming = upcomingRaces(events); // fecha asc
+const past = pastRaces(events); // más reciente primero
+
+// La destacada es la primera que viene; la grilla de próximas es todo lo demás.
+// Con una sola carrera por delante (el caso normal hoy), `rest` queda vacío y esa
+// grilla no se renderiza: la banda sola sostiene el bloque.
+const [next, ...rest] = upcoming;
 ---
 
 <PublicLayout
   title="Calendario de carreras"
-  description="Próximas carreras de Finish Line en Bolivia: fechas, distancias y estado de inscripción."
+  description="El calendario de carreras de Finish Line en Bolivia: próximas fechas, distancias, estado de inscripción y las ediciones que ya se corrieron."
 >
   <SiteHeader />
   <main id="contenido">
     <ListHeader />
-    {races.length > 0 ? <RaceList events={races} /> : <EmptyState />}
+
+    {next ? <NextRace event={next} /> : <EmptyState />}
+
+    {
+      rest.length > 0 && (
+        <RaceGrid kicker="// Lo que viene" title="El resto del calendario" events={rest} />
+      )
+    }
+
+    {
+      past.length > 0 && (
+        <RaceGrid
+          kicker="// Ediciones pasadas"
+          title="Carreras que ya se corrieron"
+          events={past}
+          past
+        />
+      )
+    }
   </main>
   <SiteFooter />
 </PublicLayout>

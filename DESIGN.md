@@ -40,7 +40,14 @@ Variantes del naranja (según de qué lado del contraste esté):
 
 Neutrales de texto (derivados, contraste ya verificado para AA):
 - Sobre navy: `#aebbcb`, `#b9c6d6` (cuerpo), `#cdd7e2` (chips), `#8295aa` / `#5d6f86` (meta tenue).
-- Sobre crema: `#6b6456` / `#5a5346` (cuerpo), `#9a8f78` (labels/meta).
+- Sobre crema: `#5a5346` = `--fl-on-cream-muted` (cuerpo) · `#6b6456` = `--fl-on-cream-faint` (labels/meta).
+
+> **`#9a8f78` está PROHIBIDO como color de texto.** Estuvo listado acá como
+> "verificado" y no lo estaba: da **2.81:1** sobre crema, **2.60:1** sobre crema-2 y
+> **3.19:1** sobre blanco — reprueba AA en los tres. Se comía los labels
+> `SIN POLERA` / `CON POLERA` del detalle, o sea el dato que separa 105 Bs de 230.
+> `--fl-on-cream-faint` pasó a `#6b6456` (5.16 / 4.77 / 5.86:1), que es el gris más
+> claro que pasa AA sobre los tres fondos reales: sigue siendo "tenue" sin mentir.
 
 ### Alfa por rol — divisorias, bordes y hovers
 

@@ -55,6 +55,9 @@ export interface RaceEvent {
   /** Punto de partida ("Plaza Avaroa"). Es el DÓNDE fino del detalle. Opcional:
       una carrera vieja que solo vive como recap puede no tenerlo. */
   location?: string;
+  /** Punto de llegada. Si coincide con `location`, la sección del recorrido lo dice
+      como "salida y llegada" en vez de repetir el mismo lugar dos veces. */
+  finishLocation?: string;
   /** Ciudad. Es el DÓNDE grueso: lo que sirve para escanear una lista de carreras
       de un organizador que corre en todo el país. */
   city?: string;
@@ -68,6 +71,14 @@ export interface RaceEvent {
   altitudeNote?: string;
   /** Hora de largada normalizada a "HH:mm". Alimenta el countdown junto con `date`. */
   startTime?: string;
+  /** Hora de concentración ("07:00"). El corredor la necesita tanto como la largada:
+      es a la que tiene que estar ahí. Estaba en el contenido y no llegaba a la vista. */
+  gatheringTime?: string;
+  /** Titular y párrafo del recorrido, más el mapa. */
+  courseTitle?: string;
+  courseDescription?: string;
+  routeMap?: ImageMetadata;
+  routeMapAlt?: string;
   /** Estado de la carrera (chip del hero). */
   status?: 'proximo' | 'inscripciones_abiertas' | 'cerrado' | 'finalizado';
   /** Co-organizador, p.ej. "Alcaldía de La Paz" (chip del hero). */
@@ -82,6 +93,10 @@ export interface RaceEvent {
   /** Variante apaisada del hero para pantallas anchas. Si falta, desktop reusa
       `heroImage`. Es art direction: no es la misma foto más grande, es otra toma. */
   heroImageDesktop?: ImageMetadata;
+  /** Afiche oficial. Solo para el detalle, que muestra la imagen contenida y sin
+      texto encima. Si falta, el detalle reusa `heroImage`. */
+  poster?: ImageMetadata;
+  posterAlt?: string;
   /** Álbum de fotos de la carrera (hoy, Facebook). Solo las carreras que de verdad
       tienen fotos lo traen: gobierna si su tarjeta de recap es clickeable. */
   photosUrl?: string;
@@ -93,9 +108,13 @@ export interface RaceEvent {
   /** Polera oficial del evento (foto de merch). Opcional: no todos los eventos la tienen. */
   shirt?: ImageMetadata;
   shirtAlt?: string;
+  /** Condición para llevarse la polera. Sin ella la pieza no se muestra. */
+  shirtTerms?: string;
   /** Medalla finisher del evento (foto). Opcional: no todos los eventos la tienen. */
   medal?: ImageMetadata;
   medalAlt?: string;
+  /** Condición para llevarse la medalla. Sin ella la pieza no se muestra. */
+  medalTerms?: string;
   /** Markdown crudo tal cual viene del JSON. Renderizar en la superficie que lo use. */
   descriptionRaw?: string;
   registrationUrl?: string;
@@ -161,6 +180,7 @@ export function toRaceEvent(entry: EventEntry): RaceEvent {
     title: data.title,
     date: data.date,
     location: data.location,
+    finishLocation: data.finishLocation,
     city: data.city,
     // Si hay modalidades reales, las distancias se derivan de ahí (misma regla
     // que Strapi); si no, cae al legacy `distances[]` (compat con contenido viejo).
@@ -169,6 +189,11 @@ export function toRaceEvent(entry: EventEntry): RaceEvent {
     altitudeM: data.altitudeM,
     altitudeNote: data.altitudeNote,
     startTime: data.startTime,
+    gatheringTime: data.gatheringTime,
+    courseTitle: data.courseTitle,
+    courseDescription: data.courseDescription,
+    routeMap: data.routeMap,
+    routeMapAlt: data.routeMapAlt,
     status: STATUS_MAP[data.status],
     coorganizer: data.coorganizer,
     isRunTour: data.isRunTour,
@@ -176,6 +201,8 @@ export function toRaceEvent(entry: EventEntry): RaceEvent {
     heroImage: data.heroImage,
     heroImageAlt: data.heroImageAlt ?? data.title,
     heroImageDesktop: data.heroImageDesktop,
+    poster: data.poster,
+    posterAlt: data.posterAlt,
     photosUrl: data.photosUrl,
     // La foto del recap cae a la del hero: casi siempre es la misma carrera vista
     // desde la misma cámara, y obligar a cargar dos veces la misma imagen sería
@@ -185,8 +212,10 @@ export function toRaceEvent(entry: EventEntry): RaceEvent {
     recapImageFocus: data.recapImageFocus ?? '50% 40%',
     shirt: data.shirt,
     shirtAlt: data.shirtAlt ?? `Polera oficial de ${data.title}`,
+    shirtTerms: data.shirtTerms,
     medal: data.medal,
     medalAlt: data.medalAlt ?? `Medalla finisher de ${data.title}`,
+    medalTerms: data.medalTerms,
     descriptionRaw: data.description,
     // El CTA del detalle usa una sola URL. Si el JSON no trae `registrationUrl`
     // top-level, se deriva de la vía destacada de `registrationOptions` (o la

@@ -22,8 +22,10 @@ const { blocks } = Astro.props;
       <SectionHeading kicker="// Antes de correr" title="Información del evento" />
 
       <div class="einfo__list">
-        {blocks.map((block) => (
-          <article class="einfo__block">
+        {blocks.map((block, i) => (
+          /* Igual que en Modalidades: el escalonado se corta en el cuarto bloque.
+             Más allá, la cascada deja de ser ritmo y pasa a ser espera. */
+          <article class="einfo__block" data-reveal data-delay={Math.min(i + 1, 4)}>
             <h3 class="einfo__title">{block.title}</h3>
             <div class="einfo__body" set:html={renderMarkdown(block.contentRaw)} />
 

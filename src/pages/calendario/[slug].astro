@@ -10,6 +10,7 @@ import SiteFooter from '@public/components/SiteFooter.astro';
 import DetailHero from '@public/features/calendar/sections/DetailHero.astro';
 import Description from '@public/features/calendar/sections/Description.astro';
 import Modalities from '@public/features/calendar/sections/Modalities.astro';
+import RouteMap from '@public/features/calendar/sections/RouteMap.astro';
 import EventInfo from '@public/features/calendar/sections/EventInfo.astro';
 import RaceRewards from '@public/features/calendar/sections/RaceRewards.astro';
 import type { RewardItem } from '@public/features/calendar/sections/RaceRewards.astro';
@@ -45,22 +46,37 @@ const description =
 
 const jsonLd = calendarEventJsonLd(event, pageUrl);
 
-// Merch de la carrera: se muestra lo que traiga el contenido (`shirt`/`medal`).
-// Ambos opcionales — si el evento no los define, la banda de recompensas no se
-// renderiza (ver RaceRewards.astro).
+// Merch de la carrera. Una pieza entra SOLO si trae su condición (`*Terms`): sin
+// ella, la foto es una promesa que la carrera puede no cumplir. Es exactamente lo
+// que pasaba — la polera se exhibía como incluida cuando en realidad es lo único
+// que separa la vía de 105 Bs de la de 230. Omitir la foto es peor comercialmente
+// y mejor moralmente que mostrarla mintiendo; y como la guarda es estructural, el
+// bug no puede volver por un olvido de carga.
+//
+// `media` describe la NATURALEZA del archivo, no su importancia: la polera llega
+// como recorte con transparencia y la medalla como foto de escena, con su fondo y
+// su luz quemados en el píxel. De ahí sale cómo se enmarca y cuánto puede crecer
+// cada una (ver RaceRewards). Está fijo acá y no en el contenido porque hoy es una
+// propiedad de los assets que tenemos, no una decisión editorial por carrera: si
+// algún día llega un recorte de la medalla en alta, esto pasa a 'render' —o al
+// esquema, si deja de ser parejo entre carreras.
 const rewards: RewardItem[] = [];
-if (event.shirt) {
+if (event.shirt && event.shirtTerms) {
   rewards.push({
     src: event.shirt,
     alt: event.shirtAlt ?? `Polera oficial de ${event.title}`,
     label: 'Polera oficial',
+    terms: event.shirtTerms,
+    media: 'render',
   });
 }
-if (event.medal) {
+if (event.medal && event.medalTerms) {
   rewards.push({
     src: event.medal,
     alt: event.medalAlt ?? `Medalla finisher de ${event.title}`,
     label: 'Medalla finisher',
+    terms: event.medalTerms,
+    media: 'photo',
   });
 }
 
@@ -97,18 +113,39 @@ const ogImage = event.heroImage
   <SiteHeader />
 
   <main id="contenido">
-    <DetailHero {event} />
-
-    {/* El gancho emocional (polera + medalla) va primero: el atleta ve lo que se
-        lleva mientras el CTA sigue presente. Las secciones de contenido quedan
-        como respaldo racional. */}
-    <RaceRewards items={rewards} />
+    {/* El link solo viaja si de verdad se puede inscribir: el afiche trae un botón
+        dibujado, y mandarlo a pagar una carrera ya corrida o agotada sería peor que
+        dejarlo inerte. */}
+    <DetailHero
+      {event}
+      registrationHref={!finished && !soldOut ? event.registrationUrl : undefined}
+    />
 
     <div class="detail">
       <div class="detail__inner">
+        {/* El orden ES el camino de conversión: qué es → por dónde se corre →
+            cuánto cuesta → qué me llevo. El recorrido va ANTES del precio (le vende
+            la carrera antes de pedirle plata) y, sobre todo, NO se mete entre
+            Modalidades y el kit: esos dos tienen que quedar pegados, o la foto de la
+            polera vuelve a alejarse de la fila "Con polera · 230 Bs" que la explica. */}
         <div class="detail__main">
           {event.descriptionRaw && <Description markdown={event.descriptionRaw} />}
+          {/* La sección se planta si hay MAPA o si hay TEXTO. Condicionarla solo al
+              mapa tiraba el recorrido de La Paz 10K, que tiene `courseTitle` y
+              `courseDescription` cargados y ningún mapa dibujado: ese texto no
+              aparecía en ninguna página del sitio. */}
+          {(event.routeMap || event.courseDescription) && (
+            <RouteMap
+              map={event.routeMap}
+              alt={event.routeMapAlt}
+              title={event.courseTitle}
+              description={event.courseDescription}
+              start={event.location}
+              finish={event.finishLocation}
+            />
+          )}
           {event.modalities.length > 0 && <Modalities modalities={event.modalities} />}
+          <RaceRewards items={rewards} />
           {event.infoBlocks.length > 0 && <EventInfo blocks={event.infoBlocks} />}
         </div>
         <div class="detail__side">
@@ -143,10 +180,13 @@ const ogImage = event.heroImage
       height: calc(84px + env(safe-area-inset-bottom, 0px));
     }
   }
+  /* El padding superior era de 80px y se sumaba a los 72px con que cerraba el hero:
+     152px de hueco muerto que nadie decidió. El hero ya cierra ajustado; acá queda
+     la separación de sección, una sola vez. */
   .detail__inner {
     max-width: var(--fl-container);
     margin: 0 auto;
-    padding: clamp(40px, 6vw, 80px) clamp(20px, 5vw, 56px);
+    padding: clamp(32px, 4.5vw, 60px) clamp(20px, 5vw, 56px) clamp(48px, 7vw, 88px);
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
     gap: clamp(32px, 5vw, 72px);
@@ -158,8 +198,8 @@ const ogImage = event.heroImage
     gap: clamp(36px, 5vw, 56px);
     min-width: 0;
   }
-  /* La sidebar acompaña el scroll en pantallas amplias (contenido largo de
-     descripción/modalidades); en móvil se apila debajo, sin sticky. */
+  /* La ficha acompaña el scroll: el corredor lee el recorrido y los precios con la
+     fecha, la hora y el botón siempre a la vista. */
   .detail__side {
     position: sticky;
     top: 96px;
@@ -169,8 +209,12 @@ const ogImage = event.heroImage
     .detail__inner {
       grid-template-columns: 1fr;
     }
+    /* En una sola columna la ficha va PRIMERO, no al final: es la respuesta a las
+       preguntas que el corredor trae (cuándo, dónde, desde cuánto). Apilada abajo,
+       el precio quedaba a 2000px de scroll y la hora directamente no se veía. */
     .detail__side {
       position: static;
+      order: -1;
     }
   }
 </style>

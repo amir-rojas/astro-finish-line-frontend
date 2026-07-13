@@ -1,12 +1,22 @@
 ---
-// DetailSidebar — columna lateral del detalle: cierre de inscripción (si Strapi
-// lo trae), CTA único de inscripción hacia `registrationUrl` (único link de
-// registro externo del detalle → RunSignup) y categorías por edad. El copy del
-// CTA es gratis-aware ("Inscribirse gratis" si la carrera es gratis), misma
-// convención que la landing. Cada bloque se omite si su dato está ausente —
-// sin placeholders vacíos (spec: campos opcionales).
+// DetailSidebar — la FICHA DE DECISIÓN del detalle: todo lo que el corredor
+// necesita para decir que sí, junto y a la mano.
+//
+// Antes era un botón suelto en una columna vacía: 77px de contenido contra 1343px
+// de la columna principal, o sea 1266px de crema muerta a la derecha. Y los datos
+// que le daban sentido (fecha, lugar) vivían en el hero, a lo ancho. El layout
+// tenía los muebles en la habitación equivocada.
+//
+// Ahora concentra: cuándo (fecha + largada + concentración), dónde, desde cuánto,
+// y el botón. Sticky en desktop, así te sigue mientras leés el recorrido y los
+// precios. En móvil sube al TOPE de la columna (`order: -1` en el orquestador):
+// el corredor ve la hora y el precio de entrada, en vez de a 2000px de scroll.
 import type { CalendarEvent } from '@shared/lib/content/events';
-import { longDate, isFreeEvent } from '../format';
+import { longDate, isFreeEvent, formatPrice } from '../format';
+// La fecha larga es de los DOS features (el hero de la home la muestra igual), así
+// que vive en shared. Antes se importaba de `features/home/format` — el calendario
+// colgándose de la home.
+import { weekdayDate } from '@shared/lib/date-format';
 
 interface Props {
   event: CalendarEvent;
@@ -22,9 +32,61 @@ interface Props {
 const { event, soldOut = false, finished = false } = Astro.props;
 const { registrationDeadline, registrationUrl, categories } = event;
 const isFree = isFreeEvent(event.modalities);
+
+const place = event.location ?? event.city;
+
+// "Desde X Bs": el precio de entrada, arriba, sin obligar a bajar hasta la tabla.
+// La pregunta #1 del corredor era "cuánto cuesta" y la respuesta estaba a 2112px.
+// No reemplaza a Modalidades —ahí se explica la matriz completa—, la anticipa.
+const desde =
+  !finished && event.modalities.length > 0
+    ? Math.min(...event.modalities.map((m) => m.price))
+    : null;
 ---
 
 <aside class="sb">
+  {/* Los datos duros primero: son los que el corredor viene a buscar y los que
+      necesita para decidir. La carrera corrida los conserva —siguen siendo su
+      registro— pero pierde el precio y el botón. */}
+  <dl class="sb__facts">
+    <div class="sb__fact">
+      <dt>Fecha</dt>
+      <dd>{weekdayDate(event.date)}</dd>
+    </div>
+    {
+      event.startTime && (
+        <div class="sb__fact">
+          <dt>Largada</dt>
+          <dd>{event.startTime}</dd>
+        </div>
+      )
+    }
+    {
+      event.gatheringTime && (
+        <div class="sb__fact">
+          <dt>Concentración</dt>
+          <dd>{event.gatheringTime}</dd>
+        </div>
+      )
+    }
+    {
+      place && (
+        <div class="sb__fact">
+          <dt>Lugar</dt>
+          <dd>{place}</dd>
+        </div>
+      )
+    }
+    {
+      desde !== null && (
+        <div class="sb__fact sb__fact--price">
+          <dt>Desde</dt>
+          <dd>{formatPrice(desde)}</dd>
+        </div>
+      )
+    }
+  </dl>
+
   {
     !finished && registrationDeadline && (
       <div class="sb__deadline">
@@ -86,7 +148,56 @@ const isFree = isFreeEvent(event.modalities);
   .sb {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    /* Tenso adentro de la ficha (los datos son un grupo), generoso entre bloques.
+       El ritmo lo hace el contraste, no un gap uniforme. */
+    gap: 16px;
+  }
+
+  /* La ficha de datos: placa blanca sobre crema, mismo lenguaje que el resto del
+     surface (esquinas rectas, hairline). Es el objeto que el corredor mira para
+     decidir, así que se lee como UN objeto, no como cuatro líneas sueltas. */
+  .sb__facts {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--fl-surface);
+    border: 1px solid var(--fl-hairline-ink);
+  }
+  .sb__fact {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px clamp(16px, 2vw, 20px);
+  }
+  .sb__fact + .sb__fact {
+    border-top: 1px solid var(--fl-hairline-ink);
+  }
+  .sb__fact dt {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--fl-on-cream-faint);
+    flex-shrink: 0;
+  }
+  .sb__fact dd {
+    margin: 0;
+    font-family: 'Archivo', sans-serif;
+    font-weight: 800;
+    font-size: 15px;
+    line-height: 1.3;
+    text-align: right;
+    text-transform: uppercase;
+    color: var(--fl-ink);
+  }
+  /* El precio es la respuesta a la pregunta #1: se lee como cifra, no como dato.
+     Archivo Black y más grande — es el único salto de escala de la ficha, y por eso
+     funciona sin necesitar color. */
+  .sb__fact--price dd {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(20px, 2.4vw, 24px);
+    letter-spacing: -0.01em;
   }
 
   .sb__deadline {
@@ -160,6 +271,19 @@ const isFree = isFreeEvent(event.modalities);
     color: var(--fl-on-cream-faint);
   }
 
+  /* En móvil la acción vive UNA sola vez, en la barra fija del pulgar. La sidebar
+     se apila al final de la columna, así que su CTA quedaba visible AL MISMO TIEMPO
+     que la barra fija: dos botones naranjas idénticos en pantalla, y el usuario
+     teniendo que deducir si son el mismo. La sidebar conserva la información
+     (cierre de inscripción, categorías, estado); la acción, no. */
+  /* Especificidad doble a propósito: la regla base de `.sb__cta` viene después y un
+     media query no suma especificidad, así que sin esto no ganaría. */
+  @media (max-width: 900px) {
+    .sb .sb__cta {
+      display: none;
+    }
+  }
+
   .sb__cta {
     display: flex;
     align-items: center;
@@ -175,7 +299,9 @@ const isFree = isFreeEvent(event.modalities);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     line-height: 1.15;
-    transition: background 160ms var(--ease-out);
+    transition:
+      background 160ms var(--ease-out),
+      transform 160ms var(--ease-out);
   }
   .sb__cta-arrow {
     font-size: 22px;
@@ -189,6 +315,13 @@ const isFree = isFreeEvent(event.modalities);
     .sb__cta:hover .sb__cta-arrow {
       transform: translateX(4px);
     }
+  }
+  /* El botón que decide la conversión de la página era el ÚNICO que no se hundía
+     al apretarlo: el CTA móvil y el footer ya lo hacían. Va FUERA del bloque
+     `hover`, porque el acuse de recibo del toque importa sobre todo en el dedo,
+     que es justo donde no hay hover que confirme nada. */
+  .sb__cta:active {
+    transform: scale(0.97);
   }
 
   .sb__cats-label {
