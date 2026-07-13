@@ -160,6 +160,19 @@ const isFree = isFreeEvent(event.modalities);
     color: var(--fl-on-cream-faint);
   }
 
+  /* En móvil la acción vive UNA sola vez, en la barra fija del pulgar. La sidebar
+     se apila al final de la columna, así que su CTA quedaba visible AL MISMO TIEMPO
+     que la barra fija: dos botones naranjas idénticos en pantalla, y el usuario
+     teniendo que deducir si son el mismo. La sidebar conserva la información
+     (cierre de inscripción, categorías, estado); la acción, no. */
+  /* Especificidad doble a propósito: la regla base de `.sb__cta` viene después y un
+     media query no suma especificidad, así que sin esto no ganaría. */
+  @media (max-width: 900px) {
+    .sb .sb__cta {
+      display: none;
+    }
+  }
+
   .sb__cta {
     display: flex;
     align-items: center;
