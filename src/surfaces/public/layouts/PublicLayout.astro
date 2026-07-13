@@ -5,6 +5,7 @@
 // fuentes Archivo / Archivo Black / Space Mono, lienzo navy y color crema.
 // El panel admin usa su propio AdminLayout; nunca se mezclan.
 import BaseLayout from '@shared/layouts/BaseLayout.astro';
+import { ClientRouter } from 'astro:transitions';
 import '../styles/public.css';
 
 interface Props {
@@ -20,11 +21,17 @@ const { title, description, ogImage, ogUrl, canonical } = Astro.props;
 <BaseLayout {title} {description} {ogImage} {ogUrl} {canonical}>
   {/* Fuentes propias del surface público, inyectadas en el <head> del shell. */}
   <Fragment slot="head">
+    {/* Transiciones entre páginas. Va acá y no en BaseLayout para no arrastrar el
+        router al panel admin: navegar público→admin cae a full reload, que es lo
+        correcto. Astro desactiva sus animaciones con `prefers-reduced-motion`. */}
+    <ClientRouter />
     {/* preconnect a fonts.googleapis.com / fonts.gstatic.com ya vive en BaseLayout */}
     <link
       href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Archivo+Black&family=Space+Mono:wght@400;700&display=swap"
       rel="stylesheet"
     />
+    {/* Cada página puede inyectar metas/JSON-LD extra en el <head> del shell. */}
+    <slot name="head" />
   </Fragment>
 
   <div data-surface="public" class="public-surface">
@@ -33,48 +40,89 @@ const { title, description, ogImage, ogUrl, canonical } = Astro.props;
 </BaseLayout>
 
 <script>
-  // Revelado al entrar en viewport. Solo se activa con JS y si el usuario no
-  // pidió reducir movimiento: por defecto el contenido es visible (no-JS safe).
-  const root = document.querySelector<HTMLElement>('.public-surface');
-  const allowMotion = window.matchMedia('(prefers-reduced-motion: no-preference)').matches;
+  // Revelado al entrar en viewport.
+  //
+  // REGLA: el contenido visible NUNCA se oculta. Solo se "arma" (`data-armed`,
+  // que es lo que el CSS esconde) lo que ya está debajo del fold al cargar. Un
+  // elemento armado siempre termina revelado: o lo cruza el observer, o lo
+  // suelta una de las salidas de emergencia de abajo.
+  //
+  // Corre en `astro:page-load`, que dispara en la carga inicial y después de
+  // cada navegación del ClientRouter. El observer anterior se desconecta en
+  // `astro:before-swap`: sin eso, cada navegación dejaría uno vivo observando
+  // nodos que ya no están en el documento.
+  let io: IntersectionObserver | null = null;
+  let failsafe: number | undefined;
 
-  if (root && allowMotion && 'IntersectionObserver' in window) {
-    root.classList.add('reveal-ready');
-    const io = new IntersectionObserver(
+  function initReveal() {
+    const root = document.querySelector<HTMLElement>('.public-surface');
+    const allowMotion = window.matchMedia('(prefers-reduced-motion: no-preference)').matches;
+    if (!root || !allowMotion || !('IntersectionObserver' in window)) return;
+
+    // Un render automatizado (screenshot, PDF, auditoría) no scrollea: el
+    // observer no dispararía nunca y la página saldría vacía. Que vea lo mismo
+    // que un lector que ya bajó.
+    if (navigator.webdriver || document.hidden) return;
+
+    const armed = new Set<HTMLElement>();
+    const release = (el: HTMLElement) => {
+      el.classList.add('is-in');
+      armed.delete(el);
+    };
+    const releaseAll = () => {
+      for (const el of [...armed]) release(el);
+      io?.disconnect();
+      io = null;
+      clearTimeout(failsafe);
+    };
+
+    io = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
           if (entry.isIntersecting) {
-            entry.target.classList.add('is-in');
-            io.unobserve(entry.target);
+            release(entry.target as HTMLElement);
+            io?.unobserve(entry.target);
           }
         }
       },
       { rootMargin: '0px 0px -10% 0px', threshold: 0.12 },
     );
-    const els = Array.from(root.querySelectorAll<HTMLElement>('[data-reveal]'));
-    // Doble rAF: se pinta el estado oculto y recién después se revela, para que
-    // la transición corra. Lo que ya está en la primera pantalla (hero completo,
-    // incluido el contador al borde inferior) entra al cargar; el resto, al scroll.
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() => {
-        for (const el of els) {
-          const rect = el.getBoundingClientRect();
-          const inView = rect.top < window.innerHeight && rect.bottom > 0;
-          if (inView) el.classList.add('is-in');
-          else io.observe(el);
-        }
-      }),
-    );
+
+    for (const el of root.querySelectorAll<HTMLElement>('[data-reveal]')) {
+      // Estrictamente por debajo del fold. Lo que asoma aunque sea un píxel se
+      // queda como está: nunca parpadea.
+      if (el.getBoundingClientRect().top < window.innerHeight) continue;
+      el.dataset.armed = '';
+      armed.add(el);
+      io.observe(el);
+    }
+
+    // Salidas de emergencia. Garantizan que nada quede oculto para siempre:
+    //  1. imprimir (el CSS ya lo cubre, pero así el DOM también queda coherente)
+    //  2. un tope de 10s: si en 10 segundos nadie scrolleó, la animación ya no
+    //     le importa a nadie, y el contenido sí.
+    window.addEventListener('beforeprint', releaseAll, { once: true });
+    failsafe = window.setTimeout(releaseAll, 10_000);
   }
+
+  document.addEventListener('astro:page-load', initReveal);
+  document.addEventListener('astro:before-swap', () => {
+    io?.disconnect();
+    io = null;
+    clearTimeout(failsafe);
+  });
 </script>
 
 <style>
   .public-surface {
     --fl-navy: #0e1c30;
+    --fl-navy-2: #142944; /* banda navy apenas más clara (p.ej. Run Tour), separa de secciones navy contiguas */
+    --fl-navy-3: #0a1525; /* navy más profundo: texto oscuro sobre acentos claros (medallas, badges) */
     --fl-ink: #14233a;
     --fl-orange: #ee5314; /* acento de marca: mark, motivos, foco (no texto blanco encima) */
     --fl-orange-strong: #cf3f0d; /* naranja para superficies con texto blanco: 4.8:1 AA */
     --fl-orange-hover: #b8380b; /* hover de CTAs primarios (texto blanco) */
+    --fl-orange-ink: #b83609; /* naranja como TEXTO sobre claro (links en crema): 5.18:1 AA. NO confundir con -strong, que es para texto blanco ENCIMA del naranja */
     --fl-cream: #f6f0e4;
     --fl-cream-2: #efe7d6;
     --fl-cream-3: #e1d6bd;
@@ -84,6 +132,34 @@ const { title, description, ogImage, ogUrl, canonical } = Astro.props;
     --fl-on-navy-muted: #8295aa;
     --fl-on-cream-muted: #5a5346;
     --fl-on-cream-faint: #9a8f78;
+
+    /* Crema y naranja con alfa, SOBRE NAVY. No son colores nuevos: son los de
+       marca a baja opacidad, y se escribían a mano —`rgba(246, 240, 228, .12)`—
+       en el header, el hero, el precio y el footer. Un token por rol, no por
+       valor: si la divisoria tiene que respirar más, se cambia acá. */
+    --fl-hairline: rgba(246, 240, 228, 0.12); /* reglas y divisorias entre bloques */
+    --fl-edge: rgba(246, 240, 228, 0.18); /* borde de chips, tarjetas y botones ghost */
+    --fl-wash: rgba(246, 240, 228, 0.06); /* fondo de hover neutro sobre navy */
+    --fl-wash-orange: rgba(238, 83, 20, 0.1); /* fondo de hover naranja sobre navy */
+
+    /* Divisoria SOBRE CREMA: la contraparte de --fl-hairline para secciones
+       claras. Es `--fl-ink` (la tinta sobre crema) a baja opacidad. Nace porque
+       las pantallas de calendario/detalle/agenda se calcaron de un mockup con
+       otra paleta y cada una escribió su propia `rgba()` navy —dos bases y dos
+       alfas para el mismo rol. Un token, un rol. */
+    --fl-hairline-ink: rgba(20, 35, 58, 0.1); /* reglas y divisorias entre bloques claros */
+
+    /* ESTADO DE INSCRIPCIÓN — extensión funcional deliberada, FUERA del ramp de
+       marca. El semáforo verde/ámbar/gris es una convención universal y el
+       usuario escanea el listado con ella; la marca (navy/crema/naranja) no
+       tiene un tercer acento para codificar urgencia, y el naranja ya significa
+       "inscribirse". No usar estos tokens para nada que no sea estado.
+       Contraste con texto blanco verificado (mínimo AA a 11px bold). */
+    --fl-status-open: #1f7a4d; /* rellenos sobre crema; blanco encima: 5.32:1 */
+    --fl-status-warning: #a15c00; /* blanco encima: 5.19:1 */
+    --fl-status-closed: #52525b; /* blanco encima: 7.73:1 */
+    --fl-status-open-ink: #8ee0ac; /* tinta/borde sobre navy: 10.92:1 */
+
     --fl-container: 1180px;
 
     background: var(--fl-navy);

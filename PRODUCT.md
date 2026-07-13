@@ -17,13 +17,25 @@ de eventos y público/espectadores que consultan resultados.
 
 ## Product Purpose
 
-Finish Line es una plataforma de **inscripción a eventos deportivos**. Esta
-superficie pública (`surfaces/public`) es la landing que **promociona el
-próximo evento** y empuja a la única acción que importa hoy: **inscribirse**.
+Finish Line **organiza** carreras: una serie propia (el Run Tour) más carreras
+sueltas a lo largo del año, algunas co-organizadas. La superficie pública
+(`surfaces/public`) es el sitio del organizador, no la landing de un evento: la
+home presenta la próxima carrera y la identidad de la serie, `/calendario` lista
+lo que viene, y cada carrera tiene su página de detalle. El éxito se mide por
+atletas que llegan a inscribirse en la carrera que buscaban.
 
-En esta entrega la inscripción **no es nativa**: el CTA principal **redirige a
-Eventrid** (plataforma externa de registro). El éxito de la landing se mide por
-cuántos atletas hacen clic e inician la inscripción en Eventrid.
+La inscripción **todavía no es nativa**: cada carrera enlaza a **Eventrid**
+(plataforma externa de registro) desde su página de detalle. Es el flujo normal,
+y la meta de producto es **traerlo adentro** — un módulo de pagos propio, sin
+links externos. Hasta entonces, Eventrid.
+
+El CTA de inscripción vive **en el detalle de cada carrera**, nunca en el header
+ni en la home: con muchas carreras en agenda no existe "la" inscripción, existe
+la de Renacer, la de San Silvestre, la del Desafío.
+
+> Nota histórica: "La Paz, la ciudad que corre" (jul 2026) salió gratis porque la
+> alcaldía cubrió los costos, y se inscribió por RunSignup. Fue un caso puntual,
+> no un cambio de modelo.
 
 ## Brand Personality
 
@@ -47,8 +59,8 @@ hay que decidirse ahora. Energía competitiva sin agresividad de gimnasio.
 ## Design Principles
 
 1. **Cada segundo cuenta.** La urgencia y la precisión son el corazón de la
-   marca. Nada decorativo que distraiga del próximo evento ni de su CTA; cada
-   elemento empuja hacia la inscripción.
+   marca. Nada decorativo que distraiga de la carrera que el atleta vino a
+   encontrar; cada elemento acorta el camino hacia su inscripción.
 2. **Mostrar, no afirmar.** El evento real (fecha, recorrido, atmósfera, lugar)
    vende más que los adjetivos. Imágenes y datos concretos antes que copy vacío.
 3. **Honestidad sin teatro.** Sin estados falsos ni adornos de relleno; cada
@@ -56,9 +68,11 @@ hay que decidirse ahora. Energía competitiva sin agresividad de gimnasio.
    decorado.
 4. **Móvil es la línea de largada.** La mayoría llega desde el celular:
    rendimiento, legibilidad y jerarquía móvil son requisito, no ajuste posterior.
-5. **Un solo siguiente paso.** La conversión —inscribirse vía Eventrid— está
-   siempre clara, única e inconfundible. Las acciones secundarias se ven
-   secundarias.
+5. **Un solo siguiente paso, en el lugar correcto.** En cada página hay UNA
+   acción evidente, y es la que corresponde a esa página: en la home, conocer la
+   próxima carrera; en el calendario, elegir una; en el detalle, inscribirse. El
+   header no lleva CTA — no hay una inscripción genérica que ofrecer. Las
+   acciones secundarias se ven secundarias.
 
 ## Accessibility & Inclusion
 

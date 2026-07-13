@@ -1,0 +1,165 @@
+---
+// DetailHero — cabecera del detalle de carrera. A diferencia de la home
+// (`Hero.astro`, foto a sangre completa con el texto encima), acá la imagen va
+// CONTENIDA al ancho de página, sin scrim, y el bloque de texto (distancias →
+// título → UBICACIÓN/FECHA) vive debajo sobre crema. Así el detalle se diferencia
+// de la home en vez de calcar su hero, y respira más. Si la carrera no trae
+// heroImage, la imagen degrada a un panel crema con la franja diagonal de marca
+// (mismo motivo que ListHeader) — no se muestra un hueco ni un placeholder roto.
+import { Image } from 'astro:assets';
+import type { CalendarEvent } from '@shared/lib/content/events';
+import { heroDate } from '../format';
+
+interface Props {
+  event: CalendarEvent;
+}
+const { event } = Astro.props;
+
+const distances = [...new Set(event.distances)];
+---
+
+<section class="dh">
+  <div class="dh__inner">
+    <div class:list={['dh__media', { 'dh__media--noimg': !event.heroImage }]}>
+      {
+        event.heroImage ? (
+          <Image
+            class="dh__img"
+            src={event.heroImage}
+            alt={event.heroImageAlt ?? event.title}
+            widths={[768, 1180, 1600]}
+            sizes="(max-width: 1180px) 100vw, 1180px"
+            loading="eager"
+            fetchpriority="high"
+          />
+        ) : (
+          <span class="dh__stripe" aria-hidden="true" />
+        )
+      }
+    </div>
+
+    <div class="dh__meta">
+      {
+        distances.length > 0 && (
+          <p class="dh__distances">{distances.join(' · ')}</p>
+        )
+      }
+      <h1 class="dh__title">{event.title}</h1>
+
+      <dl class="dh__facts">
+        {/* Una carrera vieja puede no tener punto de partida cargado: se cae a la
+            ciudad, y si tampoco hay, la ficha omite la fila en vez de mostrar un
+            rótulo "Ubicación" con nada al lado. */}
+        {
+          (event.location ?? event.city) && (
+            <div class="dh__fact">
+              <dt>Ubicación</dt>
+              <dd>{event.location ?? event.city}</dd>
+            </div>
+          )
+        }
+        <div class="dh__fact">
+          <dt>Fecha</dt>
+          <dd>{heroDate(event.date)}</dd>
+        </div>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<style>
+  .dh {
+    background: var(--fl-cream);
+  }
+  .dh__inner {
+    max-width: var(--fl-container);
+    margin: 0 auto;
+    /* El padding inferior da aire a UBICACIÓN/FECHA antes del borde de la
+       siguiente sección; sin él el bloque de datos choca con la divisoria. */
+    padding: clamp(28px, 4vw, 48px) clamp(20px, 5vw, 56px) clamp(40px, 6vw, 72px);
+  }
+
+  /* Imagen contenida (no a sangre): esquinas rectas para no romper el lenguaje
+     editorial del surface, que no usa border-radius en ningún lado. */
+  .dh__media {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 16 / 7;
+    background: var(--fl-cream-2);
+  }
+  .dh__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 50% 38%;
+    display: block;
+  }
+
+  /* Fallback sin foto: panel crema con la franja diagonal naranja de marca. */
+  .dh__media--noimg {
+    background: var(--fl-cream-2);
+  }
+  .dh__stripe {
+    position: absolute;
+    right: -6%;
+    top: -25%;
+    width: 42%;
+    height: 150%;
+    background: var(--fl-orange);
+    opacity: 0.14;
+    transform: skewX(-12deg);
+  }
+
+  .dh__meta {
+    padding-top: clamp(22px, 3vw, 34px);
+  }
+
+  .dh__distances {
+    margin: 0;
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(13px, 1.6vw, 16px);
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--fl-orange-ink);
+  }
+
+  .dh__title {
+    margin: clamp(10px, 1.4vw, 16px) 0 0;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(30px, 5.4vw, 60px);
+    line-height: 0.98;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    color: var(--fl-ink);
+    max-width: 16ch;
+  }
+
+  .dh__facts {
+    margin: clamp(20px, 3vw, 32px) 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp(28px, 6vw, 64px);
+  }
+  .dh__fact dt {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--fl-on-cream-faint);
+  }
+  .dh__fact dd {
+    margin: 6px 0 0;
+    font-family: 'Archivo', sans-serif;
+    font-size: clamp(15px, 2vw, 18px);
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--fl-ink);
+  }
+
+  @media (max-width: 640px) {
+    .dh__media {
+      aspect-ratio: 16 / 10;
+    }
+  }
+</style>

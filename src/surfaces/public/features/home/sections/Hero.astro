@@ -1,45 +1,199 @@
 ---
-import type { EventData } from '../format';
-import { heroDate, placeLine } from '../format';
-import { Image } from 'astro:assets';
+// Hero de la home (Módulo 1) — data-driven desde Strapi: muestra la PRÓXIMA
+// carrera (la más cercana por fecha). Base del hero con foto a sangre completa +
+// countdown (fortalezas del diseño anterior), con las mejoras del modelo hub:
+// framing "Próxima carrera", chips de estado/gratis/co-organización y CTA hacia
+// la página de detalle de la carrera. Los campos net-new de Strapi (tagline,
+// altitud, hora, estado, coorganizador) son opcionales: el hero degrada elegante
+// mientras el editor no los cargue.
+import type { RaceEvent } from '@shared/lib/content/events';
+import { heroDate, shortDate, dayMonth, countdownISOFrom } from '../format';
+import { isPastRace } from '@shared/lib/race-date';
+import { getImage } from 'astro:assets';
 import Countdown from './Countdown.astro';
 
 interface Props {
-  event: EventData;
+  race: RaceEvent;
 }
-const { event } = Astro.props;
+const { race } = Astro.props;
 
-const distance = event.distances[0];
-const eyebrow = `${heroDate(event.date)} — ${placeLine(event)}`;
-const altitude = event.altitudeM ? new Intl.NumberFormat('es-BO').format(event.altitudeM) : null;
+// El H1 es el NOMBRE de la carrera, no la frase gancho: es la entidad que la
+// gente busca y reconoce ("Renacer"), y es la keyword del encabezado principal.
+// El tagline queda como subtítulo, fuera del <h1>, para que un lector de
+// pantalla anuncie un encabezado limpio.
+//
+// La guarda contra `race.title` no es paranoia: hay carreras en Strapi donde el
+// tagline se cargó igual al nombre, y sin ella el hero lo imprimía dos veces.
+const tagline = race.tagline && race.tagline !== race.title ? race.tagline : null;
+
+const distances = [...new Set(race.distances)];
+const distanceLine = distances.join(' · ');
+const altitude = race.altitudeM ? new Intl.NumberFormat('es-BO').format(race.altitudeM) : null;
+
+// Etapa dentro del Run Tour ("Etapa 01"). El dato viene del contenido, no de una
+// tabla paralela: `RunTour.astro` tiene sus etapas hardcodeadas y duplicar acá el
+// mapeo slug→etapa garantizaba que un día se desincronizaran.
+const stageLabel =
+  race.isRunTour && race.runTourStage
+    ? `Etapa ${String(race.runTourStage).padStart(2, '0')}`
+    : null;
+
+// "Gratis" solo cuando la carrera ENTERA es gratis. Con `some()`, una carrera con
+// una vía gratis y otra de pago se llevaba un chip "GRATIS" plano en el hero —
+// justo la vía que el negocio NO quiere empujar. Si los precios son mixtos el hero
+// calla: explicar las vías es trabajo de las modalidades del detalle.
+const isFree = race.modalities.length > 0 && race.modalities.every((m) => m.price === 0);
+
+const STATUS_LABEL: Record<NonNullable<RaceEvent['status']>, string> = {
+  proximo: 'Próximamente',
+  inscripciones_abiertas: 'Inscripciones abiertas',
+  cerrado: 'Inscripciones cerradas',
+  finalizado: 'Finalizada',
+};
+
+// Estado efectivo: el del contenido, o —si el editor no lo cargó— el derivado de
+// las modalidades, misma regla que el badge del listado /calendario. Sin este
+// fallback una carrera con TODAS las modalidades agotadas no mostraba chip alguno:
+// el hero se quedaba callado justo cuando más tenía que hablar.
+const status: RaceEvent['status'] =
+  race.status ??
+  (race.modalities.length === 0
+    ? undefined
+    : race.modalities.some((m) => m.status === 'abierto' || m.status === 'ultimos_cupos')
+      ? 'inscripciones_abiertas'
+      : 'cerrado');
+const statusLabel = status ? STATUS_LABEL[status] : null;
+
+// ¿Se puede inscribir HOY? Un solo booleano gobierna el CTA y la nota del
+// countdown, para que el hero no se contradiga: antes el chip decía
+// "Inscripciones cerradas" mientras el botón ofrecía "Inscribirse" y la nota
+// prometía un plazo ya vencido.
+//
+// Dos fuentes, y tienen que estar de acuerdo:
+//  · el estado efectivo de la carrera (ver `status` arriba);
+//  · el plazo de inscripción, si existe. Una fecha pasada cierra la inscripción
+//    aunque el editor se haya olvidado de mover el estado.
+const statusSaysOpen = status === 'inscripciones_abiertas';
+const deadlinePassed = race.registrationDeadline ? isPastRace(race.registrationDeadline) : false;
+const canRegister = statusSaysOpen && !deadlinePassed;
+
+const detailUrl = `/calendario/${race.slug}`;
+// El naranja es el color de la conversión. Si no hay nada que convertir, el CTA
+// baja a secundario y dice lo único cierto: que se puede conocer la carrera.
+const ctaLabel = canRegister ? (isFree ? 'Inscribirse gratis' : 'Inscribirse') : 'Ver la carrera';
+
+const countdownTarget = countdownISOFrom(race.date, race.startTime);
+const countdownNote =
+  canRegister && race.registrationDeadline
+    ? `Inscripciones hasta el ${dayMonth(race.registrationDeadline)}`
+    : undefined;
+
+// Art direction opcional del hero: una carrera PUEDE traer una toma distinta para
+// pantalla ancha (`heroImageDesktop`). No es la misma foto más grande —eso ya lo
+// resuelve el srcset— sino otro ENCUADRE, para cuando recortar la foto principal a
+// lo ancho deja una franja sin acción. Hace falta un `<picture>` a mano porque el
+// `<Image>` de Astro escala, pero no cambia de foto según el viewport.
+//
+// Si la carrera no trae toma apaisada (el caso de Renacer: la misma foto sirve en
+// las dos, porque la multitud llena el cuadro y cualquier recorte muestra
+// corredores), el navegador ignora el <source> y usa el <img>. Por eso el <img>
+// tiene que cubrir TODA la rampa, del celular al monitor ancho: es el que se sirve
+// siempre que no haya art direction.
+const heroBase = race.heroImage
+  ? await getImage({
+      src: race.heroImage,
+      widths: [640, 768, 1024, 1440, 1920],
+      format: 'webp',
+    })
+  : null;
+const heroDesktop = race.heroImageDesktop
+  ? await getImage({ src: race.heroImageDesktop, widths: [1200, 1600, 2000], format: 'webp' })
+  : null;
 ---
 
 <section id="carrera" class="hero">
   {
-    event.heroImage && (
-      <Image
-        class="hero__photo"
-        src={event.heroImage}
-        alt={`Participantes de ${event.title} corriendo cuesta arriba por el centro de ${placeLine(event)}, de espaldas, al amanecer`}
-        widths={[768, 1200, 1600]}
-        sizes="100vw"
-        loading="eager"
-        fetchpriority="high"
-      />
+    heroBase && (
+      <picture>
+        {heroDesktop && (
+          <source
+            media="(min-width: 900px)"
+            srcset={heroDesktop.srcSet.attribute}
+            sizes="100vw"
+            type="image/webp"
+          />
+        )}
+        <img
+          class="hero__photo"
+          src={heroBase.src}
+          srcset={heroBase.srcSet.attribute}
+          sizes="100vw"
+          alt={race.heroImageAlt ?? race.title}
+          width={heroBase.attributes.width}
+          height={heroBase.attributes.height}
+          loading="eager"
+          fetchpriority="high"
+        />
+      </picture>
     )
   }
   <div class="hero__scrim" aria-hidden="true"></div>
 
   <div class="hero__inner">
     <div class="hero__copy">
-      <p class="eyebrow" data-reveal>{eyebrow}</p>
-      <h1 class="hero__title" data-reveal data-delay="1">
-        {event.tagline && <span class="hero__name">{event.title}</span>}
-        <span class="hero__tagline">{event.tagline ?? event.title}</span>
-      </h1>
+      {/* La serie, no un eyebrow genérico. "Próxima carrera" no decía nada que la
+          fecha de abajo no dijera mejor, y el hecho de que Renacer PERTENECE al
+          Run Tour solo se descubría scrolleando al módulo 2. Va en Archivo Black
+          —la familia de marca— y no en Space Mono, que es la de los labels: la
+          serie es identidad, no metadato. El h1 sigue siendo el nombre de la
+          carrera (ver más abajo). Las carreras sueltas degradan al genérico. */}
+      <p class="hero__series" data-reveal>
+        <span class="hero__series-name">{race.isRunTour ? 'Run Tour Finish Line' : 'Próxima carrera'}</span>
+        {stageLabel && <span class="hero__series-stage">{stageLabel}</span>}
+        {race.isRunTour && <span class="hero__series-flag" aria-hidden="true"></span>}
+      </p>
+      <p class="hero__date" data-reveal data-delay="1">{heroDate(race.date)}</p>
+
+      <h1 class="hero__title" data-reveal data-delay="1">{race.title}</h1>
+      {tagline && <p class="hero__tagline" data-reveal data-delay="2">{tagline}</p>}
+
+      {
+        (race.location ?? race.city) && (
+          <p class="hero__loc" data-reveal data-delay="2">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M12 21s-7-5.686-7-11a7 7 0 1114 0c0 5.314-7 11-7 11z" />
+              <circle cx="12" cy="10" r="2.5" />
+            </svg>
+            {race.location ?? race.city}
+          </p>
+        )
+      }
+
+      {
+        (statusLabel || isFree || race.coorganizer) && (
+          <div class="hero__chips" data-reveal data-delay="2">
+            {statusLabel && (
+              <span
+                class:list={[
+                  'chip',
+                  {
+                    'chip--open': status === 'inscripciones_abiertas',
+                    'chip--soon': status === 'proximo',
+                    'chip--closed': status === 'cerrado' || status === 'finalizado',
+                  },
+                ]}
+              >
+                {statusLabel}
+              </span>
+            )}
+            {isFree && <span class="chip chip--tag">Gratis</span>}
+            {race.coorganizer && <span class="chip chip--tag">Co-organizada · {race.coorganizer}</span>}
+          </div>
+        )
+      }
 
       <div class="hero__stats" data-reveal data-delay="2">
-        {distance && <span class="hero__distance">{distance}</span>}
+        {distanceLine && <span class="hero__distance">{distanceLine}</span>}
         {
           altitude && (
             <div class="hero__alt">
@@ -52,21 +206,16 @@ const altitude = event.altitudeM ? new Intl.NumberFormat('es-BO').format(event.a
         }
       </div>
 
-      {event.description && <p class="hero__desc" data-reveal data-delay="3">{event.description}</p>}
-
       <div class="hero__actions" data-reveal data-delay="3">
-        <a class="btn btn--primary" href="#categorias">
-          Inscríbete <span class="btn__arrow" aria-hidden="true">→</span>
+        <a class:list={['btn', canRegister ? 'btn--primary' : 'btn--secondary']} href={detailUrl}>
+          {ctaLabel} <span class="btn__arrow" aria-hidden="true">→</span>
         </a>
-        <a class="btn btn--ghost" href="#recorrido">Ver recorrido</a>
       </div>
     </div>
-
-    {event.instagram && <span class="hero__handle" aria-hidden="true">{event.instagram.toUpperCase()}</span>}
   </div>
 
   {/* El contador cierra el hero: la cuenta regresiva ES la línea de meta. */}
-  <Countdown {event} />
+  <Countdown targetISO={countdownTarget} largada={shortDate(race.date)} note={countdownNote} />
 </section>
 
 <style>
@@ -111,6 +260,31 @@ const altitude = event.altitudeM ? new Intl.NumberFormat('es-BO').format(event.a
       );
   }
 
+  /* La foto es una largada real: la calle entera llena de corredores. Muy cargada
+     —cientos de dorsales, ropa de todos los colores—, así que el texto chico (el
+     lockup, la fecha, el tagline) necesita algo de piso o se pierde sobre la
+     multitud. En desktop el velo se cierra un poco más del lado del copy, pero se
+     retira TEMPRANO: la multitud es el argumento de venta y tiene que verse. */
+  @media (min-width: 900px) {
+    .hero__scrim {
+      background:
+        linear-gradient(
+          to top,
+          var(--fl-navy) 2%,
+          rgba(14, 28, 48, 0.84) 22%,
+          rgba(14, 28, 48, 0.34) 52%,
+          rgba(14, 28, 48, 0.05) 78%
+        ),
+        linear-gradient(
+          to right,
+          rgba(14, 28, 48, 0.9) 0%,
+          rgba(14, 28, 48, 0.6) 22%,
+          rgba(14, 28, 48, 0.2) 40%,
+          transparent 56%
+        );
+    }
+  }
+
   .hero__inner {
     position: relative;
     width: 100%;
@@ -122,38 +296,151 @@ const altitude = event.altitudeM ? new Intl.NumberFormat('es-BO').format(event.a
     max-width: 760px;
   }
 
-  .eyebrow {
-    margin: 0;
-    font-family: 'Space Mono', monospace;
-    font-size: 13px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--fl-orange);
+  /* Lockup de la serie. Archivo Black —familia de marca— y NO Space Mono, que es
+     la familia de los labels: la serie es identidad, no metadato. Va en crema y no
+     en naranja porque el bloque se apoya sobre la foto, donde el naranja pierde
+     contraste sobre las luces (misma razón que `.chip--tag`). */
+  /* TODO el texto del hero va en crema, y lleva sombra. El hero se apoya sobre una
+     FOTO, no sobre navy plano: los grises suaves (`--fl-on-navy-soft`) y el naranja
+     se calcularon contra un fondo liso y sobre la multitud —ropa clara, dorsales
+     blancos— caen por debajo de AA. Es la misma regla que DESIGN.md ya fijó para
+     Recaps ("todo el texto sobre foto va en --fl-cream"). La sombra no es adorno:
+     es el piso de contraste que la foto no garantiza en ningún punto concreto.
+     El naranja queda donde significa algo: el CTA y la bandera de meta. */
+  .hero__copy :is(.hero__series, .hero__date, .hero__tagline, .hero__loc, .hero__stats) {
+    text-shadow:
+      0 1px 12px rgba(14, 28, 48, 0.85),
+      0 1px 3px rgba(14, 28, 48, 0.7);
   }
-  /* El H1 envuelve el nombre de la carrera (kicker) + el tagline display. */
-  .hero__title {
-    margin: 16px 0 0;
+  .hero__series {
     display: flex;
-    flex-direction: column;
-  }
-  /* Kicker: nombre oficial de la carrera. Lleva la keyword principal al H1
-     sin robarle protagonismo al tagline. */
-  .hero__name {
-    font-family: 'Archivo', sans-serif;
-    font-weight: 700;
-    font-size: clamp(15px, 1.8vw, 20px);
-    letter-spacing: 0.5px;
+    align-items: center;
+    gap: 12px;
+    margin: 0;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(13px, 1.5vw, 16px);
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--fl-cream);
-    margin-bottom: clamp(8px, 1.2vw, 12px);
   }
-  .hero__tagline {
+  /* La etapa es el dato de la serie: se separa con una divisoria. En crema, no en
+     naranja — sobre la foto el naranja no llega a AA (ver arriba). El acento de la
+     serie lo pone la bandera de meta, que es un gráfico y no tiene que leerse. */
+  .hero__series-stage {
+    padding-left: 12px;
+    border-left: 1px solid var(--fl-edge);
+    color: var(--fl-cream);
+  }
+  /* La bandera de meta: EL motivo de marca (DESIGN.md), que hasta ahora no
+     aparecía en el hero. Le da peso al lockup sin robarle rango al h1. */
+  .hero__series-flag {
+    flex: 0 0 48px;
+    height: 6px;
+    background: repeating-linear-gradient(
+      90deg,
+      var(--fl-orange) 0 6px,
+      var(--fl-navy) 6px 12px
+    );
+  }
+  .hero__date {
+    margin: 14px 0 0;
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(13px, 1.8vw, 15px);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--fl-cream);
+  }
+
+  /* El H1 es el nombre de la carrera. Protagonista. */
+  .hero__title {
+    margin: 16px 0 0;
     font-family: 'Archivo Black', sans-serif;
     font-size: clamp(40px, 7.4vw, 88px);
     line-height: 0.9;
     letter-spacing: -0.03em;
     text-transform: uppercase;
-    white-space: pre-line; /* respeta los saltos de línea del tagline */
+    text-wrap: balance;
+    /* Los nombres de carrera son contenido: un nombre largo sin espacios
+       ("TRANSCORDILLERA") desbordaba el contenedor a 40px en un viewport de
+       360px, porque `balance` reparte líneas pero no corta palabras. */
+    overflow-wrap: break-word;
+    color: var(--fl-cream);
+  }
+  /* Frase gancho: subtítulo, subordinado al nombre. Se distingue por tamaño y
+     peso, no por opacidad — el hero va sobre foto y bajar el alfa arruinaría el
+     contraste.
+
+     Sin `white-space: pre-line`: los saltos de línea del contenido venían de
+     cuando el tagline ERA el titular display. A 17px producían un bloque roto de
+     tres líneas que en 360×640 empujaba el CTA fuera de la pantalla. El corte lo
+     decide ahora el ancho de la caja, y `text-wrap: pretty` evita los huérfanos. */
+  .hero__tagline {
+    margin: clamp(12px, 1.6vw, 18px) 0 0;
+    max-width: 34ch;
+    font-family: 'Archivo', sans-serif;
+    font-weight: 500;
+    font-size: clamp(17px, 1.9vw, 22px);
+    line-height: 1.35;
+    text-wrap: pretty;
+    overflow-wrap: break-word;
+    color: var(--fl-cream);
+  }
+
+  /* Ubicación con pin. */
+  .hero__loc {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 18px 0 0;
+    font-size: clamp(15px, 1.8vw, 17px);
+    color: var(--fl-cream);
+  }
+  .hero__loc svg {
+    width: 17px;
+    height: 17px;
+    color: var(--fl-orange);
+    flex-shrink: 0;
+  }
+
+  /* Chips: estado / gratis / co-organización. */
+  .hero__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 22px;
+  }
+  .chip {
+    font-family: 'Space Mono', monospace;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    border: 1px solid var(--fl-edge);
+    color: var(--fl-cream);
+  }
+  /* Estado de inscripción abierta: token de estado, no color de marca. */
+  .chip--open {
+    border-color: color-mix(in srgb, var(--fl-status-open-ink) 55%, transparent);
+    color: var(--fl-status-open-ink);
+  }
+  /* "Próximamente" y "Cerradas" significan lo OPUESTO y renderizaban idénticos
+     (borde crema, texto crema). Ahora se distinguen: el que promete algo lleva el
+     borde de marca; el que cierra la puerta se apaga al gris de estado —agotado es
+     gris, no rojo: no es un error del usuario, es indisponibilidad (DESIGN.md). */
+  .chip--soon {
+    border-color: color-mix(in srgb, var(--fl-orange) 55%, transparent);
+    color: var(--fl-cream);
+  }
+  .chip--closed {
+    border-color: color-mix(in srgb, var(--fl-status-closed) 80%, transparent);
+    color: var(--fl-on-navy-soft);
+  }
+  /* "Gratis" / "Co-organizada" NO son estados: son etiquetas. El acento lo pone
+     el borde naranja de marca; el texto se queda en crema (15:1) porque el chip
+     va sobre la foto, donde un naranja claro pierde contraste sobre las luces. */
+  .chip--tag {
+    border-color: color-mix(in srgb, var(--fl-orange) 55%, transparent);
     color: var(--fl-cream);
   }
 
@@ -165,17 +452,21 @@ const altitude = event.altitudeM ? new Intl.NumberFormat('es-BO').format(event.a
     margin-top: 24px;
     flex-wrap: wrap;
   }
+  /* La distancia ya pesa 64px en Archivo Black: no necesita ADEMÁS el naranja.
+     En naranja era la mancha más grande de la pantalla junto al countdown —dos
+     masas de color de conversión, ninguna clickeable, enmarcando un CTA que no
+     era naranja. El acento vuelve a significar una sola cosa: inscribirse. */
   .hero__distance {
     font-family: 'Archivo Black', sans-serif;
-    font-size: clamp(40px, 6vw, 64px);
+    font-size: clamp(38px, 6vw, 64px);
     line-height: 0.9;
-    color: var(--fl-orange);
+    color: var(--fl-cream);
   }
   .hero__alt {
     display: flex;
     align-items: flex-end;
     padding-bottom: 4px;
-    border-left: 1px solid rgba(246, 240, 228, 0.22);
+    border-left: 1px solid var(--fl-edge);
     padding-left: clamp(18px, 3vw, 28px);
   }
   .hero__alt-num {
@@ -184,33 +475,19 @@ const altitude = event.altitudeM ? new Intl.NumberFormat('es-BO').format(event.a
     line-height: 0.9;
     color: var(--fl-cream);
   }
+  /* "m s. n. m." es el texto más chico del hero (0.5em) y va sobre la parte clara
+     de la foto: en naranja no llegaba a AA ni de cerca. Crema, como todo el resto. */
   .hero__alt-unit {
     font-size: 0.5em;
-    color: var(--fl-orange);
+    color: var(--fl-cream);
     margin-left: 3px;
   }
 
-  .hero__desc {
-    margin: 22px 0 0;
-    max-width: 460px;
-    font-size: 16px;
-    line-height: 1.55;
-    color: #c9d4e1;
-  }
   .hero__actions {
     display: flex;
     gap: 14px;
     margin-top: 28px;
     flex-wrap: wrap;
-  }
-  .hero__handle {
-    position: absolute;
-    top: clamp(20px, 4vw, 36px);
-    right: clamp(20px, 5vw, 56px);
-    font-family: 'Space Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 2px;
-    color: rgba(246, 240, 228, 0.7);
   }
 
   /* Botones */
@@ -234,11 +511,14 @@ const altitude = event.altitudeM ? new Intl.NumberFormat('es-BO').format(event.a
     background: var(--fl-orange-strong);
     color: #fff;
   }
-  .btn--ghost {
-    border: 1px solid rgba(246, 240, 228, 0.45);
+  /* Sin inscripción abierta no hay conversión, así que no hay naranja. Contorno
+     crema sobre la foto: mismo alto que el primario (el borde de 2px se compensa
+     en el padding) para que el hero no salte entre estados. */
+  .btn--secondary {
+    padding: 14px 24px;
+    border: 2px solid var(--fl-cream);
     color: var(--fl-cream);
-    background: rgba(14, 28, 48, 0.25);
-    backdrop-filter: blur(2px);
+    background: transparent;
   }
   .btn__arrow {
     transition: transform 180ms var(--ease-out);
@@ -248,9 +528,10 @@ const altitude = event.altitudeM ? new Intl.NumberFormat('es-BO').format(event.a
       transform: translateY(-2px);
       background: var(--fl-orange-hover);
     }
-    .btn--ghost:hover {
+    .btn--secondary:hover {
       transform: translateY(-2px);
-      border-color: var(--fl-cream);
+      background: var(--fl-cream);
+      color: var(--fl-navy);
     }
     .btn:hover .btn__arrow {
       transform: translateX(4px);
@@ -259,6 +540,10 @@ const altitude = event.altitudeM ? new Intl.NumberFormat('es-BO').format(event.a
   .btn:active {
     transform: scale(0.97);
   }
+  .btn:focus-visible {
+    outline: 2px solid var(--fl-orange);
+    outline-offset: 3px;
+  }
 
   /* El contador, último hijo, queda como banda al pie del hero. */
   .hero > :global(.cd) {
@@ -266,16 +551,6 @@ const altitude = event.altitudeM ? new Intl.NumberFormat('es-BO').format(event.a
     z-index: 1;
   }
 
-  @media (max-width: 640px) {
-    .hero__handle {
-      display: none;
-    }
-    /* El recorrido detallado vive en su sección; en móvil el hero va liviano
-       para ocupar exactamente una pantalla sin que asome la siguiente. */
-    .hero__desc {
-      display: none;
-    }
-  }
   @media (prefers-reduced-motion: reduce) {
     .btn,
     .btn__arrow {

@@ -10,7 +10,9 @@ const events = defineCollection({
     gatheringTime: z.string().optional(),         // concentración, "07:00"
     startTime: z.string().optional(),             // partida, "08:00"
     timezoneOffset: z.string().default('-04:00'), // para el countdown (Bolivia)
-    location: z.string(),                          // sede / punto de partida
+    // Punto de partida. OPCIONAL: una carrera vieja que solo vive como recap puede
+    // no tener este dato, y obligarlo empujaba a rellenarlo con algo inventado.
+    location: z.string().optional(),
     finishLocation: z.string().optional(),         // punto de meta (si difiere de la partida)
     city: z.string().optional(),
     country: z.string().optional(),
@@ -49,6 +51,11 @@ const events = defineCollection({
     registrationNote: z.string().optional(),       // "o hasta agotar cupos"
     status: z.enum(['upcoming', 'open', 'closed', 'finished']).default('upcoming'),
     heroImage: image().optional(),                 // foto del evento (src/assets), optimizada por Astro
+    heroImageAlt: z.string().optional(),           // alt de heroImage; si falta, cae al título
+    // Variante APAISADA del hero para pantallas anchas (art direction, no solo
+    // resolución): la foto vertical que funciona en el celular queda mal recortada
+    // a lo ancho. Si falta, desktop reusa `heroImage`.
+    heroImageDesktop: image().optional(),
     description: z.string().optional(),
     instagram: z.string().optional(),              // handle "@finishlinebolivia"
     instagramUrl: z.string().url().optional(),     // URL del perfil de Instagram
@@ -59,6 +66,67 @@ const events = defineCollection({
     organizer: z.string().optional(),
     organizerLogo: z.string().optional(),
     featured: z.boolean().default(false),
+    // --- Campos net-new (ex-Strapi), ver adaptador `content/events.ts` -------
+    // Serie Run Tour vs carrera suelta — tag de la agenda de la home.
+    isRunTour: z.boolean().default(false),
+    // Número de etapa dentro del Run Tour ("Etapa 01"). Solo tiene sentido con
+    // `isRunTour: true`. El hero lo muestra junto al nombre de la serie; sin él,
+    // el lockup degrada al nombre de la serie a secas.
+    runTourStage: z.number().int().positive().optional(),
+    coorganizer: z.string().optional(),            // "Alcaldía de La Paz" (chip del hero)
+    // --- Recap (carrera ya corrida) -----------------------------------------
+    // Álbum de fotos de la carrera. Hoy las fotos viven en Facebook: no tenemos
+    // dónde alojarlas. OPCIONAL a propósito: solo las carreras que REALMENTE
+    // tienen álbum lo llevan, y solo esas se vuelven clickeables en "Así se
+    // vivió". Una tarjeta que promete fotos que no existen es una mentira barata.
+    photosUrl: z.string().url().optional(),
+    // Foto para la vitrina de recaps. Si falta, cae a `heroImage`.
+    recapImage: image().optional(),
+    recapImageAlt: z.string().optional(),
+    // Encuadre de la foto del recap ("50% 40%"): las fotos de carrera tienen la
+    // acción en distintos lugares y el recorte por defecto decapita corredores.
+    recapImageFocus: z.string().optional(),
+    // Merch del evento: polera oficial y medalla finisher. Media local opcional,
+    // misma forma que heroImage (imagen + alt separado).
+    shirt: image().optional(),
+    shirtAlt: z.string().optional(),
+    medal: image().optional(),
+    medalAlt: z.string().optional(),
+    // Modalidades reales de la carrera (distancia + precio + estado propio).
+    // Si viene vacío, el listado/hero cae al legacy `distances[]`.
+    modalities: z
+      .array(
+        z.object({
+          distance: z.string(),
+          label: z.string().optional(), // fallback a `distance` en el adaptador
+          price: z.number(),
+          status: z.enum(['abierto', 'ultimos_cupos', 'agotado']).default('abierto'),
+        }),
+      )
+      .default([]),
+    // Bloques de "Información del evento" (reglamento, convocatoria…). Los
+    // adjuntos (`files`) son rutas públicas (p.ej. "/docs/reglamento.pdf" en
+    // /public), no media gestionada: local no tiene equivalente a Strapi media.
+    infoBlocks: z
+      .array(
+        z.object({
+          title: z.string(),
+          content: z.string(), // markdown crudo
+          order: z.number().optional(),
+          files: z
+            .array(
+              z.object({
+                url: z.string(),
+                name: z.string(),
+                sizeKb: z.number(),
+                mime: z.string(),
+                ext: z.string().optional(),
+              }),
+            )
+            .default([]),
+        }),
+      )
+      .default([]),
   }),
 });
 

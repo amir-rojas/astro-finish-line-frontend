@@ -1,0 +1,176 @@
+---
+// Ruta pública "/calendario/[slug]" — detalle de una carrera.
+// SSG: `getStaticPaths` genera una página por carrera publicada a partir del
+// mismo `getEvents()` (fetch único enriquecido, sin N+1 por-slug). El `event`
+// completo viaja como prop; un slug inexistente no se genera → Astro sirve 404.
+// THIN: solo orquesta el chrome del surface y las secciones del feature.
+import PublicLayout from '@public/layouts/PublicLayout.astro';
+import SiteHeader from '@public/components/SiteHeader.astro';
+import SiteFooter from '@public/components/SiteFooter.astro';
+import DetailHero from '@public/features/calendar/sections/DetailHero.astro';
+import Description from '@public/features/calendar/sections/Description.astro';
+import Modalities from '@public/features/calendar/sections/Modalities.astro';
+import EventInfo from '@public/features/calendar/sections/EventInfo.astro';
+import RaceRewards from '@public/features/calendar/sections/RaceRewards.astro';
+import type { RewardItem } from '@public/features/calendar/sections/RaceRewards.astro';
+import DetailSidebar from '@public/features/calendar/sections/DetailSidebar.astro';
+import MobileCta from '@public/features/calendar/sections/MobileCta.astro';
+import { getImage } from 'astro:assets';
+import { getEvents } from '@shared/lib/content/events';
+import { hasRaced } from '@shared/lib/race-date';
+import { calendarEventJsonLd, raceStatus, isFreeEvent } from '@public/features/calendar/format';
+import type { CalendarEvent } from '@shared/lib/content/events';
+
+export async function getStaticPaths() {
+  const events = await getEvents();
+  return events.map((event) => ({ params: { slug: event.slug }, props: { event } }));
+}
+
+interface Props {
+  event: CalendarEvent;
+}
+const { event } = Astro.props;
+
+const pageUrl = Astro.url.href;
+// El lugar es opcional (una carrera vieja puede no tenerlo): sin guarda, la meta
+// description publicada decía "Renacer — undefined.".
+const place = event.location ?? event.city;
+const description =
+  [
+    place ? `${event.title} — ${place}.` : `${event.title}.`,
+    event.distances.length > 0
+      ? `Distancias: ${[...new Set(event.distances)].join(', ')}.`
+      : 'Inscripciones y detalles de la carrera.',
+  ].join(' ');
+
+const jsonLd = calendarEventJsonLd(event, pageUrl);
+
+// Merch de la carrera: se muestra lo que traiga el contenido (`shirt`/`medal`).
+// Ambos opcionales — si el evento no los define, la banda de recompensas no se
+// renderiza (ver RaceRewards.astro).
+const rewards: RewardItem[] = [];
+if (event.shirt) {
+  rewards.push({
+    src: event.shirt,
+    alt: event.shirtAlt ?? `Polera oficial de ${event.title}`,
+    label: 'Polera oficial',
+  });
+}
+if (event.medal) {
+  rewards.push({
+    src: event.medal,
+    alt: event.medalAlt ?? `Medalla finisher de ${event.title}`,
+    label: 'Medalla finisher',
+  });
+}
+
+// Estado de inscripción, calculado una sola vez y compartido por la sidebar y la
+// barra móvil, para que nunca se contradigan (una agotada, la otra ofreciendo).
+//
+// `finished` va PRIMERO y manda: una carrera ya corrida no ofrece inscripción,
+// punto. Antes esto se derivaba SOLO de las modalidades, y una carrera sin
+// modalidades cargadas daba `raceStatus(null)` → `soldOut = false` → la página de
+// una carrera que ya se había corrido seguía mostrando el CTA naranja "Iniciar
+// inscripción" apuntando a Eventrid. El dato estaba (`status: finalizado`); la
+// vista no lo miraba.
+const finished = hasRaced(event);
+const soldOut = raceStatus(event.modalities)?.tone === 'closed';
+const isFree = isFreeEvent(event.modalities);
+
+// Imagen para compartir (Open Graph): render dedicado 1200×630, mismo patrón
+// que la home. `event.heroImage` ya es ImageMetadata (imagen local).
+const ogImage = event.heroImage
+  ? (await getImage({ src: event.heroImage, width: 1200, height: 630, format: 'jpeg' })).src
+  : undefined;
+---
+
+<PublicLayout
+  title={event.title}
+  description={description}
+  ogImage={ogImage}
+  canonical={pageUrl}
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} is:inline />
+  </Fragment>
+
+  <SiteHeader />
+
+  <main id="contenido">
+    <DetailHero {event} />
+
+    {/* El gancho emocional (polera + medalla) va primero: el atleta ve lo que se
+        lleva mientras el CTA sigue presente. Las secciones de contenido quedan
+        como respaldo racional. */}
+    <RaceRewards items={rewards} />
+
+    <div class="detail">
+      <div class="detail__inner">
+        <div class="detail__main">
+          {event.descriptionRaw && <Description markdown={event.descriptionRaw} />}
+          {event.modalities.length > 0 && <Modalities modalities={event.modalities} />}
+          {event.infoBlocks.length > 0 && <EventInfo blocks={event.infoBlocks} />}
+        </div>
+        <div class="detail__side">
+          <DetailSidebar {event} {soldOut} {finished} />
+        </div>
+      </div>
+    </div>
+
+    {/* Una carrera corrida no lleva barra de inscripción: no hay nada que ofrecer. */}
+    {!finished && <MobileCta {soldOut} registrationUrl={event.registrationUrl} {isFree} />}
+  </main>
+
+  <SiteFooter />
+
+  {/* Reserva el alto de la barra fija móvil al final del documento, para que no
+      tape el pie. Solo cuando la barra realmente se muestra. */}
+  {!finished && (soldOut || event.registrationUrl) && <div class="mcta-gap" aria-hidden="true" />}
+</PublicLayout>
+
+<style>
+  .detail {
+    background: var(--fl-cream);
+  }
+  /* Alto de la barra fija móvil (ver MobileCta.astro). En ≥900px la barra no
+     existe, así que el spacer tampoco ocupa. */
+  .mcta-gap {
+    display: none;
+  }
+  @media (max-width: 900px) {
+    .mcta-gap {
+      display: block;
+      height: calc(84px + env(safe-area-inset-bottom, 0px));
+    }
+  }
+  .detail__inner {
+    max-width: var(--fl-container);
+    margin: 0 auto;
+    padding: clamp(40px, 6vw, 80px) clamp(20px, 5vw, 56px);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+    gap: clamp(32px, 5vw, 72px);
+    align-items: start;
+  }
+  .detail__main {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(36px, 5vw, 56px);
+    min-width: 0;
+  }
+  /* La sidebar acompaña el scroll en pantallas amplias (contenido largo de
+     descripción/modalidades); en móvil se apila debajo, sin sticky. */
+  .detail__side {
+    position: sticky;
+    top: 96px;
+  }
+
+  @media (max-width: 900px) {
+    .detail__inner {
+      grid-template-columns: 1fr;
+    }
+    .detail__side {
+      position: static;
+    }
+  }
+</style>

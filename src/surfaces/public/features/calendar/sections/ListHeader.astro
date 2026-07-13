@@ -1,0 +1,62 @@
+---
+// ListHeader — hero COMPACTO del listado /calendario. A diferencia del hero de
+// la home (pantalla completa + foto + countdown), acá es un banner navy de
+// media altura: sin carrusel, sin ilustración a pantalla completa, sin datos
+// dinámicos de una carrera puntual (no hay una sola carrera protagonista).
+// El motivo de marca es la franja diagonal naranja sobre navy — mismo
+// lenguaje visual que el resto del surface público.
+---
+
+<section class="lh">
+  <div class="lh__stripe" aria-hidden="true"></div>
+  <div class="lh__inner">
+    <p class="lh__kicker">Próximas carreras · Finish Line</p>
+    <h1 class="lh__title">Calendario de carreras</h1>
+  </div>
+</section>
+
+<style>
+  .lh {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background: var(--fl-navy);
+  }
+  /* Franja diagonal naranja: mismo motivo de marca del brand__mark, escalado
+     a acento de fondo. Un único trazo sesgado, discreto, no decorativo-falso. */
+  .lh__stripe {
+    position: absolute;
+    top: -20%;
+    right: -8%;
+    width: 46%;
+    height: 140%;
+    background: var(--fl-orange);
+    opacity: 0.12;
+    transform: skewX(-12deg);
+    z-index: 0;
+  }
+  .lh__inner {
+    position: relative;
+    z-index: 1;
+    max-width: var(--fl-container);
+    margin: 0 auto;
+    padding: clamp(48px, 8vw, 88px) clamp(20px, 5vw, 56px) clamp(36px, 5vw, 64px);
+  }
+  .lh__kicker {
+    margin: 0 0 14px;
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--fl-orange);
+  }
+  .lh__title {
+    margin: 0;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(32px, 5.5vw, 56px);
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    color: var(--fl-cream);
+  }
+</style>

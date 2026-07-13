@@ -1,0 +1,383 @@
+---
+// Recaps — MÓDULO 3 de la home: "Así se vivió Finish Line".
+//
+// Vitrina editorial de ediciones pasadas con foto real (no placeholder): 1
+// recap FEATURE (alto, con excerpt) + 2 recaps MEDIUM, en grid asimétrica
+// 1.5fr/1fr. Sobre foto real el damero diagonal compite con la imagen — se
+// descartó (DESIGN.md: restricción); el motivo de marca sobrevive solo como
+// el cuadradito naranja de la etiqueta "Recap" (micro-motivo, no panel).
+//
+// Contraste verificado sobre las 3 fotos reales: TODO el texto sobre foto va
+// en --fl-cream (nunca naranja/on-navy-soft — sobre la grava clara de
+// Titicaca el naranja cae a ~3.7:1 y falla AA; el crema pasa ≥4.5:1 en todas
+// las bandas de scrim usadas). El naranja queda como acento puro (cuadradito
+// de la etiqueta).
+//
+// Data-driven: las carreras ya corridas salen de la MISMA colección que las
+// futuras, vía `pastRaces()` (la contraparte de `upcomingRaces`, misma regla).
+// Antes esta lista estaba hardcodeada acá y no incluía a La Paz 10K: al filtrar
+// del calendario las carreras corridas, La Paz se evaporaba del sitio entero la
+// misma noche en que más gente la buscaba.
+//
+// Las fotos viven en FACEBOOK: no tenemos dónde alojarlas. La tarjeta es un link
+// al álbum SOLO si la carrera trae `photosUrl`; si no, queda inerte (sin href, sin
+// tabindex, cursor default), porque una tarjeta que promete fotos inexistentes es
+// peor que una que no promete nada.
+import { Image } from 'astro:assets';
+import type { RaceEvent } from '@shared/lib/content/events';
+import { recapDate } from '../format';
+import { site } from '@shared/config/site';
+
+interface Props {
+  /** Carreras ya corridas, de la más reciente a la más vieja (`pastRaces()`). La
+      primera ocupa el slot destacado. */
+  recaps: RaceEvent[];
+}
+const { recaps } = Astro.props;
+
+// "Ver todas" manda al Facebook del organizador, que es donde están TODAS las
+// fotos. Sale de la config de marca, no de un literal: el link ya vive ahí.
+const facebookUrl = site.socials.find((s) => s.icon === 'facebook')?.href;
+---
+
+<section id="recaps" class="recaps">
+  <div class="recaps__inner">
+    <header class="recaps__head">
+      <div>
+        <p class="recaps__kicker" data-reveal>// Ediciones pasadas</p>
+        <h2 class="recaps__title" data-reveal data-delay="1">Así se vivió Finish Line</h2>
+      </div>
+      {
+        facebookUrl && (
+          <a
+            class="recaps__all"
+            href={facebookUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-reveal
+            data-delay="1"
+          >
+            Ver todas en Facebook <span aria-hidden="true">→</span>
+          </a>
+        )
+      }
+    </header>
+
+    <div class="recaps__grid">
+      {
+        recaps.map((r, i) => {
+          const featured = i === 0;
+          const photo = r.recapImage;
+          // La tarjeta es un LINK solo si esa carrera tiene álbum. Sin fotos no hay
+          // nada que abrir, y un link muerto es peor que ningún link.
+          const Card = r.photosUrl ? 'a' : 'article';
+          const linkProps = r.photosUrl
+            ? { href: r.photosUrl, target: '_blank', rel: 'noopener noreferrer' }
+            : {};
+          return (
+            <Card
+              class:list={[
+                'recap',
+                featured ? 'recap--feature' : 'recap--medium',
+                { 'recap--link': r.photosUrl },
+              ]}
+              data-reveal
+              data-delay={String(i + 1)}
+              {...linkProps}
+            >
+              <div class="recap__frame">
+                {photo && (
+                  <Image
+                    class="recap__media"
+                    src={photo}
+                    alt={r.recapImageAlt ?? r.title}
+                    widths={featured ? [560, 680, 900, 1120] : [440, 560, 720, 880]}
+                    sizes={
+                      featured
+                        ? '(max-width: 860px) 92vw, 680px'
+                        : '(max-width: 860px) 92vw, 440px'
+                    }
+                    loading="lazy"
+                    style={`object-position:${r.recapImageFocus}`}
+                  />
+                )}
+                <span class="recap__tag">
+                  <span class="recap__tag-sq" aria-hidden="true" />
+                  Recap
+                </span>
+                <div class="recap__body">
+                  <span class="recap__date">{recapDate(r.date, r.city)}</span>
+                  <h3 class="recap__name">{r.title}</h3>
+                  {featured && r.descriptionRaw && (
+                    <p class="recap__excerpt">{r.descriptionRaw}</p>
+                  )}
+                  {r.photosUrl && (
+                    <span class="recap__cta">
+                      Ver fotos en Facebook <span aria-hidden="true">→</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+            </Card>
+          );
+        })
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .recaps {
+    position: relative;
+    background: var(--fl-cream-2);
+    color: var(--fl-ink);
+  }
+  .recaps__inner {
+    max-width: var(--fl-container);
+    margin: 0 auto;
+    padding: clamp(60px, 7vw, 96px) clamp(20px, 5vw, 56px);
+  }
+
+  /* ---- Cabecera ---- */
+  .recaps__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+  }
+  .recaps__kicker {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    /* on-cream-faint falla AA a este tamaño: se usa muted, igual que RunTour. */
+    color: var(--fl-on-cream-muted);
+  }
+  .recaps__title {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(26px, 4.4vw, 48px);
+    line-height: 0.96;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    text-wrap: balance;
+    color: var(--fl-ink);
+    margin: 12px 0 0;
+  }
+  .recaps__all {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--fl-orange-ink);
+    text-decoration: none;
+    align-self: flex-end;
+  }
+  .recaps__all:hover {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+  .recaps__all:focus-visible {
+    outline: 2px solid var(--fl-orange);
+    outline-offset: 3px;
+  }
+
+  /* ---- Grid asimétrica: 1 feature + 2 medium ---- */
+  .recaps__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: clamp(16px, 2vw, 24px);
+    margin-top: clamp(34px, 5vw, 56px);
+  }
+
+  /* `min-width: 0` NO es cosmético: sin él la sección se rompe.
+     `.recap__frame` combina `height: 100%` con `aspect-ratio`, y el aspect-ratio
+     convierte la altura resuelta de vuelta en un ANCHO MÍNIMO (alto × 4/5). Como
+     los ítems de grid traen `min-width: auto`, ese mínimo (1095px medidos) reventaba
+     la columna de 1.5fr y dejaba la de 1fr en 1px: las dos tarjetas chicas existían
+     en el DOM pero medían un píxel de ancho. La cadena de alturas es bistable —
+     cualquier cambio de contenido la tumba— y esto la ancla. */
+  .recap {
+    min-width: 0;
+  }
+  .recap__frame {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(20, 35, 58, 0.14);
+    height: 100%;
+  }
+  .recap__media {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease-out;
+  }
+  .recap:hover .recap__media {
+    transform: scale(1.06);
+  }
+
+  /* Scrim navy (pseudo-elemento: sin nodo en el árbol de accesibilidad, no
+     necesita aria-hidden). Banda más profunda en el feature, que carga más
+     texto (fecha + nombre + excerpt + "Ver recap"). */
+  .recap__frame::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .recap--medium .recap__frame::after {
+    background: linear-gradient(
+      to top,
+      rgba(10, 21, 37, 0.94) 0%,
+      rgba(10, 21, 37, 0.7) 22%,
+      rgba(10, 21, 37, 0.15) 46%,
+      transparent 66%
+    );
+  }
+  .recap--feature .recap__frame::after {
+    background: linear-gradient(
+      to top,
+      rgba(10, 21, 37, 0.95) 0%,
+      rgba(10, 21, 37, 0.86) 26%,
+      rgba(10, 21, 37, 0.5) 48%,
+      transparent 78%
+    );
+  }
+
+  /* ---- Etiqueta "Recap" ---- */
+  .recap__tag {
+    position: absolute;
+    top: clamp(14px, 2vw, 20px);
+    left: clamp(14px, 2vw, 20px);
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: rgba(10, 21, 37, 0.9);
+    color: var(--fl-cream);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 6px 10px;
+  }
+  .recap__tag-sq {
+    width: 6px;
+    height: 6px;
+    background: var(--fl-orange);
+  }
+
+  /* ---- Cuerpo (texto sobre foto, siempre crema) ---- */
+  .recap__body {
+    position: absolute;
+    inset: auto 0 0 0;
+    z-index: 1;
+    padding: clamp(16px, 2.4vw, 26px);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .recap__date {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: var(--fl-cream);
+  }
+  .recap__name {
+    font-family: 'Archivo Black', sans-serif;
+    line-height: 1.05;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    color: var(--fl-cream);
+  }
+  .recap--feature .recap__name {
+    font-size: clamp(24px, 3.2vw, 40px);
+  }
+  .recap--medium .recap__name {
+    font-size: clamp(18px, 2.2vw, 24px);
+  }
+  .recap__excerpt {
+    margin-top: 4px;
+    max-width: 46ch;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--fl-cream);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .recap__cta {
+    margin-top: 10px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--fl-cream);
+  }
+  /* La tarjeta con álbum ES un link. Antes todas parecían clickeables sin serlo;
+     ahora solo lo parece la que de verdad lleva a algún lado. */
+  .recap--link {
+    display: block;
+    text-decoration: none;
+  }
+  .recap--link:focus-visible {
+    outline: 2px solid var(--fl-orange);
+    outline-offset: 3px;
+  }
+  .recap--link:hover .recap__cta {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  /* ---- Aspect ratio por slot (mobile-first: 1 columna) ---- */
+  .recap--feature .recap__frame {
+    aspect-ratio: 4 / 5;
+  }
+  .recap--medium .recap__frame {
+    aspect-ratio: 16 / 10;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .recap__media {
+      transition: none;
+    }
+    .recap:hover .recap__media {
+      transform: none;
+    }
+  }
+
+  /* ---- Desktop: feature alto a la izquierda, 2 medium apilados a la
+     derecha. El feature (aspect-ratio 4/5) fija la altura total; al no
+     declarar `grid-template-rows`, el motor de grid distribuye esa altura
+     entre las 2 filas implícitas que el feature abarca — los medium, sin
+     aspect-ratio propio, heredan esa altura de fila y la foto la cubre con
+     object-fit:cover. ---- */
+  @media (min-width: 861px) {
+    .recaps__grid {
+      grid-template-columns: 1.5fr 1fr;
+    }
+    .recap--feature {
+      grid-column: 1;
+      grid-row: 1 / span 2;
+    }
+    .recap--medium .recap__frame {
+      aspect-ratio: auto;
+    }
+    /* Sin aspect-ratio, la altura de la tarjeta chica la debería fijar la fila (que
+       la reparte la destacada). Pero la FOTO también tira: con `height: 100%` sobre
+       un contenedor de alto automático, la imagen cae a su alto natural y estira su
+       fila — una foto vertical (titicaca.jpg, que antes era la destacada a 4/5)
+       hacía una tarjeta de 926px contra otra de 419px. Sacándola del flujo, la foto
+       deja de aportar alto y la destacada vuelve a ser la única que manda. */
+    .recap--medium .recap__media {
+      position: absolute;
+      inset: 0;
+    }
+  }
+</style>

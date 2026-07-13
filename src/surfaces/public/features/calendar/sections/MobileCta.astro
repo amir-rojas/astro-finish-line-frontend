@@ -1,0 +1,91 @@
+---
+// MobileCta — barra de inscripción FIJA al pie, SOLO en móvil (<900px). En el
+// detalle, la sidebar (con el CTA) se apila al final del contenido en móvil, así
+// que la acción primaria quedaba enterrada bajo Descripción/Modalidades/Info en
+// el dispositivo donde llega la mayoría. Esta barra la mantiene siempre al
+// alcance del pulgar. Zero-JS (siempre visible, no depende de scroll).
+//
+// Espeja la lógica de estado de DetailSidebar: agotada → estado apagado (sin
+// link muerto); si no, CTA naranja gratis-aware. Si no hay nada que ofrecer
+// (ni agotada ni con `registrationUrl`), no renderiza — no hay barra vacía.
+interface Props {
+  soldOut?: boolean;
+  registrationUrl?: string;
+  isFree?: boolean;
+}
+const { soldOut = false, registrationUrl, isFree = false } = Astro.props;
+const show = soldOut || Boolean(registrationUrl);
+---
+
+{
+  show && (
+    <div class="mcta" data-sold-out={soldOut ? '' : undefined}>
+      {soldOut ? (
+        <span class="mcta__closed">Inscripciones agotadas</span>
+      ) : (
+        <a class="mcta__cta" href={registrationUrl} target="_blank" rel="noopener noreferrer">
+          <span>{isFree ? 'Inscribirse gratis' : 'Iniciar inscripción'}</span>
+          <span class="mcta__arrow" aria-hidden="true">→</span>
+        </a>
+      )}
+    </div>
+  )
+}
+
+<style>
+  /* Solo móvil: en ≥900px la sidebar sticky ya mantiene el CTA a la vista. */
+  .mcta {
+    display: none;
+  }
+
+  @media (max-width: 900px) {
+    .mcta {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 40;
+      display: block;
+      padding: 12px clamp(16px, 5vw, 24px);
+      padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+      background: var(--fl-navy);
+      border-top: 1px solid var(--fl-hairline);
+    }
+
+    .mcta__cta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 16px;
+      background: var(--fl-orange-strong);
+      color: #fff;
+      text-decoration: none;
+      font-family: 'Archivo', sans-serif;
+      font-weight: 800;
+      font-size: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .mcta__arrow {
+      font-size: 20px;
+    }
+    .mcta__cta:active {
+      background: var(--fl-orange-hover);
+    }
+
+    /* Agotada: apagado, mismo bloque, sin naranja ni link. */
+    .mcta__closed {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: var(--fl-cream-2);
+      color: var(--fl-status-closed);
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 15px;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+  }
+</style>

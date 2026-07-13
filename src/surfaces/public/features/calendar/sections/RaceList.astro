@@ -1,0 +1,35 @@
+---
+// RaceList — lista de carreras del listado /calendario. Mapea `CalendarEvent[]`
+// (ya ordenado por fecha asc por `getEvents()`) a filas `RaceRow`, sobre fondo
+// crema full-bleed con separadores finos entre filas.
+import type { CalendarEvent } from '@shared/lib/content/events';
+import RaceRow from './RaceRow.astro';
+
+interface Props {
+  events: CalendarEvent[];
+}
+const { events } = Astro.props;
+---
+
+<div class="rl">
+  <ul class="rl__list">
+    {events.map((event) => <RaceRow event={event} />)}
+  </ul>
+</div>
+
+<style>
+  .rl {
+    background: var(--fl-cream);
+  }
+  .rl__list {
+    list-style: none;
+    margin: 0;
+    padding: 8px clamp(20px, 5vw, 56px) clamp(48px, 6vw, 72px);
+    max-width: var(--fl-container);
+    margin-inline: auto;
+  }
+  /* La primera fila no necesita el hairline de arriba (ya lo da el fin del hero). */
+  .rl__list > :global(.rr:first-child) {
+    border-top: none;
+  }
+</style>

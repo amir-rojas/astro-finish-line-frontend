@@ -1,0 +1,30 @@
+---
+// Ruta pública "/calendario" — listado de las carreras que todavía no pasaron.
+// THIN: carga los eventos y orquesta las secciones del feature `calendar`.
+//
+// Las ediciones pasadas NO se listan acá: viven en el módulo "Así se vivió" de
+// la home. Este es el calendario de lo que viene.
+//
+import PublicLayout from '@public/layouts/PublicLayout.astro';
+import SiteHeader from '@public/components/SiteHeader.astro';
+import SiteFooter from '@public/components/SiteFooter.astro';
+import ListHeader from '@public/features/calendar/sections/ListHeader.astro';
+import RaceList from '@public/features/calendar/sections/RaceList.astro';
+import EmptyState from '@public/features/calendar/sections/EmptyState.astro';
+import { getEvents } from '@shared/lib/content/events';
+import { upcomingRaces } from '@shared/lib/race-date';
+
+const races = upcomingRaces(await getEvents());
+---
+
+<PublicLayout
+  title="Calendario de carreras"
+  description="Próximas carreras de Finish Line en Bolivia: fechas, distancias y estado de inscripción."
+>
+  <SiteHeader />
+  <main id="contenido">
+    <ListHeader />
+    {races.length > 0 ? <RaceList events={races} /> : <EmptyState />}
+  </main>
+  <SiteFooter />
+</PublicLayout>
