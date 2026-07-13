@@ -52,6 +52,14 @@ const jsonLd = calendarEventJsonLd(event, pageUrl);
 // que separa la vía de 105 Bs de la de 230. Omitir la foto es peor comercialmente
 // y mejor moralmente que mostrarla mintiendo; y como la guarda es estructural, el
 // bug no puede volver por un olvido de carga.
+//
+// `media` describe la NATURALEZA del archivo, no su importancia: la polera llega
+// como recorte con transparencia y la medalla como foto de escena, con su fondo y
+// su luz quemados en el píxel. De ahí sale cómo se enmarca y cuánto puede crecer
+// cada una (ver RaceRewards). Está fijo acá y no en el contenido porque hoy es una
+// propiedad de los assets que tenemos, no una decisión editorial por carrera: si
+// algún día llega un recorte de la medalla en alta, esto pasa a 'render' —o al
+// esquema, si deja de ser parejo entre carreras.
 const rewards: RewardItem[] = [];
 if (event.shirt && event.shirtTerms) {
   rewards.push({
@@ -59,6 +67,7 @@ if (event.shirt && event.shirtTerms) {
     alt: event.shirtAlt ?? `Polera oficial de ${event.title}`,
     label: 'Polera oficial',
     terms: event.shirtTerms,
+    media: 'render',
   });
 }
 if (event.medal && event.medalTerms) {
@@ -67,6 +76,7 @@ if (event.medal && event.medalTerms) {
     alt: event.medalAlt ?? `Medalla finisher de ${event.title}`,
     label: 'Medalla finisher',
     terms: event.medalTerms,
+    media: 'photo',
   });
 }
 
