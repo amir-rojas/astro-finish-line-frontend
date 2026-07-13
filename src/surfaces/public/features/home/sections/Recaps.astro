@@ -13,60 +13,31 @@
 // las bandas de scrim usadas). El naranja queda como acento puro (cuadradito
 // de la etiqueta).
 //
-// "Ver recap" / "Ver todas" son `<span aria-hidden>` inertes (sin href, sin
-// tabindex, cursor default): esta entrega no linkea a detalle de recap, así
-// que nada debe parecer clickeable ni producir 404.
+// Data-driven: las carreras ya corridas salen de la MISMA colección que las
+// futuras, vía `pastRaces()` (la contraparte de `upcomingRaces`, misma regla).
+// Antes esta lista estaba hardcodeada acá y no incluía a La Paz 10K: al filtrar
+// del calendario las carreras corridas, La Paz se evaporaba del sitio entero la
+// misma noche en que más gente la buscaba.
 //
-// Datos hardcodeados (Strapi aún no modela recaps/ediciones pasadas): cuando
-// exista la colección, este `const recaps` se reemplaza por un fetch en el
-// único call site de este archivo.
+// Las fotos viven en FACEBOOK: no tenemos dónde alojarlas. La tarjeta es un link
+// al álbum SOLO si la carrera trae `photosUrl`; si no, queda inerte (sin href, sin
+// tabindex, cursor default), porque una tarjeta que promete fotos inexistentes es
+// peor que una que no promete nada.
 import { Image } from 'astro:assets';
-import titicaca from '../../../../../assets/recaps/titicaca.jpg';
-import francofonia from '../../../../../assets/recaps/francofonia.jpg';
-import sanSilvestre from '../../../../../assets/recaps/san-silvestre.jpg';
+import type { RaceEvent } from '@shared/lib/content/events';
+import { recapDate } from '../format';
+import { site } from '@shared/config/site';
 
-type Recap = {
-  slug: string;
-  name: string;
-  date: string;
-  image: ImageMetadata;
-  alt: string;
-  objectPosition: string;
-  excerpt?: string;
-  featured?: boolean;
-};
+interface Props {
+  /** Carreras ya corridas, de la más reciente a la más vieja (`pastRaces()`). La
+      primera ocupa el slot destacado. */
+  recaps: RaceEvent[];
+}
+const { recaps } = Astro.props;
 
-const recaps: Recap[] = [
-  {
-    slug: 'titicaca',
-    name: 'Maratón del Titicaca 2026',
-    date: 'Mayo 2026 · La Paz',
-    image: titicaca,
-    alt: 'Corredor cruzando la meta del Maratón del Titicaca 2026 bajo el arco de llegada, en el altiplano.',
-    objectPosition: '50% 40%',
-    excerpt:
-      'Bajo el sol del altiplano, cientos de corredores cruzaron la meta a 3.800 metros de altura.',
-    featured: true,
-  },
-  {
-    slug: 'francofonia',
-    name: 'Carrera de la Francofonía 5K · 10K',
-    date: '15 Mar 2026',
-    image: francofonia,
-    alt: 'Corredores avanzando por el asfalto en la Carrera de la Francofonía, con público animando al costado de la ruta.',
-    objectPosition: '50% 35%',
-  },
-  {
-    slug: 'san-silvestre',
-    name: 'II San Silvestre 2025',
-    date: 'Dic 2025 · La Paz',
-    image: sanSilvestre,
-    alt: 'Grupo de corredores con dorsal avanzando de día por una avenida de La Paz durante la San Silvestre 2025, con los edificios de la ciudad al fondo.',
-    objectPosition: '50% 45%',
-  },
-];
-
-const delays: Record<string, string> = { titicaca: '1', francofonia: '2', 'san-silvestre': '3' };
+// "Ver todas" manda al Facebook del organizador, que es donde están TODAS las
+// fotos. Sale de la config de marca, no de un literal: el link ya vive ahí.
+const facebookUrl = site.socials.find((s) => s.icon === 'facebook')?.href;
 ---
 
 <section id="recaps" class="recaps">
@@ -76,48 +47,80 @@ const delays: Record<string, string> = { titicaca: '1', francofonia: '2', 'san-s
         <p class="recaps__kicker" data-reveal>// Ediciones pasadas</p>
         <h2 class="recaps__title" data-reveal data-delay="1">Así se vivió Finish Line</h2>
       </div>
-      <span class="recaps__all" aria-hidden="true" data-reveal data-delay="1">Ver todas →</span>
+      {
+        facebookUrl && (
+          <a
+            class="recaps__all"
+            href={facebookUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-reveal
+            data-delay="1"
+          >
+            Ver todas en Facebook <span aria-hidden="true">→</span>
+          </a>
+        )
+      }
     </header>
 
     <div class="recaps__grid">
       {
-        recaps.map((r) => (
-          <article
-            class:list={['recap', { 'recap--feature': r.featured, 'recap--medium': !r.featured }]}
-            data-reveal
-            data-delay={delays[r.slug]}
-          >
-            <div class="recap__frame">
-              <Image
-                class="recap__media"
-                src={r.image}
-                alt={r.alt}
-                widths={r.featured ? [560, 680, 900, 1120] : [440, 560, 720, 880]}
-                sizes={
-                  r.featured
-                    ? '(max-width: 860px) 92vw, 680px'
-                    : '(max-width: 860px) 92vw, 440px'
-                }
-                loading="lazy"
-                style={`object-position:${r.objectPosition}`}
-              />
-              <span class="recap__tag">
-                <span class="recap__tag-sq" aria-hidden="true" />
-                Recap
-              </span>
-              <div class="recap__body">
-                <span class="recap__date">{r.date}</span>
-                <h3 class="recap__name">{r.name}</h3>
-                {r.excerpt && <p class="recap__excerpt">{r.excerpt}</p>}
-                {r.featured && (
-                  <span class="recap__cta" aria-hidden="true">
-                    Ver recap →
-                  </span>
+        recaps.map((r, i) => {
+          const featured = i === 0;
+          const photo = r.recapImage;
+          // La tarjeta es un LINK solo si esa carrera tiene álbum. Sin fotos no hay
+          // nada que abrir, y un link muerto es peor que ningún link.
+          const Card = r.photosUrl ? 'a' : 'article';
+          const linkProps = r.photosUrl
+            ? { href: r.photosUrl, target: '_blank', rel: 'noopener noreferrer' }
+            : {};
+          return (
+            <Card
+              class:list={[
+                'recap',
+                featured ? 'recap--feature' : 'recap--medium',
+                { 'recap--link': r.photosUrl },
+              ]}
+              data-reveal
+              data-delay={String(i + 1)}
+              {...linkProps}
+            >
+              <div class="recap__frame">
+                {photo && (
+                  <Image
+                    class="recap__media"
+                    src={photo}
+                    alt={r.recapImageAlt ?? r.title}
+                    widths={featured ? [560, 680, 900, 1120] : [440, 560, 720, 880]}
+                    sizes={
+                      featured
+                        ? '(max-width: 860px) 92vw, 680px'
+                        : '(max-width: 860px) 92vw, 440px'
+                    }
+                    loading="lazy"
+                    style={`object-position:${r.recapImageFocus}`}
+                  />
                 )}
+                <span class="recap__tag">
+                  <span class="recap__tag-sq" aria-hidden="true" />
+                  Recap
+                </span>
+                <div class="recap__body">
+                  <span class="recap__date">{recapDate(r.date, r.city)}</span>
+                  <h3 class="recap__name">{r.title}</h3>
+                  {featured && r.descriptionRaw && (
+                    <p class="recap__excerpt">{r.descriptionRaw}</p>
+                  )}
+                  {r.photosUrl && (
+                    <span class="recap__cta">
+                      Ver fotos en Facebook <span aria-hidden="true">→</span>
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          </article>
-        ))
+            </Card>
+          );
+        })
       }
     </div>
   </div>
@@ -168,9 +171,17 @@ const delays: Record<string, string> = { titicaca: '1', francofonia: '2', 'san-s
     font-weight: 700;
     letter-spacing: 1.5px;
     text-transform: uppercase;
-    color: var(--fl-on-cream-muted);
-    cursor: default;
+    color: var(--fl-orange-ink);
+    text-decoration: none;
     align-self: flex-end;
+  }
+  .recaps__all:hover {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+  .recaps__all:focus-visible {
+    outline: 2px solid var(--fl-orange);
+    outline-offset: 3px;
   }
 
   /* ---- Grid asimétrica: 1 feature + 2 medium ---- */
@@ -181,6 +192,16 @@ const delays: Record<string, string> = { titicaca: '1', francofonia: '2', 'san-s
     margin-top: clamp(34px, 5vw, 56px);
   }
 
+  /* `min-width: 0` NO es cosmético: sin él la sección se rompe.
+     `.recap__frame` combina `height: 100%` con `aspect-ratio`, y el aspect-ratio
+     convierte la altura resuelta de vuelta en un ANCHO MÍNIMO (alto × 4/5). Como
+     los ítems de grid traen `min-width: auto`, ese mínimo (1095px medidos) reventaba
+     la columna de 1.5fr y dejaba la de 1fr en 1px: las dos tarjetas chicas existían
+     en el DOM pero medían un píxel de ancho. La cadena de alturas es bistable —
+     cualquier cambio de contenido la tumba— y esto la ancla. */
+  .recap {
+    min-width: 0;
+  }
   .recap__frame {
     position: relative;
     overflow: hidden;
@@ -298,7 +319,20 @@ const delays: Record<string, string> = { titicaca: '1', francofonia: '2', 'san-s
     letter-spacing: 1.5px;
     text-transform: uppercase;
     color: var(--fl-cream);
-    cursor: default;
+  }
+  /* La tarjeta con álbum ES un link. Antes todas parecían clickeables sin serlo;
+     ahora solo lo parece la que de verdad lleva a algún lado. */
+  .recap--link {
+    display: block;
+    text-decoration: none;
+  }
+  .recap--link:focus-visible {
+    outline: 2px solid var(--fl-orange);
+    outline-offset: 3px;
+  }
+  .recap--link:hover .recap__cta {
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
 
   /* ---- Aspect ratio por slot (mobile-first: 1 columna) ---- */
@@ -334,6 +368,16 @@ const delays: Record<string, string> = { titicaca: '1', francofonia: '2', 'san-s
     }
     .recap--medium .recap__frame {
       aspect-ratio: auto;
+    }
+    /* Sin aspect-ratio, la altura de la tarjeta chica la debería fijar la fila (que
+       la reparte la destacada). Pero la FOTO también tira: con `height: 100%` sobre
+       un contenedor de alto automático, la imagen cae a su alto natural y estira su
+       fila — una foto vertical (titicaca.jpg, que antes era la destacada a 4/5)
+       hacía una tarjeta de 926px contra otra de 419px. Sacándola del flujo, la foto
+       deja de aportar alto y la destacada vuelve a ser la única que manda. */
+    .recap--medium .recap__media {
+      position: absolute;
+      inset: 0;
     }
   }
 </style>

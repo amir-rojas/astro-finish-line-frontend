@@ -12,6 +12,7 @@ import Agenda from '@public/features/home/sections/Agenda.astro';
 import SiteFooter from '@public/components/SiteFooter.astro';
 import { eventJsonLd, seoTitle, upcomingByMonth } from '@public/features/home/format';
 import { getNextRace, getEvents } from '@shared/lib/content/events';
+import { pastRaces } from '@shared/lib/race-date';
 
 // Fuente única: la próxima carrera (RaceEvent) gobierna el hero; se busca la
 // MISMA entrada en la colección (EventData) para el SEO/OG/JSON-LD, que
@@ -29,6 +30,15 @@ const event = entry.data;
 // Agenda (Módulo 4): getEvents() no dispara un segundo fetch (ya no hay red,
 // es local), pero se reusa la misma lista para no leer la colección dos veces.
 const agendaMonths = upcomingByMonth(await getEvents(), new Date());
+// El total gobierna la nota de cierre de la agenda: con una agenda flaca (≤2), la
+// sección tiene que decir qué falta en vez de dejar al visitante contando filas.
+const agendaTotal = agendaMonths.reduce((n, m) => n + m.races.length, 0);
+
+// Recaps (Módulo 3): las carreras YA CORRIDAS, de la más reciente a la más vieja.
+// Misma colección, misma regla que la agenda —`pastRaces` es la contraparte de
+// `upcomingRaces`—, así que una carrera nunca puede estar en las dos listas ni
+// caerse de ambas. Tope de 3: es una vitrina, no un archivo.
+const recaps = pastRaces(await getEvents()).slice(0, 3);
 
 // Imagen para compartir (Open Graph): render dedicado 1200×630 desde la foto
 // del evento. Se pasa relativa al layout (que la vuelve absoluta) y absoluta
@@ -59,8 +69,8 @@ const jsonLd = eventJsonLd(event, {
         del footer, que es el mapa del sitio. */}
     <Hero race={nextRace} />
     <RunTour />
-    <Agenda months={agendaMonths} />
-    <Recaps />
+    <Agenda months={agendaMonths} total={agendaTotal} />
+    <Recaps {recaps} />
   </main>
   <SiteFooter />
 </PublicLayout>

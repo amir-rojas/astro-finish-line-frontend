@@ -22,6 +22,7 @@
     { "distance": "5K", "label": "Con polera", "price": 230, "status": "abierto" }
   ],
   "heroImage": "../../assets/images/etapa-renacer.jpg",
+  "heroImageDesktop": "../../assets/images/hero-image.jpg",
   "heroImageAlt": "Corredores en la etapa Renacer",
   "description": "10K y 5K del Run Tour Finish Line, el circuito que premia la perseverancia de cada corredor. Salida y llegada en la Plaza Avaroa, en el corazón de La Paz.",
   "instagram": "@finishlinebolivia",
