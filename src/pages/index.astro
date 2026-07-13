@@ -55,7 +55,9 @@ const jsonLd = [
 ---
 
 <PublicLayout title={TITLE} description={DESCRIPTION} ogImage={ogImage}>
-  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} is:inline />
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} is:inline />
+  </Fragment>
   <SiteHeader />
   <main id="contenido">
     {/* El futuro antes del pasado. La agenda —lo único accionable de la home—

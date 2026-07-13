@@ -24,6 +24,7 @@ import EmptyState from '@public/features/calendar/sections/EmptyState.astro';
 import { getEvents } from '@shared/lib/content/events';
 import { upcomingRaces, pastRaces } from '@shared/lib/race-date';
 import { raceOgImage } from '@shared/lib/og';
+import { racesItemListJsonLd } from '@shared/lib/seo';
 
 const events = await getEvents();
 const upcoming = upcomingRaces(events); // fecha asc
@@ -37,6 +38,12 @@ const [next, ...rest] = upcoming;
 // Al compartir el calendario, la cara es la carrera que viene. Sin esto la página
 // no pasaba ninguna imagen y el layout caía a un `/og-default.jpg` inexistente.
 const ogImage = next ? await raceOgImage(next) : undefined;
+
+// Esta es LA página resumen del calendario: la lista completa y en orden. La home
+// también lleva un ItemList, pero con lo que ella enlaza (la agenda + 3 recaps);
+// acá va el archivo entero, próximas primero. Cada ListItem apunta al detalle, que
+// es donde vive el `SportsEvent` de esa carrera.
+const jsonLd = racesItemListJsonLd([...upcoming, ...past], Astro.site ?? Astro.url);
 ---
 
 <PublicLayout
@@ -44,6 +51,9 @@ const ogImage = next ? await raceOgImage(next) : undefined;
   description="El calendario de carreras de Finish Line en Bolivia: próximas fechas, distancias, estado de inscripción y las ediciones que ya se corrieron."
   ogImage={ogImage}
 >
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} is:inline />
+  </Fragment>
   <SiteHeader />
   <main id="contenido">
     <ListHeader />
