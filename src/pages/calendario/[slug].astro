@@ -19,7 +19,7 @@ import MobileCta from '@public/features/calendar/sections/MobileCta.astro';
 import { getEvents } from '@shared/lib/content/events';
 import { hasRaced } from '@shared/lib/race-date';
 import { calendarEventJsonLd, raceStatus, isFreeEvent } from '@public/features/calendar/format';
-import { raceSeoTitle } from '@shared/lib/seo';
+import { raceSeoTitle, breadcrumbJsonLd } from '@shared/lib/seo';
 import { raceOgImage } from '@shared/lib/og';
 import type { CalendarEvent } from '@shared/lib/content/events';
 
@@ -34,18 +34,35 @@ interface Props {
 const { event } = Astro.props;
 
 const pageUrl = Astro.url.href;
-// El lugar es opcional (una carrera vieja puede no tenerlo): sin guarda, la meta
-// description publicada decía "Renacer — undefined.".
-const place = event.location ?? event.city;
-const description =
-  [
-    place ? `${event.title} — ${place}.` : `${event.title}.`,
-    event.distances.length > 0
-      ? `Distancias: ${[...new Set(event.distances)].join(', ')}.`
-      : 'Inscripciones y detalles de la carrera.',
-  ].join(' ');
 
-const jsonLd = calendarEventJsonLd(event, pageUrl);
+// La descripción REAL de la carrera manda: es la que Google muestra en el
+// resultado y la que decide si alguien hace clic. Renacer tiene 154 caracteres
+// escritos y la página publicaba en su lugar un resumen armado a mano de 44
+// ("Renacer — Plaza Avaroa. Distancias: 10K, 5K."), que el JSON-LD sí usaba y la
+// <meta> ignoraba.
+//
+// El resumen sobrevive como RESPALDO, para las carreras viejas que no traen texto
+// propio. El lugar es opcional ahí: sin guarda, la meta decía "Renacer — undefined.".
+const place = event.location ?? event.city;
+const fallbackDescription = [
+  place ? `${event.title} — ${place}.` : `${event.title}.`,
+  event.distances.length > 0
+    ? `Distancias: ${[...new Set(event.distances)].join(', ')}.`
+    : 'Inscripciones y detalles de la carrera.',
+].join(' ');
+const description = event.descriptionRaw ?? fallbackDescription;
+
+const jsonLd = [
+  calendarEventJsonLd(event, pageUrl),
+  breadcrumbJsonLd(
+    [
+      { name: 'Inicio', path: '/' },
+      { name: 'Calendario', path: '/calendario' },
+      { name: event.title, path: `/calendario/${event.slug}` },
+    ],
+    Astro.site ?? Astro.url,
+  ),
+];
 
 // Merch de la carrera. Una pieza entra SOLO si trae su condición (`*Terms`): sin
 // ella, la foto es una promesa que la carrera puede no cumplir. Es exactamente lo

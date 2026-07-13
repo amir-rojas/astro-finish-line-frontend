@@ -24,7 +24,7 @@ import EmptyState from '@public/features/calendar/sections/EmptyState.astro';
 import { getEvents } from '@shared/lib/content/events';
 import { upcomingRaces, pastRaces } from '@shared/lib/race-date';
 import { raceOgImage } from '@shared/lib/og';
-import { racesItemListJsonLd } from '@shared/lib/seo';
+import { racesItemListJsonLd, breadcrumbJsonLd } from '@shared/lib/seo';
 
 const events = await getEvents();
 const upcoming = upcomingRaces(events); // fecha asc
@@ -43,7 +43,17 @@ const ogImage = next ? await raceOgImage(next) : undefined;
 // también lleva un ItemList, pero con lo que ella enlaza (la agenda + 3 recaps);
 // acá va el archivo entero, próximas primero. Cada ListItem apunta al detalle, que
 // es donde vive el `SportsEvent` de esa carrera.
-const jsonLd = racesItemListJsonLd([...upcoming, ...past], Astro.site ?? Astro.url);
+const siteBase = Astro.site ?? Astro.url;
+const jsonLd = [
+  racesItemListJsonLd([...upcoming, ...past], siteBase),
+  breadcrumbJsonLd(
+    [
+      { name: 'Inicio', path: '/' },
+      { name: 'Calendario', path: '/calendario' },
+    ],
+    siteBase,
+  ),
+];
 ---
 
 <PublicLayout

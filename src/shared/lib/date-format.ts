@@ -28,6 +28,19 @@ export function datePart(date: Date, opts: Intl.DateTimeFormatOptions): string {
   return new Intl.DateTimeFormat(LOCALE, { ...opts, timeZone: 'UTC' }).format(date);
 }
 
+/**
+ * Fecha ISO de la largada: "2026-08-16T08:00:00-04:00".
+ *
+ * Con hora conocida devuelve el INSTANTE (fecha + hora + huso), que es lo que
+ * necesitan el countdown y el `startDate` del JSON-LD. Sin hora devuelve la fecha
+ * pelada ("2026-08-16"): schema.org la acepta, y es más honesto que inventar una
+ * largada a medianoche.
+ */
+export function startDateTimeISO(date: Date, startTime?: string, tz = '-04:00'): string {
+  const ymd = date.toISOString().slice(0, 10);
+  return startTime ? `${ymd}T${startTime}:00${tz}` : ymd;
+}
+
 /** "Domingo 16 / Ago / 2026" — la fecha completa de una carrera. El día de la
  *  semana va primero porque es el dato con el que el corredor decide si puede ir. */
 export function weekdayDate(date: Date): string {
