@@ -14,6 +14,8 @@
 // El hero sigue mostrando la próxima carrera: eso es frescura, y es deseable.
 // Lo que dejó de hacer es DEFINIR la página.
 
+import { marked } from 'marked';
+import sanitizeHtml from 'sanitize-html';
 import { site } from '@shared/config/site';
 import type { RaceEvent } from '@shared/lib/content/events';
 
@@ -23,6 +25,51 @@ import type { RaceEvent } from '@shared/lib/content/events';
 const ORG_LOGO = '/apple-touch-icon.png';
 
 const abs = (path: string, base: URL): string => new URL(path, base).href;
+
+// Google corta la descripción alrededor de los 155-160 caracteres. Cortamos
+// nosotros, en un límite legible, en vez de dejar que la corte él a mitad de palabra.
+const META_MAX = 155;
+
+// sanitize-html deja las entidades codificadas al quitar todas las etiquetas.
+const ENTITIES: Record<string, string> = {
+  '&amp;': '&',
+  '&lt;': '<',
+  '&gt;': '>',
+  '&quot;': '"',
+  '&#39;': "'",
+  '&nbsp;': ' ',
+};
+
+/**
+ * `<meta description>` a partir de la descripción de la carrera.
+ *
+ * El campo `description` del contenido es MARKDOWN y su destino principal es la
+ * sección visible "Descripción" del detalle: puede tener párrafos y formato. El
+ * buscador quiere lo contrario — una línea plana y corta. Meterlo crudo en la
+ * meta publicaba los asteriscos del markdown y un texto que Google cortaba a
+ * mitad de palabra.
+ *
+ * Así que de un solo campo salen las dos cosas: la página lo renderiza entero, y
+ * acá se aplana (markdown → HTML → texto) y se corta en el último punto que entre
+ * en el límite; si no hay ninguno, en el último espacio, con puntos suspensivos.
+ * Cortar en el medio de una frase es peor que cortar corto.
+ */
+export function metaDescription(markdown: string): string {
+  const html = marked.parse(markdown, { async: false });
+  const text = sanitizeHtml(html, { allowedTags: [], allowedAttributes: {} })
+    .replace(/&[a-z#0-9]+;/gi, (e) => ENTITIES[e] ?? e)
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (text.length <= META_MAX) return text;
+
+  const head = text.slice(0, META_MAX);
+  const lastStop = head.lastIndexOf('. ');
+  if (lastStop > 0) return head.slice(0, lastStop + 1);
+
+  const lastSpace = head.lastIndexOf(' ');
+  return `${head.slice(0, lastSpace > 0 ? lastSpace : META_MAX).trimEnd()}…`;
+}
 
 /**
  * Título SEO de una carrera: "Renacer 2026". El año va porque es como se busca una

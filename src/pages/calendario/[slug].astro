@@ -19,7 +19,7 @@ import MobileCta from '@public/features/calendar/sections/MobileCta.astro';
 import { getEvents } from '@shared/lib/content/events';
 import { hasRaced } from '@shared/lib/race-date';
 import { calendarEventJsonLd, raceStatus, isFreeEvent } from '@public/features/calendar/format';
-import { raceSeoTitle, breadcrumbJsonLd } from '@shared/lib/seo';
+import { raceSeoTitle, breadcrumbJsonLd, metaDescription } from '@shared/lib/seo';
 import { raceOgImage } from '@shared/lib/og';
 import type { CalendarEvent } from '@shared/lib/content/events';
 
@@ -50,7 +50,9 @@ const fallbackDescription = [
     ? `Distancias: ${[...new Set(event.distances)].join(', ')}.`
     : 'Inscripciones y detalles de la carrera.',
 ].join(' ');
-const description = event.descriptionRaw ?? fallbackDescription;
+const description = event.descriptionRaw
+  ? metaDescription(event.descriptionRaw)
+  : fallbackDescription;
 
 const jsonLd = [
   calendarEventJsonLd(event, pageUrl),
