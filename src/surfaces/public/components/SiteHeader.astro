@@ -127,23 +127,46 @@ const nav = [
 </script>
 
 <style>
-  /* Primer foco tabulable de la página: invisible hasta que se enfoca. */
+  /* Primer foco tabulable de la página: invisible hasta que se enfoca.
+   *
+   * Se OCULTA POR TAMAÑO (1×1 px, recortado), no moviéndolo fuera de pantalla con
+   * un `transform`. Antes era `position: fixed` + `translateY(-110%)`: el elemento
+   * seguía ahí, de tamaño completo, arriba a la izquierda, y lo único que lo tapaba
+   * era que el navegador aplicara ese transform. En iOS Safari, al scrollear con el
+   * header sticky y su `backdrop-filter`, esas capas se recomponen y el transform se
+   * pierde: el link aparecía encima del logo. Un elemento de 1×1 px recortado no
+   * puede revelarse por un fallo de compositing — no hay nada que revelar.
+   *
+   * `:focus` y no `:focus-visible`: a este link solo se llega con teclado, así que
+   * cualquier foco es un foco que merece verlo. */
   .skip {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+  .skip:focus {
     position: fixed;
     top: 0;
     left: 0;
     z-index: var(--z-skip);
-    transform: translateY(-110%);
+    width: auto;
+    height: auto;
+    margin: 0;
     padding: 12px 18px;
+    overflow: visible;
+    clip-path: none;
     background: var(--fl-cream);
     color: var(--fl-navy);
     font-family: 'Space Mono', monospace;
     font-size: 13px;
     font-weight: 700;
     text-decoration: none;
-  }
-  .skip:focus-visible {
-    transform: translateY(0);
     outline: 2px solid var(--fl-orange);
     outline-offset: -4px;
   }
