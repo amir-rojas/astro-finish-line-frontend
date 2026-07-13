@@ -47,10 +47,17 @@ const distances = [...new Set(event.distances)];
       <h1 class="dh__title">{event.title}</h1>
 
       <dl class="dh__facts">
-        <div class="dh__fact">
-          <dt>Ubicación</dt>
-          <dd>{event.location}</dd>
-        </div>
+        {/* Una carrera vieja puede no tener punto de partida cargado: se cae a la
+            ciudad, y si tampoco hay, la ficha omite la fila en vez de mostrar un
+            rótulo "Ubicación" con nada al lado. */}
+        {
+          (event.location ?? event.city) && (
+            <div class="dh__fact">
+              <dt>Ubicación</dt>
+              <dd>{event.location ?? event.city}</dd>
+            </div>
+          )
+        }
         <div class="dh__fact">
           <dt>Fecha</dt>
           <dd>{heroDate(event.date)}</dd>

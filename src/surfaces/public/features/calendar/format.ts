@@ -135,13 +135,16 @@ export function heroDate(date: Date): string {
  * Fecha de cierre de inscripción en formato legible ("31 de Agosto, 2026") para
  * el sidebar del detalle. UTC por el mismo motivo que `heroDate()`.
  */
+// En español los meses van en MINÚSCULA dentro de una fecha, y el año se une con
+// "de", no con una coma: "12 de julio de 2026". "12 de Julio, 2026" es un calco
+// del inglés.
 const MONTHS_ES_LONG = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
 ] as const;
 
 export function longDate(date: Date): string {
-  return `${date.getUTCDate()} de ${MONTHS_ES_LONG[date.getUTCMonth()]}, ${date.getUTCFullYear()}`;
+  return `${date.getUTCDate()} de ${MONTHS_ES_LONG[date.getUTCMonth()]} de ${date.getUTCFullYear()}`;
 }
 
 /**
@@ -171,13 +174,16 @@ export function calendarEventJsonLd(event: CalendarEvent, pageUrl: string): Reco
     startDate: event.date.toISOString().slice(0, 10),
     eventStatus: 'https://schema.org/EventScheduled',
     url: pageUrl,
-    location: {
-      '@type': 'Place',
-      name: event.location,
-      address: event.location,
-    },
     sport: 'Running',
   };
+
+  // `location` es opcional en el contenido: se cae a la ciudad, y si no hay
+  // ninguno de los dos se OMITE el Place en vez de declararle a Google un lugar
+  // vacío (un `name: undefined` es peor que no tener el campo).
+  const place = event.location ?? event.city;
+  if (place) {
+    jsonLd.location = { '@type': 'Place', name: place, address: place };
+  }
 
   if (event.heroImage) jsonLd.image = event.heroImage.src;
   if (event.descriptionRaw) jsonLd.description = event.descriptionRaw;
