@@ -16,10 +16,11 @@ import RaceRewards from '@public/features/calendar/sections/RaceRewards.astro';
 import type { RewardItem } from '@public/features/calendar/sections/RaceRewards.astro';
 import DetailSidebar from '@public/features/calendar/sections/DetailSidebar.astro';
 import MobileCta from '@public/features/calendar/sections/MobileCta.astro';
-import { getImage } from 'astro:assets';
 import { getEvents } from '@shared/lib/content/events';
 import { hasRaced } from '@shared/lib/race-date';
 import { calendarEventJsonLd, raceStatus, isFreeEvent } from '@public/features/calendar/format';
+import { raceSeoTitle } from '@shared/lib/seo';
+import { raceOgImage } from '@shared/lib/og';
 import type { CalendarEvent } from '@shared/lib/content/events';
 
 export async function getStaticPaths() {
@@ -93,15 +94,13 @@ const finished = hasRaced(event);
 const soldOut = raceStatus(event.modalities)?.tone === 'closed';
 const isFree = isFreeEvent(event.modalities);
 
-// Imagen para compartir (Open Graph): render dedicado 1200×630, mismo patrón
-// que la home. `event.heroImage` ya es ImageMetadata (imagen local).
-const ogImage = event.heroImage
-  ? (await getImage({ src: event.heroImage, width: 1200, height: 630, format: 'jpeg' })).src
-  : undefined;
+// Imagen para compartir (Open Graph): foto encuadrada o, si la carrera no tiene
+// foto, el afiche contenido sobre el navy. Antes, sin foto, no había preview.
+const ogImage = await raceOgImage(event);
 ---
 
 <PublicLayout
-  title={event.title}
+  title={raceSeoTitle(event.title, event.date)}
   description={description}
   ogImage={ogImage}
   canonical={pageUrl}

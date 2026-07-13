@@ -13,7 +13,7 @@
 // empresa, no de una carrera.
 import { Image } from 'astro:assets';
 import logo from '../../../assets/images/logo.png';
-import { site, whatsappLink, type SocialLink } from '@shared/config/site';
+import { site, cityLine, whatsappLink, type SocialLink } from '@shared/config/site';
 import { getEvents } from '@shared/lib/content/events';
 
 const year = new Date().getFullYear();
@@ -214,7 +214,7 @@ const icons: Record<'whatsapp' | SocialLink['icon'], string> = {
         <p class="ft__orgline">Organizamos carreras en Bolivia.</p>
       </div>
       <div class="ft__meta">
-        <span class="ft__city">{site.city}</span>
+        <span class="ft__city">{cityLine}</span>
         <span class="ft__legal">{copyright}</span>
       </div>
     </div>

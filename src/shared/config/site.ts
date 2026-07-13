@@ -16,9 +16,12 @@ export interface SocialLink {
 }
 
 export interface SiteConfig {
+  /** Razón social. Es el `name` del SportsOrganization y el del copyright. */
   organizer: string;
-  /** Ciudad base de la organización, para la línea de créditos del footer. */
-  city: string;
+  /** La marca como la usa la gente (y como la busca). `alternateName` en schema.org. */
+  shortName: string;
+  /** Sede. Estructurada porque schema.org/PostalAddress la necesita en partes. */
+  address: { locality: string; country: string; countryCode: string };
   /** Formato internacional legible; el `href` de wa.me se deriva quitando todo lo que no sea dígito. */
   whatsapp?: string;
   socials: SocialLink[];
@@ -26,7 +29,8 @@ export interface SiteConfig {
 
 export const site: SiteConfig = {
   organizer: 'Finish Line Sporting Events',
-  city: 'La Paz, Bolivia',
+  shortName: 'Finish Line',
+  address: { locality: 'La Paz', country: 'Bolivia', countryCode: 'BO' },
   whatsapp: '+591 62151410',
   socials: [
     { label: 'Instagram', href: 'https://www.instagram.com/finishlinebolivia', icon: 'instagram' },
@@ -35,6 +39,9 @@ export const site: SiteConfig = {
     { label: 'YouTube', href: 'https://www.youtube.com/@finishlinebolivia', icon: 'youtube' },
   ],
 };
+
+/** "La Paz, Bolivia" — la sede en prosa, para la línea de créditos del footer. */
+export const cityLine = `${site.address.locality}, ${site.address.country}`;
 
 /** `https://wa.me/59162151410?text=...` — null si la organización no publica WhatsApp. */
 export function whatsappLink(message: string): { href: string; detail: string } | null {
