@@ -9,7 +9,7 @@
 import type { RaceEvent } from '@shared/lib/content/events';
 import { heroDate, shortDate, dayMonth, countdownISOFrom } from '../format';
 import { isPastRace } from '@shared/lib/race-date';
-import { Image } from 'astro:assets';
+import { getImage } from 'astro:assets';
 import Countdown from './Countdown.astro';
 
 interface Props {
@@ -87,20 +87,47 @@ const countdownNote =
   canRegister && race.registrationDeadline
     ? `Inscripciones hasta el ${dayMonth(race.registrationDeadline)}`
     : undefined;
+
+// Art direction del hero: en pantalla ancha entra una toma APAISADA, y el celular
+// se queda con la vertical. No es la misma foto en dos tamaños —eso ya lo resuelve
+// el srcset— sino DOS ENCUADRES: recortar la vertical a lo ancho dejaba una franja
+// sin acción. Por eso hace falta un `<picture>` a mano: `<Image>` de Astro escala,
+// no cambia de foto según el viewport.
+//
+// El <source> del desktop es opcional: si la carrera no trae toma apaisada, el
+// navegador cae al <img> y todo sigue funcionando con una sola foto.
+const heroMobile = race.heroImage
+  ? await getImage({ src: race.heroImage, widths: [640, 768, 1024], format: 'webp' })
+  : null;
+const heroDesktop = race.heroImageDesktop
+  ? await getImage({ src: race.heroImageDesktop, widths: [1200, 1600, 2000], format: 'webp' })
+  : null;
 ---
 
 <section id="carrera" class="hero">
   {
-    race.heroImage && (
-      <Image
-        class="hero__photo"
-        src={race.heroImage}
-        alt={race.heroImageAlt ?? race.title}
-        widths={[768, 1200, 1600]}
-        sizes="100vw"
-        loading="eager"
-        fetchpriority="high"
-      />
+    heroMobile && (
+      <picture>
+        {heroDesktop && (
+          <source
+            media="(min-width: 900px)"
+            srcset={heroDesktop.srcSet.attribute}
+            sizes="100vw"
+            type="image/webp"
+          />
+        )}
+        <img
+          class="hero__photo"
+          src={heroMobile.src}
+          srcset={heroMobile.srcSet.attribute}
+          sizes="100vw"
+          alt={race.heroImageAlt ?? race.title}
+          width={heroMobile.attributes.width}
+          height={heroMobile.attributes.height}
+          loading="eager"
+          fetchpriority="high"
+        />
+      </picture>
     )
   }
   <div class="hero__scrim" aria-hidden="true"></div>
@@ -123,13 +150,17 @@ const countdownNote =
       <h1 class="hero__title" data-reveal data-delay="1">{race.title}</h1>
       {tagline && <p class="hero__tagline" data-reveal data-delay="2">{tagline}</p>}
 
-      <p class="hero__loc" data-reveal data-delay="2">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-          <path d="M12 21s-7-5.686-7-11a7 7 0 1114 0c0 5.314-7 11-7 11z" />
-          <circle cx="12" cy="10" r="2.5" />
-        </svg>
-        {race.location}
-      </p>
+      {
+        (race.location ?? race.city) && (
+          <p class="hero__loc" data-reveal data-delay="2">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M12 21s-7-5.686-7-11a7 7 0 1114 0c0 5.314-7 11-7 11z" />
+              <circle cx="12" cy="10" r="2.5" />
+            </svg>
+            {race.location ?? race.city}
+          </p>
+        )
+      }
 
       {
         (statusLabel || isFree || race.coorganizer) && (
@@ -220,6 +251,33 @@ const countdownNote =
         rgba(14, 28, 48, 0.34) 44%,
         transparent 72%
       );
+  }
+
+  /* En desktop entra la toma apaisada: una largada real, la calle entera llena de
+     corredores. Es una foto MUY cargada —cientos de dorsales, ropa de todos los
+     colores— y el velo base, pensado para una foto más tranquila, no sostenía el
+     texto chico: el lockup, la fecha y el tagline se perdían sobre la multitud.
+     Este refuerza el lado del copy lo justo para que el texto gane, sin apagar la
+     foto: a la izquierda se siguen viendo corredores, no un bloque navy muerto.
+     El lado derecho queda limpio, que es donde la multitud tiene que respirar. */
+  @media (min-width: 900px) {
+    .hero__scrim {
+      background:
+        linear-gradient(
+          to top,
+          var(--fl-navy) 2%,
+          rgba(14, 28, 48, 0.86) 24%,
+          rgba(14, 28, 48, 0.42) 55%,
+          rgba(14, 28, 48, 0.08) 80%
+        ),
+        linear-gradient(
+          to right,
+          rgba(14, 28, 48, 0.93) 0%,
+          rgba(14, 28, 48, 0.8) 26%,
+          rgba(14, 28, 48, 0.42) 48%,
+          transparent 70%
+        );
+    }
   }
 
   .hero__inner {
