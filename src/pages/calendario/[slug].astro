@@ -14,6 +14,7 @@ import RouteMap from '@public/features/calendar/sections/RouteMap.astro';
 import EventInfo from '@public/features/calendar/sections/EventInfo.astro';
 import RaceRewards from '@public/features/calendar/sections/RaceRewards.astro';
 import type { RewardItem } from '@public/features/calendar/sections/RaceRewards.astro';
+import Sponsors from '@public/features/calendar/sections/Sponsors.astro';
 import DetailSidebar from '@public/features/calendar/sections/DetailSidebar.astro';
 import MobileCta from '@public/features/calendar/sections/MobileCta.astro';
 import { getEvents } from '@shared/lib/content/events';
@@ -171,6 +172,10 @@ const ogImage = await raceOgImage(event);
         </div>
       </div>
     </div>
+
+    {/* Cierra el detalle con credibilidad, justo antes del footer — solo si la
+        carrera trae auspiciadores cargados en Sanity. */}
+    {event.sponsors.length > 0 && <Sponsors items={event.sponsors} />}
 
     {/* Una carrera corrida no lleva barra de inscripción: no hay nada que ofrecer. */}
     {!finished && <MobileCta {soldOut} registrationUrl={event.registrationUrl} {isFree} />}

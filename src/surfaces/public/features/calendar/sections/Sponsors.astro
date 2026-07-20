@@ -1,27 +1,25 @@
 ---
-// Sección PATROCINADORES: tira (marquee) de logos que corre en loop infinito,
-// CSS puro (sin JS). Cierra la landing con credibilidad, justo antes del footer,
-// sin robar foco al CTA de inscripción.
+// Sección AUSPICIADORES: tira (marquee) de logos que corre en loop infinito,
+// CSS puro (sin JS). Cierra el detalle de la carrera con credibilidad, justo
+// antes del footer, sin robar foco al CTA de inscripción.
 //
-// Los logos vienen dispares: unos con fondo transparente (conitzer, runa-run) y
-// otros con fondo NEGRO opaco que es parte de su marca (cronos, GAML). Para que
-// convivan sin retocar logos ajenos, cada uno va sobre un recuadro claro
-// uniforme (--fl-surface): así todos quedan en el contexto para el que fueron
-// diseñados y la fila se lee ordenada sobre el navy.
+// Los auspiciadores son por carrera (los carga quien edita esa carrera en
+// Sanity) y llegan como logos dispares: fondo transparente o fondo opaco que
+// es parte de la marca. Para que convivan sin retocar logos ajenos, cada uno
+// va sobre un recuadro claro uniforme (--fl-surface): así todos quedan en el
+// contexto para el que fueron diseñados y la fila se lee ordenada sobre el navy.
 import { Image } from 'astro:assets';
-import runaRun from '../../../../../assets/sponsors-logos/runa-run.png';
-import cronos from '../../../../../assets/sponsors-logos/cronos.png';
-import conitzer from '../../../../../assets/sponsors-logos/conitzer.png';
-import gaml from '../../../../../assets/sponsors-logos/GAML.png';
 
-// Orden: institucional/co-organizador primero (GAML = alcaldía), luego el resto.
-// Al ser un loop no hay "primero" real, pero define el punto de entrada visual.
-const sponsors = [
-  { name: 'GAML · Dirección de Deportes', logo: gaml },
-  { name: 'Cronos Eventos Deportivos', logo: cronos },
-  { name: 'Runa Run', logo: runaRun },
-  { name: 'Conitzer Running', logo: conitzer },
-];
+export interface SponsorItem {
+  name: string;
+  logo: ImageMetadata;
+}
+
+interface Props {
+  items: SponsorItem[];
+}
+
+const { items } = Astro.props;
 ---
 
 <section id="patrocinadores" class="sponsors">
@@ -35,7 +33,7 @@ const sponsors = [
       <div class="marquee__track">
         <ul class="marquee__group">
           {
-            sponsors.map((s) => (
+            items.map((s) => (
               <li class="sponsor">
                 <Image
                   class="sponsor__img"
@@ -51,7 +49,7 @@ const sponsors = [
         </ul>
         <ul class="marquee__group" aria-hidden="true">
           {
-            sponsors.map((s) => (
+            items.map((s) => (
               <li class="sponsor">
                 <Image
                   class="sponsor__img"

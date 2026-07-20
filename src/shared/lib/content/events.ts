@@ -75,6 +75,12 @@ export interface InfoBlock {
   files: InfoBlockFile[];
 }
 
+/** Un auspiciador de ESTA carrera (nombre + logo). */
+export interface RaceSponsor {
+  name: string;
+  logo: ImageMetadata;
+}
+
 export interface RaceEvent {
   slug: string;
   title: string;
@@ -156,6 +162,8 @@ export interface RaceEvent {
   categories: RaceAgeCategory[];
   /** Bloques de "Información del evento" (reglamento, convocatoria…), ya ordenados. */
   infoBlocks: InfoBlock[];
+  /** Auspiciadores de ESTA carrera. Si viene vacío, la tira no se muestra. */
+  sponsors: RaceSponsor[];
 }
 
 // --- Alias de la superficie de calendario/detalle ---------------------------
@@ -246,6 +254,13 @@ const infoBlockSchema = z.object({
   files: nullableArray(infoFileSchema),
 });
 
+// El logo va como `image` plano (no `raceImage`): un auspiciador no necesita
+// un alt propio, la tira usa `name` para eso.
+const sponsorSchema = z.object({
+  name: z.string(),
+  logo: z.object({ asset: imageAssetSchema.nullable().optional() }).nullable().optional(),
+});
+
 const raceSchema = z.object({
   slug: z.string(),
   title: z.string(),
@@ -283,6 +298,7 @@ const raceSchema = z.object({
   categories: nullableArray(ageCategorySchema),
   registrationOptions: nullableArray(registrationOptionSchema),
   infoBlocks: nullableArray(infoBlockSchema),
+  sponsors: nullableArray(sponsorSchema),
 });
 
 const raceListResponseSchema = z.array(raceSchema);
@@ -352,6 +368,10 @@ const RACES_QUERY = `*[_type == "race"]{
       "mime": asset->mimeType,
       "ext": asset->extension
     }
+  },
+  sponsors[]{
+    name,
+    logo{ asset->{ url, extension, metadata{ dimensions{ width, height } } } }
   }
 }`;
 
@@ -475,6 +495,11 @@ function mapRace(raw: RawRace): RaceEvent {
     })),
     categories: raw.categories.map((c) => ({ name: c.name, range: c.ages })),
     infoBlocks: mapInfoBlocks(raw.infoBlocks),
+    // Un auspiciador sin logo subido no se muestra: un nombre suelto en la tira
+    // no aporta nada (es una tira de MARCAS, no de texto).
+    sponsors: raw.sponsors
+      .map((s) => ({ name: s.name, logo: sanityImage(s.logo) }))
+      .filter((s): s is RaceSponsor => s.logo !== undefined),
   };
 }
 
