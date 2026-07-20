@@ -9,6 +9,12 @@ export default defineConfig({
   output: 'static',
   adapter: vercel(),
   integrations: [sitemap()],
+  image: {
+    // Autoriza a `<Image>`/`getImage()` a descargar y optimizar assets servidos
+    // por el CDN de imágenes de Sanity (ver `content/events.ts`: los campos de
+    // imagen de `RaceEvent` fabrican un `ImageMetadata` con `src` apuntando acá).
+    remotePatterns: [{ protocol: 'https', hostname: 'cdn.sanity.io' }],
+  },
   env: {
     schema: {
       // Base URL del backend (solo server-side BFF). No es secreto.

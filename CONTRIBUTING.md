@@ -82,3 +82,23 @@ Estas no se hacen desde el repo — son configuración de Vercel y GitHub:
    - Require a pull request before merging.
    - (Opcional) Require status checks (el deploy/preview de Vercel).
 2. Mismo rule recomendado para `develop` si trabaja más de una persona.
+
+## Contenido de carreras (Sanity) y rebuild automático
+
+El contenido de carreras vive en Sanity Studio (`finishline.sanity.studio`), no en
+este repo: `src/shared/lib/content/events.ts` lee el dataset público
+(`34shscw3`/`production`) en cada build vía GROQ, con `useCdn: false` a
+propósito (el CDN de Sanity tiene ~10 min de retraso tras un publish).
+
+Como el sitio es estático (SSG), publicar en Studio **no** actualiza
+`staging`/`producción` por sí solo — hace falta disparar un rebuild. Eso se
+resuelve con un **webhook de Sanity apuntando a un Vercel Deploy Hook**
+(configuración externa, sin código en el repo):
+
+1. **Vercel**: Project Settings → Git → Deploy Hooks → crear un hook por rama
+   (`develop` para staging, `main` para producción). Copiar la URL generada.
+2. **Sanity Studio**: Project → API → Webhooks → crear un webhook con esa URL,
+   disparado `on publish`/`on delete` del tipo `race`.
+
+Sin este webhook, un cambio publicado en Studio queda invisible hasta el
+próximo deploy manual (push a `develop`/`main`).
