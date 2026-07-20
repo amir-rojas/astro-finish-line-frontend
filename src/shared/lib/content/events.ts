@@ -61,6 +61,9 @@ export interface RaceEvent {
   /** Ciudad. Es el DÓNDE grueso: lo que sirve para escanear una lista de carreras
       de un organizador que corre en todo el país. */
   city?: string;
+  /** País. Hoy todas las carreras son de Bolivia, pero el schema ya lo declara
+      (organizador multi-país a futuro). */
+  country?: string;
   /** Distancias derivadas de `modalities[].distance` (si hay modalidades) o del legacy `distances[]`. */
   distances: string[];
   /** Titular display multilínea del hero. Si falta, el hero cae al `title`. */
@@ -185,6 +188,7 @@ export function toRaceEvent(entry: EventEntry): RaceEvent {
     location: data.location,
     finishLocation: data.finishLocation,
     city: data.city,
+    country: data.country,
     // Si hay modalidades reales, las distancias se derivan de ahí (misma regla
     // que Strapi); si no, cae al legacy `distances[]` (compat con contenido viejo).
     distances: data.modalities.length > 0 ? data.modalities.map((m) => m.distance) : data.distances,
