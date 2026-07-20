@@ -3,18 +3,35 @@
 // detalle, la sidebar (con el CTA) se apila al final del contenido en móvil, así
 // que la acción primaria quedaba enterrada bajo Descripción/Modalidades/Info en
 // el dispositivo donde llega la mayoría. Esta barra la mantiene siempre al
-// alcance del pulgar. Zero-JS (siempre visible, no depende de scroll).
+// alcance del pulgar.
 //
 // Espeja la lógica de estado de DetailSidebar: agotada → estado apagado (sin
 // link muerto); si no, CTA naranja gratis-aware. Si no hay nada que ofrecer
 // (ni agotada ni con `registrationUrl`), no renderiza — no hay barra vacía.
+//
+// Precio en vivo (`initialModality`): cuando la carrera tiene MÁS de una
+// modalidad, la ficha lateral (`DetailSidebar` → `ModalityPicker`) deja elegir
+// combinación, y esta barra tiene que mostrar el MISMO precio — dos CTAs
+// contradiciéndose (uno con precio, otro sin, o cada uno con un número
+// distinto) es peor que no mostrar precio. Con una sola modalidad no hay nada
+// que elegir: la barra se queda como estaba, sin precio ni JS nuevo.
+import { formatPrice } from '../format';
+
 interface Props {
   soldOut?: boolean;
   registrationUrl?: string;
   isFree?: boolean;
+  /** Modalidad inicial a mostrar, SOLO cuando `ModalityPicker` existe en la
+      página (más de una modalidad real). El caller decide esa condición. */
+  initialModality?: { price: number; label: string; status: 'abierto' | 'ultimos_cupos' | 'agotado' };
 }
-const { soldOut = false, registrationUrl, isFree = false } = Astro.props;
+const { soldOut = false, registrationUrl, isFree = false, initialModality } = Astro.props;
 const show = soldOut || Boolean(registrationUrl);
+const ctaLabel = isFree ? 'Inscribirse gratis' : 'Iniciar inscripción';
+// Misma guarda que DetailSidebar: si la combinación por defecto (la primera
+// del array) ya nace agotada, esta barra no puede mostrar un CTA naranja vivo
+// ni un instante antes de que el JS de ModalityPicker corra.
+const defaultModalityClosed = initialModality?.status === 'agotado';
 ---
 
 {
@@ -23,10 +40,44 @@ const show = soldOut || Boolean(registrationUrl);
       {soldOut ? (
         <span class="mcta__closed">Inscripciones agotadas</span>
       ) : (
-        <a class="mcta__cta" href={registrationUrl} target="_blank" rel="noopener noreferrer">
-          <span>{isFree ? 'Inscribirse gratis' : 'Iniciar inscripción'}</span>
-          <span class="mcta__arrow" aria-hidden="true">→</span>
-        </a>
+        <>
+          {/* Misma razón que en DetailSidebar: la combinación elegida en el
+              picker puede estar agotada aunque la carrera en general no lo
+              esté (`soldOut` es agregado, no por-combinación). Dos bloques,
+              uno visible por vez; sin picker (`initialModality` ausente) el
+              segundo nunca se activa y no hay script de más. */}
+          <a
+            class="mcta__cta"
+            href={registrationUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-mcta-live-price={initialModality ? '' : undefined}
+            data-live-cta
+            hidden={defaultModalityClosed || undefined}
+          >
+            <span>
+              {ctaLabel}
+              {initialModality && (
+                <>
+                  {' · '}
+                  <span data-mcta-price>{formatPrice(initialModality.price)}</span>
+                </>
+              )}
+            </span>
+            <span class="mcta__arrow" aria-hidden="true">→</span>
+          </a>
+          {
+            initialModality && (
+              <span
+                class="mcta__closed"
+                data-modality-closed
+                hidden={!defaultModalityClosed || undefined}
+              >
+                Combinación agotada
+              </span>
+            )
+          }
+        </>
       )}
     </div>
   )
@@ -50,6 +101,14 @@ const show = soldOut || Boolean(registrationUrl);
       padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
       background: var(--fl-navy);
       border-top: 1px solid var(--fl-hairline);
+    }
+
+    /* [hidden] necesita un display explícito: un `display:flex` de autor le
+       gana al `[hidden]{display:none}` del user-agent, así que sin esto el
+       atributo que pone el script no ocultaría nada. */
+    .mcta__cta[hidden],
+    .mcta__closed[hidden] {
+      display: none;
     }
 
     .mcta__cta {
@@ -89,3 +148,39 @@ const show = soldOut || Boolean(registrationUrl);
     }
   }
 </style>
+
+<script>
+  // Mantiene el precio de la barra fija sincronizado con ModalityPicker, que
+  // vive en otro árbol (la sidebar). El listener se retira en
+  // astro:before-swap: si no, cada navegación deja uno apuntando a un nodo ya
+  // desmontado, y se acumulan tantos como páginas de detalle se visiten.
+  function formatPrice(amount: number): string {
+    return amount === 0 ? 'GRATIS' : `${amount} Bs`;
+  }
+
+  let activeListener: ((e: Event) => void) | null = null;
+
+  document.addEventListener('astro:page-load', () => {
+    const priceEl = document.querySelector<HTMLElement>('[data-mcta-live-price] [data-mcta-price]');
+    const liveCta = document.querySelector<HTMLElement>('.mcta [data-live-cta]');
+    const closedBlock = document.querySelector<HTMLElement>('.mcta [data-modality-closed]');
+    if (!priceEl && !(liveCta && closedBlock)) return;
+    activeListener = (e) => {
+      const { price, status } = (e as CustomEvent<{ price: number; status: string }>).detail;
+      if (priceEl) priceEl.textContent = formatPrice(price);
+      if (liveCta && closedBlock) {
+        const closed = status === 'agotado';
+        liveCta.hidden = closed;
+        closedBlock.hidden = !closed;
+      }
+    };
+    document.addEventListener('race:modality-change', activeListener);
+  });
+
+  document.addEventListener('astro:before-swap', () => {
+    if (activeListener) {
+      document.removeEventListener('race:modality-change', activeListener);
+      activeListener = null;
+    }
+  });
+</script>

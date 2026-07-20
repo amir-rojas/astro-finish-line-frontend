@@ -2,12 +2,22 @@
 // DetailHero — cabecera del detalle de carrera. A diferencia de la home
 // (`Hero.astro`, foto a sangre completa con el texto encima), acá la imagen va
 // CONTENIDA al ancho de página, sin scrim, y el bloque de texto (distancias →
-// título → UBICACIÓN/FECHA) vive debajo sobre crema. Así el detalle se diferencia
-// de la home en vez de calcar su hero, y respira más. Si la carrera no trae
-// heroImage, la imagen degrada a un panel crema con la franja diagonal de marca
-// (mismo motivo que ListHeader) — no se muestra un hueco ni un placeholder roto.
+// título → días para la largada) vive debajo sobre crema. Así el detalle se
+// diferencia de la home en vez de calcar su hero, y respira más.
+//
+// (Nota de iteración: esta página probó una versión con banner a sangre
+// completa + banda navy, calcada del mockup. La crítica /impeccable + el dueño
+// del producto confirmaron que rompía justo esta distinción — el hero+banda
+// superaban el viewport en el 100-128% antes de mostrar título o precio. Se
+// revirtió a la imagen contenida; el chip de Run Tour y el conteo de días
+// sobreviven, adaptados a un fondo crema en vez de una banda navy.)
+//
+// Si la carrera no trae heroImage, la imagen degrada a un panel crema con la
+// franja diagonal de marca (mismo motivo que ListHeader) — no se muestra un
+// hueco ni un placeholder roto.
 import { Image } from 'astro:assets';
 import type { CalendarEvent } from '@shared/lib/content/events';
+import { startDateTimeISO } from '@shared/lib/date-format';
 
 interface Props {
   event: CalendarEvent;
@@ -15,36 +25,40 @@ interface Props {
       Lo resuelve el orquestador, que es quien sabe el estado. Cuando la imagen es el
       afiche, este link lo vuelve clickeable — ver `posterHref` abajo. */
   registrationHref?: string;
+  /** La carrera YA SE CORRIÓ (`hasRaced()`, calculado por el orquestador). Gobierna
+      qué imagen manda (ver `image` abajo) y si se muestra el conteo de días. */
+  finished?: boolean;
 }
-const { event, registrationHref } = Astro.props;
+const { event, registrationHref, finished = false } = Astro.props;
 
 const distances = [...new Set(event.distances)];
 
-// Qué imagen manda, en orden:
-//  1. `poster` — el afiche oficial. Solo tiene sentido ACÁ, donde la imagen va
-//     contenida y sin texto encima: un afiche se lee como afiche. En la home, que
-//     superpone su propio copy, produciría tipografía sobre tipografía.
-//  2. `heroImage` — la foto de la carrera.
-//  3. `recapImage` — la foto del recap. Las carreras viejas (Titicaca, Francofonía)
-//     TIENEN su foto cargada y aun así el detalle mostraba el panel vacío con la
-//     franja: un placeholder donde había una foto de verdad.
-const isPoster = Boolean(event.poster);
-const image = event.poster ?? event.heroImage ?? event.recapImage;
-// El alt describe la imagen que SE VE, no la primera que exista. Encadenar los alt
-// con `??` fallaba en silencio: el adaptador le da a `heroImageAlt` un default (el
-// título), así que nunca era null y las carreras que muestran su foto de recap se
-// anunciaban con el nombre pelado en vez de con su alt real.
-const imageAlt = event.poster
+// Qué imagen manda, en orden — y el orden CAMBIA si la carrera ya se corrió:
+//
+//  · Viva: `poster` (el afiche oficial, se lee entero) → `heroImage` → `recapImage`.
+//  · Finalizada: `recapImage` primero. El afiche de Renacer trae un botón
+//    DIBUJADO que dice "Inscríbete ahora" — mostrarlo en una carrera que ya
+//    pasó (San Silvestre 2024 lo hacía) contradice al propio sidebar, que dos
+//    scrolls más abajo dice "Ya se corrió". Una carrera pasada no promociona
+//    inscripción, así que el afiche promocional queda como último recurso.
+const isPoster = finished
+  ? !event.recapImage && !event.heroImage && Boolean(event.poster)
+  : Boolean(event.poster);
+const image = finished
+  ? (event.recapImage ?? event.heroImage ?? event.poster)
+  : (event.poster ?? event.heroImage ?? event.recapImage);
+// El alt describe la imagen que SE VE, no la primera que exista.
+const imageAlt = isPoster
   ? (event.posterAlt ?? event.title)
-  : event.heroImage
+  : image === event.heroImage
     ? (event.heroImageAlt ?? event.title)
     : (event.recapImageAlt ?? event.title);
 
-// El afiche de Renacer trae un botón DIBUJADO que dice "Inscríbete ahora". La gente
-// lo va a tocar: parece un botón. Si el link de inscripción está vivo, el afiche
-// entero es ese link y el botón dibujado hace lo que promete. Si la carrera ya se
-// corrió o está agotada, no hay link y el afiche queda inerte — un botón muerto es
-// feo, pero uno que te manda a pagar una carrera que ya pasó es peor.
+// El afiche trae un botón DIBUJADO que dice "Inscríbete ahora". Si el link de
+// inscripción está vivo, el afiche entero es ese link y el botón dibujado hace
+// lo que promete. `registrationHref` ya viene `undefined` cuando la carrera
+// terminó o está agotada (lo resuelve el orquestador), así que esto nunca
+// activa el link sobre una carrera pasada.
 const posterHref = isPoster ? registrationHref : undefined;
 
 // El link envuelve SOLO la imagen, así que sin esto su nombre accesible sería el
@@ -52,6 +66,23 @@ const posterHref = isPoster ? registrationHref : undefined;
 // como una imagen y que en realidad te lleva a PAGAR, en otra pestaña. El nombre
 // tiene que decir a dónde va y que se va del sitio (WCAG 2.4.4).
 const posterLabel = `Inscribirse en ${event.title} (sitio de inscripción, se abre en otra pestaña)`;
+
+// Serie (Run Tour): se suma a la línea de distancias en vez de vivir como chip
+// aparte — no hay vocabulario de "chip" en esta sección desde que era cream, y
+// inventar uno para un solo dato es más ruido que información.
+const tourLabel = event.isRunTour && event.city ? `Run Tour · ${event.city}` : null;
+
+// Conteo de DÍAS para la largada. Dato de contexto, no el ticker completo
+// d/h/m/s de la home (eso vive al pie del hero de la home). Sin sentido en una
+// carrera que ya se corrió.
+const countdownTarget = !finished
+  ? startDateTimeISO(event.date, event.startTime ?? '00:00', event.timezoneOffset)
+  : undefined;
+// Valor inicial real (no un placeholder "--"): mismo cálculo que hace el script
+// en el cliente, resuelto acá para que el HTML servido ya sea correcto sin JS.
+const initialDays = countdownTarget
+  ? Math.max(0, Math.ceil((new Date(countdownTarget).getTime() - Date.now()) / 86400000))
+  : 0;
 ---
 
 <section class="dh">
@@ -103,17 +134,30 @@ const posterLabel = `Inscribirse en ${event.title} (sitio de inscripción, se ab
     </div>
 
     <div class="dh__meta">
-      {
-        distances.length > 0 && (
-          <p class="dh__distances">{distances.join(' · ')}</p>
-        )
-      }
-      {/* La ficha (ubicación, fecha, largada, precio desde) se mudó a la columna
-          lateral, que existía y estaba vacía: 77px de contenido contra 1343px de
-          la columna principal, o sea 1266px de crema muerta a la derecha. Los datos
-          estaban acá, a lo ancho, mientras la columna que existe para sostenerlos no
-          hacía nada. Ver DetailSidebar. */}
-      <h1 class="dh__title">{event.title}</h1>
+      <div class="dh__meta-row">
+        <div class="dh__meta-main">
+          {
+            (distances.length > 0 || tourLabel) && (
+              <p class="dh__distances">
+                {distances.join(' · ')}
+                {tourLabel && (distances.length > 0 ? ` · ${tourLabel}` : tourLabel)}
+              </p>
+            )
+          }
+          <h1 class="dh__title">{event.title}</h1>
+        </div>
+
+        {
+          countdownTarget && (
+            <div class="dh__countdown" data-detail-countdown data-target={countdownTarget}>
+              <span class="dh__countdown-num" data-detail-countdown-days>
+                {initialDays}
+              </span>
+              <span class="dh__countdown-label">Días para la largada</span>
+            </div>
+          )
+        }
+      </div>
     </div>
   </div>
 </section>
@@ -125,20 +169,13 @@ const posterLabel = `Inscribirse en ${event.title} (sitio de inscripción, se ab
   .dh__inner {
     max-width: var(--fl-container);
     margin: 0 auto;
-    /* El padding inferior da aire a UBICACIÓN/FECHA antes del borde de la
-       siguiente sección; sin él el bloque de datos choca con la divisoria. */
-    /* El padding inferior era de 72px y chocaba con los 80px del contenedor de
-       abajo: 152px de hueco muerto entre el título y la primera sección, que nadie
-       decidió — era una suma. Ahora el hero cierra ajustado y la separación entre
-       secciones la pone UNA sola regla (`.detail__inner`). */
     padding: clamp(28px, 4vw, 48px) clamp(20px, 5vw, 56px) clamp(20px, 2.6vw, 32px);
   }
 
-  /* Un AFICHE no se recorta: está compuesto para verse entero, y el recorte de
-     16/7 le cortaba el botón de abajo por la mitad. Suelta el aspect-ratio y toma
-     el suyo. Una FOTO sí se recorta, porque el encuadre lo decide la página. */
-  /* Especificidad doble a propósito: `.dh__media` (y su media query de móvil, que
-     baja a 16/10) vienen después y si no le ganarían. */
+  /* Un AFICHE no se recorta: está compuesto para verse entero. Una FOTO sí se
+     recorta, porque el encuadre lo decide la página. Especificidad doble a
+     propósito: `.dh__media` (y su media query de móvil) vienen después y si no
+     le ganarían. */
   .dh__media.dh__media--poster {
     aspect-ratio: auto;
   }
@@ -146,8 +183,6 @@ const posterLabel = `Inscribirse en ${event.title} (sitio de inscripción, se ab
     height: auto;
     object-fit: contain;
   }
-  /* El afiche trae un botón dibujado: si la inscripción está viva, el afiche entero
-     es ese link y el botón hace lo que promete. */
   .dh__poster-link {
     display: block;
   }
@@ -156,12 +191,14 @@ const posterLabel = `Inscribirse en ${event.title} (sitio de inscripción, se ab
     outline-offset: 3px;
   }
 
-  /* Imagen contenida (no a sangre): esquinas rectas para no romper el lenguaje
-     editorial del surface, que no usa border-radius en ningún lado. */
+  /* Imagen contenida (no a sangre): esquinas rectas, misma gramática que el
+     resto del surface. El TECHO de alto es lo que garantiza que el título y el
+     conteo de días entren en pantalla sin scroll en los viewports comunes. */
   .dh__media {
     position: relative;
     overflow: hidden;
     aspect-ratio: 16 / 7;
+    max-height: 60vh;
     background: var(--fl-cream-2);
   }
   .dh__img {
@@ -172,7 +209,6 @@ const posterLabel = `Inscribirse en ${event.title} (sitio de inscripción, se ab
     display: block;
   }
 
-  /* Fallback sin foto: panel crema con la franja diagonal naranja de marca. */
   .dh__media--noimg {
     background: var(--fl-cream-2);
   }
@@ -189,6 +225,16 @@ const posterLabel = `Inscribirse en ${event.title} (sitio de inscripción, se ab
 
   .dh__meta {
     padding-top: clamp(22px, 3vw, 34px);
+  }
+  .dh__meta-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .dh__meta-main {
+    min-width: 0;
   }
 
   .dh__distances {
@@ -212,10 +258,78 @@ const posterLabel = `Inscribirse en ${event.title} (sitio de inscripción, se ab
     max-width: 16ch;
   }
 
+  /* Conteo de días: placa blanca sobre crema, mismo lenguaje que las cards del
+     resto del surface (DetailSidebar). `--fl-status-open` es tinta AA-verificada
+     sobre `--fl-surface`/crema (DESIGN.md) — no el `-ink` pensado para navy. */
+  .dh__countdown {
+    flex-shrink: 0;
+    text-align: center;
+    padding: 12px 22px;
+    background: var(--fl-surface);
+    border: 1px solid var(--fl-hairline-ink);
+  }
+  .dh__countdown-num {
+    display: block;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(28px, 3.4vw, 36px);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: var(--fl-status-open);
+  }
+  .dh__countdown-label {
+    display: block;
+    margin-top: 4px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--fl-on-cream-faint);
+  }
 
   @media (max-width: 640px) {
     .dh__media {
       aspect-ratio: 16 / 10;
+      max-height: 42vh;
+    }
+    .dh__meta-row {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .dh__countdown {
+      align-self: flex-start;
     }
   }
 </style>
+
+<script>
+  // Días para la largada. Igual patrón que Countdown.astro: data-attributes +
+  // astro:page-load/astro:before-swap (ClientRouter no re-ejecuta scripts al
+  // navegar, y sin el cleanup el intervalo sigue escribiendo sobre nodos que ya
+  // no están tras salir de la página). Granularidad de un minuto: es un conteo
+  // de DÍAS, no hace falta recalcular cada segundo.
+  const timers: ReturnType<typeof setInterval>[] = [];
+
+  function initDetailCountdown(root: HTMLElement) {
+    const targetIso = root.dataset.target;
+    if (!targetIso) return;
+    const target = new Date(targetIso).getTime();
+    const out = root.querySelector<HTMLElement>('[data-detail-countdown-days]');
+
+    function tick() {
+      const days = Math.max(0, Math.ceil((target - Date.now()) / 86400000));
+      if (out) out.textContent = String(days);
+    }
+
+    tick();
+    const iv = setInterval(tick, 60000);
+    timers.push(iv);
+  }
+
+  document.addEventListener('astro:page-load', () => {
+    document.querySelectorAll<HTMLElement>('[data-detail-countdown]').forEach((el) => initDetailCountdown(el));
+  });
+
+  document.addEventListener('astro:before-swap', () => {
+    for (const iv of timers.splice(0)) clearInterval(iv);
+  });
+</script>

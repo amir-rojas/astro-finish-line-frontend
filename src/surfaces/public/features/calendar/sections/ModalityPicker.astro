@@ -1,0 +1,299 @@
+---
+// ModalityPicker — selector interactivo de distancia + variante que reemplaza a
+// Modalities.astro (grilla estática) dentro de la ficha de decisión (DetailSidebar).
+// El corredor elige su combinación y ve SU precio y SU estado, en vez de leer una
+// tabla completa para encontrar la fila que le importa.
+//
+// Genérico a propósito: el dato real (`modalities`) es un array plano de
+// {distance, label, price, status} sin garantía de que sea una matriz 2x2 limpia
+// (Renacer sí lo es — 10K/5K × Sin/Con polera — pero otra carrera puede traer una
+// sola distancia, o distancias con distinta cantidad de variantes cada una). El
+// componente deriva sus pestañas de lo que el dato tenga, nunca asume la forma.
+//
+// Progressive enhancement real: el HTML servido ya trae la PRIMERA combinación
+// (precio y estado reales, no un placeholder) — el script solo la vuelve
+// interactiva. Sin JS, el corredor sigue viendo un precio válido.
+//
+// El caller (DetailSidebar) es responsable de NO montar este componente cuando
+// `modalities.length === 0` (nada que elegir) ni cuando la carrera está agotada o
+// finalizada (ver `sb__closed`/`sb__soon`, que cubren esos casos).
+import type { CalendarModality } from '@shared/lib/content/events';
+import { formatPrice, modalityStatus } from '../format';
+
+interface Props {
+  modalities: CalendarModality[];
+}
+const { modalities } = Astro.props;
+
+// Distancias en el orden en que aparecen en el dato (no alfabético: si Sanity
+// las cargó 10K antes que 5K, así se seleccionan por defecto).
+const distances = [...new Set(modalities.map((m) => m.distance))];
+// Variantes reales: si TODAS las modalidades comparten label === distance (caso
+// "una sola variante por distancia", sin polera/con polera ni nada parecido), no
+// hay eje de variante que mostrar — mostrarlo sería un selector de una sola opción
+// fingiendo elegir algo.
+const hasRealVariants = modalities.some((m) => m.label !== m.distance);
+const variantLabels = hasRealVariants ? [...new Set(modalities.map((m) => m.label))] : [];
+
+const defaultModality = modalities[0];
+const defaultStatus = modalityStatus(defaultModality.status);
+
+// Serializado una sola vez: el script lee esto para resolver cualquier combinación
+// sin pedirle al servidor una carrera aparte.
+const dataset = JSON.stringify(modalities);
+---
+
+<div class="mp" data-modality-picker data-modalities={dataset}>
+  {
+    distances.length > 1 && (
+      <div class="mp__row">
+        <span class="mp__row-label">Distancia</span>
+        <div class="mp__tabs" data-mp-distance-tabs>
+          {distances.map((d, i) => (
+            <button
+              type="button"
+              class="mp__tab"
+              data-mp-distance={d}
+              aria-pressed={i === 0 ? 'true' : 'false'}
+            >
+              {d}
+            </button>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  {
+    variantLabels.length > 1 && (
+      <div class="mp__row">
+        <div class="mp__tabs" data-mp-variant-tabs>
+          {variantLabels.map((v) => (
+            <button
+              type="button"
+              class="mp__tab"
+              data-mp-variant={v}
+              aria-pressed={v === defaultModality.label ? 'true' : 'false'}
+            >
+              {v}
+            </button>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  <div class="mp__result">
+    <div class="mp__price-block">
+      <span class="mp__price-label">
+        Tu inscripción · <span data-mp-selected-distance>{defaultModality.distance}</span>
+      </span>
+      <span class="mp__price" data-mp-price>
+        {formatPrice(defaultModality.price)}
+      </span>
+    </div>
+    <span
+      class={`mp__status mp__status--${defaultStatus.tone}`}
+      data-mp-status
+      data-tone={defaultStatus.tone}
+    >
+      {defaultStatus.label}
+    </span>
+  </div>
+</div>
+
+<style>
+  .mp {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .mp__row-label {
+    display: block;
+    margin-bottom: 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--fl-on-cream-faint);
+  }
+  .mp__tabs {
+    display: flex;
+    gap: 8px;
+  }
+  .mp__tab {
+    flex: 1;
+    padding: 11px 0;
+    text-align: center;
+    font-family: 'Archivo', sans-serif;
+    font-weight: 800;
+    font-size: 14px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    background: transparent;
+    border: 2px solid var(--fl-navy);
+    color: var(--fl-navy);
+    cursor: pointer;
+    transition:
+      background-color 140ms var(--ease-out),
+      color 140ms var(--ease-out);
+  }
+  .mp__tab[aria-pressed='true'] {
+    background: var(--fl-navy);
+    color: var(--fl-cream);
+  }
+  @media (hover: hover) {
+    .mp__tab:not([aria-pressed='true']):hover {
+      background: var(--fl-wash-orange);
+    }
+  }
+
+  .mp__result {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: 14px;
+    border-top: 1px solid var(--fl-hairline-ink);
+  }
+  .mp__price-label {
+    display: block;
+    font-family: 'Space Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 1.3px;
+    text-transform: uppercase;
+    color: var(--fl-on-cream-faint);
+    margin-bottom: 4px;
+  }
+  .mp__price {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(28px, 3.4vw, 34px);
+    line-height: 1;
+    letter-spacing: -0.01em;
+    color: var(--fl-ink);
+  }
+  /* Placa rellena (no texto de color sobre --fl-cream-2): --fl-status-open y
+     --fl-status-warning como TINTA sobre cream-2 dan 4.32:1 / 4.22:1 — por
+     debajo de AA. Con blanco ENCIMA del relleno son 5.32:1 / 5.19:1 / 7.73:1,
+     el par que DESIGN.md ya verificó para estos tres tokens. */
+  .mp__status {
+    flex-shrink: 0;
+    font-family: 'Archivo', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 3px;
+    color: #fff;
+  }
+  .mp__status--open {
+    background: var(--fl-status-open);
+  }
+  .mp__status--warning {
+    background: var(--fl-status-warning);
+  }
+  .mp__status--closed {
+    background: var(--fl-status-closed);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mp__tab {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  // Selector de modalidad. Sin framework, mismo patrón que Countdown.astro:
+  // data-attributes + astro:page-load (ClientRouter no re-ejecuta scripts al
+  // navegar). Sin timers que limpiar acá (no hay setInterval), así que no hace
+  // falta astro:before-swap.
+  //
+  // Contrato: al cambiar de combinación, dispara `race:modality-change` en
+  // `document` con `{ distance, label, price, status }` — así MobileCta (que
+  // vive FUERA de este árbol, en la barra fija) puede mantener el mismo precio
+  // sin que las dos ficha se contradigan (mismo principio que soldOut/finished
+  // en el orquestador de la página).
+  interface Modality {
+    distance: string;
+    label: string;
+    price: number;
+    status: 'abierto' | 'ultimos_cupos' | 'agotado';
+  }
+
+  const STATUS_LABEL: Record<Modality['status'], string> = {
+    abierto: 'Inscripciones abiertas',
+    ultimos_cupos: 'Últimos cupos',
+    agotado: 'Agotado',
+  };
+
+  function formatPrice(amount: number): string {
+    return amount === 0 ? 'GRATIS' : `${amount} Bs`;
+  }
+
+  function initPicker(root: HTMLElement) {
+    const raw = root.dataset.modalities;
+    if (!raw) return;
+    const modalities: Modality[] = JSON.parse(raw);
+    if (modalities.length === 0) return;
+
+    let current = modalities[0];
+
+    const distanceTabs = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-mp-distance]'));
+    const variantTabs = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-mp-variant]'));
+    const priceEl = root.querySelector<HTMLElement>('[data-mp-price]');
+    const statusEl = root.querySelector<HTMLElement>('[data-mp-status]');
+    const distanceLabelEl = root.querySelector<HTMLElement>('[data-mp-selected-distance]');
+
+    // Busca la modalidad exacta para (distance, label). Si el cruce no existe
+    // (matriz con huecos: p.ej. una carrera con "5K" que no tiene "Con polera"),
+    // cae a la primera modalidad de esa distancia — nunca deja el picker sin
+    // combinación válida.
+    function resolve(distance: string, label: string): Modality {
+      return (
+        modalities.find((m) => m.distance === distance && m.label === label) ??
+        modalities.find((m) => m.distance === distance) ??
+        modalities[0]
+      );
+    }
+
+    function render() {
+      if (priceEl) priceEl.textContent = formatPrice(current.price);
+      if (distanceLabelEl) distanceLabelEl.textContent = current.distance;
+      if (statusEl) {
+        statusEl.textContent = STATUS_LABEL[current.status];
+        statusEl.dataset.tone = current.status === 'abierto' ? 'open' : current.status === 'ultimos_cupos' ? 'warning' : 'closed';
+        statusEl.className = `mp__status mp__status--${statusEl.dataset.tone}`;
+      }
+      for (const tab of distanceTabs) {
+        tab.setAttribute('aria-pressed', tab.dataset.mpDistance === current.distance ? 'true' : 'false');
+      }
+      for (const tab of variantTabs) {
+        tab.setAttribute('aria-pressed', tab.dataset.mpVariant === current.label ? 'true' : 'false');
+      }
+      document.dispatchEvent(
+        new CustomEvent('race:modality-change', {
+          detail: { distance: current.distance, label: current.label, price: current.price, status: current.status },
+        }),
+      );
+    }
+
+    for (const tab of distanceTabs) {
+      tab.addEventListener('click', () => {
+        const distance = tab.dataset.mpDistance!;
+        current = resolve(distance, current.label);
+        render();
+      });
+    }
+    for (const tab of variantTabs) {
+      tab.addEventListener('click', () => {
+        const label = tab.dataset.mpVariant!;
+        current = resolve(current.distance, label);
+        render();
+      });
+    }
+  }
+
+  document.addEventListener('astro:page-load', () => {
+    document.querySelectorAll<HTMLElement>('[data-modality-picker]').forEach(initPicker);
+  });
+</script>

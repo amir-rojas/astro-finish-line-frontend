@@ -12,11 +12,12 @@
 // precios. En móvil sube al TOPE de la columna (`order: -1` en el orquestador):
 // el corredor ve la hora y el precio de entrada, en vez de a 2000px de scroll.
 import type { CalendarEvent } from '@shared/lib/content/events';
-import { longDate, isFreeEvent, formatPrice } from '../format';
+import { longDate, isFreeEvent } from '../format';
 // La fecha larga es de los DOS features (el hero de la home la muestra igual), así
 // que vive en shared. Antes se importaba de `features/home/format` — el calendario
 // colgándose de la home.
 import { weekdayDate } from '@shared/lib/date-format';
+import ModalityPicker from './ModalityPicker.astro';
 
 interface Props {
   event: CalendarEvent;
@@ -35,13 +36,17 @@ const isFree = isFreeEvent(event.modalities);
 
 const place = event.location ?? event.city;
 
-// "Desde X Bs": el precio de entrada, arriba, sin obligar a bajar hasta la tabla.
-// La pregunta #1 del corredor era "cuánto cuesta" y la respuesta estaba a 2112px.
-// No reemplaza a Modalidades —ahí se explica la matriz completa—, la anticipa.
-const desde =
-  !finished && event.modalities.length > 0
-    ? Math.min(...event.modalities.map((m) => m.price))
-    : null;
+// El precio ya no se anticipa acá como un "Desde X Bs" suelto: lo muestra
+// ModalityPicker, que además deja elegir la combinación real. Se monta en el
+// mismo lugar donde vivía ese dato, solo cuando hay algo que elegir y la
+// inscripción sigue viva.
+const showPicker = !finished && !soldOut && event.modalities.length > 0;
+
+// Estado inicial de la combinación por defecto (la primera del array, misma
+// que usa ModalityPicker y MobileCta): si una editora en Sanity ordena una
+// combinación ya agotada primero, el CTA no puede nacer naranja y vivo antes
+// de que el JS corra ni una vez.
+const defaultModalityClosed = showPicker && event.modalities[0]?.status === 'agotado';
 ---
 
 <aside class="sb">
@@ -77,15 +82,9 @@ const desde =
         </div>
       )
     }
-    {
-      desde !== null && (
-        <div class="sb__fact sb__fact--price">
-          <dt>Desde</dt>
-          <dd>{formatPrice(desde)}</dd>
-        </div>
-      )
-    }
   </dl>
+
+  {showPicker && <ModalityPicker modalities={event.modalities} />}
 
   {
     !finished && registrationDeadline && (
@@ -109,15 +108,33 @@ const desde =
         <span class="sb__closed-state">Agotadas</span>
       </div>
     ) : registrationUrl ? (
-      <a
-        class="sb__cta"
-        href={registrationUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        <span class="sb__cta-text">{isFree ? 'Inscribirse gratis' : 'Iniciar inscripción'}</span>
-        <span class="sb__cta-arrow" aria-hidden="true">→</span>
-      </a>
+      <>
+        {/* Dos bloques, uno visible por vez: el picker puede aterrizar en una
+            combinación agotada (elegida por el visitante, o ya así de fábrica
+            si `defaultModalityClosed`) y el CTA no puede quedarse naranja y
+            vivo al lado de un "Agotado" que el propio picker acaba de mostrar.
+            Sin picker (`showPicker` false, una sola modalidad) esto no aplica:
+            ambos bloques existen pero el segundo nunca se activa, sin script. */}
+        <a
+          class="sb__cta"
+          href={registrationUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-live-cta
+          hidden={defaultModalityClosed || undefined}
+        >
+          <span class="sb__cta-text">{isFree ? 'Inscribirse gratis' : 'Iniciar inscripción'}</span>
+          <span class="sb__cta-arrow" aria-hidden="true">→</span>
+        </a>
+        {
+          showPicker && (
+            <div class="sb__closed" data-modality-closed hidden={!defaultModalityClosed || undefined}>
+              <span class="sb__closed-label">Esta combinación</span>
+              <span class="sb__closed-state">Agotada</span>
+            </div>
+          )
+        }
+      </>
     ) : (
       <div class="sb__soon">
         <span class="sb__closed-label">Inscripciones</span>
@@ -191,15 +208,6 @@ const desde =
     text-transform: uppercase;
     color: var(--fl-ink);
   }
-  /* El precio es la respuesta a la pregunta #1: se lee como cifra, no como dato.
-     Archivo Black y más grande — es el único salto de escala de la ficha, y por eso
-     funciona sin necesitar color. */
-  .sb__fact--price dd {
-    font-family: 'Archivo Black', sans-serif;
-    font-size: clamp(20px, 2.4vw, 24px);
-    letter-spacing: -0.01em;
-  }
-
   .sb__deadline {
     display: flex;
     flex-direction: column;
@@ -282,6 +290,15 @@ const desde =
     .sb .sb__cta {
       display: none;
     }
+  }
+
+  /* [hidden] con un display explícito abajo: un `display:flex` de autor le
+     gana al `[hidden]{display:none}` del user-agent (misma prioridad de
+     cascada, gana el origen "author"), así que sin esto el atributo `hidden`
+     que pone el script no ocultaría nada. */
+  .sb__cta[hidden],
+  .sb__closed[hidden] {
+    display: none;
   }
 
   .sb__cta {
@@ -367,3 +384,34 @@ const desde =
     }
   }
 </style>
+
+<script>
+  // Mantiene el CTA de la sidebar de acuerdo con la combinación que
+  // ModalityPicker tiene seleccionada AHORA — mismo evento y misma convención
+  // (astro:page-load / astro:before-swap) que MobileCta ya usa para su precio
+  // en vivo. Si `data-live-cta`/`data-modality-closed` no existen en esta
+  // página (sin picker: una sola modalidad, o carrera cerrada/finalizada), los
+  // querySelector devuelven null y el listener no hace nada.
+  let activeListener: ((e: Event) => void) | null = null;
+
+  document.addEventListener('astro:page-load', () => {
+    const liveCta = document.querySelector<HTMLElement>('.sb [data-live-cta]');
+    const closedBlock = document.querySelector<HTMLElement>('.sb [data-modality-closed]');
+    if (!liveCta || !closedBlock) return;
+
+    activeListener = (e) => {
+      const { status } = (e as CustomEvent<{ status: string }>).detail;
+      const closed = status === 'agotado';
+      liveCta.hidden = closed;
+      closedBlock.hidden = !closed;
+    };
+    document.addEventListener('race:modality-change', activeListener);
+  });
+
+  document.addEventListener('astro:before-swap', () => {
+    if (activeListener) {
+      document.removeEventListener('race:modality-change', activeListener);
+      activeListener = null;
+    }
+  });
+</script>

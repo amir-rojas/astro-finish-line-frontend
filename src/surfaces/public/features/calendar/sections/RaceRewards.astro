@@ -87,7 +87,7 @@ const { items } = Astro.props;
             </div>
             <figcaption class="reward__cap">
               <span class="reward__label">{item.label}</span>
-              <span class="reward__terms">{item.terms}</span>
+              <span class="reward__terms-badge">{item.terms}</span>
             </figcaption>
           </figure>
         ))}
@@ -184,13 +184,19 @@ const { items } = Astro.props;
   }
   /* La condición NO puede ser letra chica: es el dato que decide si el corredor se
      lleva la pieza o no. Va en `--fl-on-cream-muted` (6.70:1), nunca en
-     `--fl-on-cream-faint`, que reprueba AA con 2.81:1. */
-  .reward__terms {
+     `--fl-on-cream-faint`, que reprueba AA con 2.81:1. En placa (no solo texto
+     corrido) para que se lea como un REQUISITO, no como una nota al pie —
+     mismo `--fl-orange-ink` que el resto del surface usa como texto/borde
+     sobre crema (no un color nuevo). */
+  .reward__terms-badge {
+    display: inline-block;
     font-family: 'Space Mono', monospace;
-    font-size: 12.5px;
+    font-size: 11.5px;
     line-height: 1.5;
     letter-spacing: 0.5px;
-    color: var(--fl-on-cream-muted);
+    color: var(--fl-orange-ink);
+    border: 1px solid color-mix(in srgb, var(--fl-orange-ink) 45%, transparent);
+    padding: 5px 10px;
     text-wrap: balance;
   }
 
