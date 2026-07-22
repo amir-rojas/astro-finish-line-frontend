@@ -30,6 +30,17 @@ export default defineConfig({
         access: 'secret',
         optional: true,
       }),
+      // Secreto compartido BFF↔Go: viaja como header `X-Service-Secret` en cada
+      // llamada server-side a `POST {BACKEND_URL}/api/v1/registrations` (ver
+      // `src/pages/api/inscripciones.ts`). Debe ser IDÉNTICO al `SERVICE_SECRET`
+      // que lee el backend Go (`internal/common/config/config.go`) — si no
+      // coinciden, Go responde 401 y rechaza la inscripción antes de tocar el
+      // dominio. Sin default intencional, mismo criterio que SESSION_SECRET.
+      BACKEND_SERVICE_SECRET: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
       // PARKED: Strapi ya no alimenta ningún build (ver `strapi-client.ts`, el
       // contenido de carreras vive en `src/content/events/*.json`). Se
       // mantienen declaradas y opcionales SOLO para que `strapi-client.ts`
