@@ -35,15 +35,22 @@ const defaultLabel = event.modalities[0]?.label ?? defaultDistance;
 // Dataset liviano para el script: solo distancia + variante, sin precio — el
 // precio no se muestra en este paso (fuera de alcance v1).
 const modalityOptions = event.modalities.map((m) => ({ distance: m.distance, label: m.label }));
+
+// Línea de "nos vemos" del bloque de éxito: los mismos fecha/largada/lugar que
+// ya muestra la ficha "TU INSCRIPCIÓN", server-rendered porque no dependen de
+// la respuesta del BFF (a diferencia del dorsal y el nombre).
+const meetLine = `Nos vemos el ${weekdayDate(event.date)}${event.startTime ? `, ${event.startTime}` : ''}${place ? `, en ${place}` : ''}.`;
 ---
 
 <div class="rf" data-registration-form data-race-slug={event.slug}>
   <div class="rf__main">
-    <p class="rf__eyebrow">// Datos del corredor</p>
-    <h1 class="rf__title">Datos del corredor</h1>
-    <p class="rf__intro">
-      Estos datos van en tu dorsal y tu clasificación oficial. Toma un par de minutos.
-    </p>
+    <div class="rf__intro-block" data-rf-pre-submit>
+      <p class="rf__eyebrow">// Datos del corredor</p>
+      <h1 class="rf__title">Datos del corredor</h1>
+      <p class="rf__intro">
+        Estos datos van en tu dorsal y tu clasificación oficial. Toma un par de minutos.
+      </p>
+    </div>
 
     <form class="rf__form" novalidate data-rf-form>
       <div class="rf__grid">
@@ -164,8 +171,16 @@ const modalityOptions = event.modalities.map((m) => ({ distance: m.distance, lab
     <div class="rf__success" data-rf-success hidden tabindex="-1">
       <span class="rf__success-label">Inscripción confirmada</span>
       <h2 class="rf__success-title" data-rf-success-title>¡Listo!</h2>
-      <p class="rf__success-body" data-rf-success-body></p>
-      <a class="rf__success-link" href="/calendario">Volver al calendario</a>
+      <div class="rf__bib" data-rf-bib hidden>
+        <span class="rf__bib-label">Dorsal</span>
+        <span class="rf__bib-number" data-rf-bib-number></span>
+      </div>
+      <p class="rf__success-meet">{meetLine}</p>
+      <p class="rf__success-body">Te llegará la confirmación a tu correo.</p>
+      <div class="rf__success-actions">
+        <a class="rf__success-link" href="/calendario">Volver al calendario</a>
+        <a class="rf__success-link" href={`/calendario/${event.slug}`}>Ver el detalle de la carrera</a>
+      </div>
     </div>
   </div>
 
@@ -201,7 +216,7 @@ const modalityOptions = event.modalities.map((m) => ({ distance: m.distance, lab
       </dl>
       {
         modalityOptions.length > 1 && (
-          <a class="rf__summary-change" href={`/calendario/${event.slug}`}>
+          <a class="rf__summary-change" data-rf-summary-change href={`/calendario/${event.slug}`}>
             Cambiar distancia o modalidad
           </a>
         )
@@ -500,7 +515,9 @@ const modalityOptions = event.modalities.map((m) => ({ distance: m.distance, lab
   }
 
   /* Confirmación: reemplaza el form, mismo lenguaje "placa sobre crema" que
-     sb__closed/sb__soon. No hay paso de pago que anunciar (v1 gratis). */
+     sb__closed/sb__soon. No hay paso de pago que anunciar (v1 gratis). El
+     dorsal es el foco visual del bloque, más grande que el título — es el
+     único dato de esta pantalla que el corredor se lleva puesto el día D. */
   .rf__success {
     padding: clamp(28px, 3.5vw, 40px);
     background: var(--fl-surface);
@@ -508,6 +525,10 @@ const modalityOptions = event.modalities.map((m) => ({ distance: m.distance, lab
   }
   .rf__success[hidden] {
     display: none;
+  }
+  .rf__success:focus-visible {
+    outline: 2px solid var(--fl-orange);
+    outline-offset: 3px;
   }
   .rf__success-label {
     display: block;
@@ -525,15 +546,62 @@ const modalityOptions = event.modalities.map((m) => ({ distance: m.distance, lab
     letter-spacing: -0.01em;
     color: var(--fl-ink);
   }
-  .rf__success-body {
-    margin: 12px 0 0;
+
+  /* El dorsal: una placa simple, sin agujeros ni textura — solo el número,
+     como un dorsal recién impreso. Oculto por defecto; el script lo muestra
+     solo cuando el backend confirma un dorsal asignado (nunca un placeholder). */
+  .rf__bib {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-width: clamp(180px, 24vw, 280px);
+    margin: 20px 0 0;
+    padding: clamp(14px, 2vw, 20px) clamp(24px, 3.5vw, 36px);
+    border: 2px solid var(--fl-ink);
+    background: var(--fl-surface);
+  }
+  .rf__bib[hidden] {
+    display: none;
+  }
+  .rf__bib-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--fl-on-cream-faint);
+  }
+  .rf__bib-number {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(50px, 7.5vw, 80px);
+    line-height: 0.84;
+    letter-spacing: -0.04em;
+    color: var(--fl-ink);
+  }
+
+  .rf__success-meet {
+    margin: 20px 0 0;
     font-size: 15px;
-    line-height: 1.55;
+    font-weight: 700;
+    line-height: 1.45;
+    color: var(--fl-ink);
+  }
+  .rf__success-body {
+    margin: 8px 0 0;
+    font-size: 14px;
+    line-height: 1.5;
     color: var(--fl-on-cream-muted);
+  }
+  .rf__success-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    margin-top: 20px;
   }
   .rf__success-link {
     display: inline-block;
-    margin-top: 20px;
     font-weight: 700;
     font-size: 14px;
     color: var(--fl-orange-ink);
@@ -604,6 +672,9 @@ const modalityOptions = event.modalities.map((m) => ({ distance: m.distance, lab
     font-size: 13px;
     font-weight: 700;
     color: var(--fl-orange-ink);
+  }
+  .rf__summary-change[hidden] {
+    display: none;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -815,9 +886,12 @@ const modalityOptions = event.modalities.map((m) => ({ distance: m.distance, lab
 
   function initForm(root: HTMLElement) {
     const form = root.querySelector<HTMLFormElement>('[data-rf-form]');
+    const preSubmitEl = root.querySelector<HTMLElement>('[data-rf-pre-submit]');
     const successEl = root.querySelector<HTMLElement>('[data-rf-success]');
     const successTitle = root.querySelector<HTMLElement>('[data-rf-success-title]');
-    const successBody = root.querySelector<HTMLElement>('[data-rf-success-body]');
+    const bibEl = root.querySelector<HTMLElement>('[data-rf-bib]');
+    const bibNumberEl = root.querySelector<HTMLElement>('[data-rf-bib-number]');
+    const summaryChangeEl = root.querySelector<HTMLElement>('[data-rf-summary-change]');
     const formErrorEl = root.querySelector<HTMLElement>('[data-rf-form-error]');
     const submitBtn = root.querySelector<HTMLButtonElement>('[data-rf-submit]');
     const submitLabel = root.querySelector<HTMLElement>('[data-rf-submit-label]');
@@ -868,14 +942,16 @@ const modalityOptions = event.modalities.map((m) => ({ distance: m.distance, lab
         const body: BffSuccess | BffError = await res.json();
 
         if (body.ok) {
+          if (preSubmitEl) preSubmitEl.hidden = true;
           form.hidden = true;
+          if (summaryChangeEl) summaryChangeEl.hidden = true;
           successEl.hidden = false;
-          if (successTitle) successTitle.textContent = `¡Listo, ${body.firstNames ?? ''}!`.trim();
-          if (successBody) {
-            successBody.textContent =
-              body.dorsal != null
-                ? `Tu inscripción quedó confirmada. Tu dorsal es el ${body.dorsal}. Te llegará la confirmación a tu correo.`
-                : 'Tu inscripción quedó confirmada. Te llegará la confirmación a tu correo.';
+          if (successTitle) {
+            successTitle.textContent = body.firstNames ? `¡Listo, ${body.firstNames}!` : '¡Listo!';
+          }
+          if (bibEl && bibNumberEl && body.dorsal != null) {
+            bibNumberEl.textContent = String(body.dorsal);
+            bibEl.hidden = false;
           }
           successEl.focus();
         } else {
