@@ -19,14 +19,21 @@ import { formatPrice } from '../format';
 
 interface Props {
   soldOut?: boolean;
-  registrationUrl?: string;
+  /** Link INTERNO a `/calendario/<slug>/inscripcion?d=&v=` (diseño D1/D2), ya
+      armado por el orquestador con la modalidad por defecto. `undefined`
+      cuando no hay nada que ofrecer (sin modalidades cargadas). Reemplaza el
+      antiguo `registrationUrl` que salía del sitio. */
+  registrationHref?: string;
+  /** Slug de la carrera — solo lo necesita el script, para reconstruir el
+      `?d=&v=` del href cuando ModalityPicker cambia de combinación. */
+  raceSlug?: string;
   isFree?: boolean;
   /** Modalidad inicial a mostrar, SOLO cuando `ModalityPicker` existe en la
       página (más de una modalidad real). El caller decide esa condición. */
-  initialModality?: { price: number; label: string; status: 'abierto' | 'ultimos_cupos' | 'agotado' };
+  initialModality?: { distance: string; price: number; label: string; status: 'abierto' | 'ultimos_cupos' | 'agotado' };
 }
-const { soldOut = false, registrationUrl, isFree = false, initialModality } = Astro.props;
-const show = soldOut || Boolean(registrationUrl);
+const { soldOut = false, registrationHref, raceSlug, isFree = false, initialModality } = Astro.props;
+const show = soldOut || Boolean(registrationHref);
 const ctaLabel = isFree ? 'Inscribirse gratis' : 'Iniciar inscripción';
 // Misma guarda que DetailSidebar: si la combinación por defecto (la primera
 // del array) ya nace agotada, esta barra no puede mostrar un CTA naranja vivo
@@ -36,7 +43,7 @@ const defaultModalityClosed = initialModality?.status === 'agotado';
 
 {
   show && (
-    <div class="mcta" data-sold-out={soldOut ? '' : undefined}>
+    <div class="mcta" data-sold-out={soldOut ? '' : undefined} data-race-slug={raceSlug}>
       {soldOut ? (
         <span class="mcta__closed">Inscripciones agotadas</span>
       ) : (
@@ -48,9 +55,7 @@ const defaultModalityClosed = initialModality?.status === 'agotado';
               segundo nunca se activa y no hay script de más. */}
           <a
             class="mcta__cta"
-            href={registrationUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+            href={registrationHref}
             data-mcta-live-price={initialModality ? '' : undefined}
             data-live-cta
             hidden={defaultModalityClosed || undefined}
@@ -161,17 +166,29 @@ const defaultModalityClosed = initialModality?.status === 'agotado';
   let activeListener: ((e: Event) => void) | null = null;
 
   document.addEventListener('astro:page-load', () => {
+    const root = document.querySelector<HTMLElement>('.mcta');
     const priceEl = document.querySelector<HTMLElement>('[data-mcta-live-price] [data-mcta-price]');
-    const liveCta = document.querySelector<HTMLElement>('.mcta [data-live-cta]');
+    const liveCta = document.querySelector<HTMLAnchorElement>('.mcta [data-live-cta]');
     const closedBlock = document.querySelector<HTMLElement>('.mcta [data-modality-closed]');
     if (!priceEl && !(liveCta && closedBlock)) return;
+
+    const slug = root?.dataset.raceSlug;
+
     activeListener = (e) => {
-      const { price, status } = (e as CustomEvent<{ price: number; status: string }>).detail;
+      const { distance, label, price, status } = (
+        e as CustomEvent<{ distance: string; label: string; price: number; status: string }>
+      ).detail;
       if (priceEl) priceEl.textContent = formatPrice(price);
       if (liveCta && closedBlock) {
         const closed = status === 'agotado';
         liveCta.hidden = closed;
         closedBlock.hidden = !closed;
+      }
+      // Mismo motivo que en DetailSidebar: el CTA es un link interno con la
+      // modalidad en query string, así que tiene que seguir al picker.
+      if (liveCta && slug) {
+        const params = new URLSearchParams({ d: distance, v: label });
+        liveCta.href = `/calendario/${slug}/inscripcion?${params.toString()}`;
       }
     };
     document.addEventListener('race:modality-change', activeListener);

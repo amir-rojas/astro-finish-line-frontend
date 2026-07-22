@@ -113,6 +113,16 @@ const finished = hasRaced(event);
 const soldOut = raceStatus(event.modalities)?.tone === 'closed';
 const isFree = isFreeEvent(event.modalities);
 
+// El CTA de la barra móvil, igual que el de DetailSidebar, ya no sale del
+// sitio (`event.registrationUrl`) — entra a la inscripción nativa con la
+// modalidad por defecto en el query string (diseño D1/D2). `undefined` si no
+// hay modalidades cargadas: ahí no hay nada que registrar todavía.
+const defaultModality = event.modalities[0];
+const registrationHref =
+  !finished && !soldOut && defaultModality
+    ? `/calendario/${event.slug}/inscripcion?${new URLSearchParams({ d: defaultModality.distance, v: defaultModality.label }).toString()}`
+    : undefined;
+
 // Imagen para compartir (Open Graph): foto encuadrada o, si la carrera no tiene
 // foto, el afiche contenido sobre el navy. Antes, sin foto, no había preview.
 const ogImage = await raceOgImage(event);
@@ -132,13 +142,13 @@ const ogImage = await raceOgImage(event);
 
   <main id="contenido">
     {/* El link solo viaja si de verdad se puede inscribir: el afiche trae un botón
-        dibujado, y mandarlo a pagar una carrera ya corrida o agotada sería peor que
-        dejarlo inerte. */}
-    <DetailHero
-      {event}
-      registrationHref={!finished && !soldOut ? event.registrationUrl : undefined}
-      {finished}
-    />
+        dibujado, y mandarlo a una carrera ya corrida o agotada sería peor que
+        dejarlo inerte. Mismo `registrationHref` que la barra móvil y la sidebar
+        (calculado arriba) — antes este apuntaba a `event.registrationUrl`
+        (externo) mientras las otras dos ya habían migrado a la inscripción
+        nativa, así que el afiche mandaba a un sitio distinto del resto de la
+        página. */}
+    <DetailHero {event} {registrationHref} {finished} />
 
     <div class="detail">
       <div class="detail__inner">
@@ -185,7 +195,8 @@ const ogImage = await raceOgImage(event);
       !finished && (
         <MobileCta
           {soldOut}
-          registrationUrl={event.registrationUrl}
+          {registrationHref}
+          raceSlug={event.slug}
           {isFree}
           initialModality={event.modalities.length > 1 ? event.modalities[0] : undefined}
         />
@@ -197,7 +208,7 @@ const ogImage = await raceOgImage(event);
 
   {/* Reserva el alto de la barra fija móvil al final del documento, para que no
       tape el pie. Solo cuando la barra realmente se muestra. */}
-  {!finished && (soldOut || event.registrationUrl) && <div class="mcta-gap" aria-hidden="true" />}
+  {!finished && (soldOut || registrationHref) && <div class="mcta-gap" aria-hidden="true" />}
 </PublicLayout>
 
 <style>

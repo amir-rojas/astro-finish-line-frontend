@@ -31,7 +31,7 @@ interface Props {
   finished?: boolean;
 }
 const { event, soldOut = false, finished = false } = Astro.props;
-const { registrationDeadline, registrationUrl, categories } = event;
+const { registrationDeadline, categories } = event;
 const isFree = isFreeEvent(event.modalities);
 
 const place = event.location ?? event.city;
@@ -47,9 +47,25 @@ const showPicker = !finished && !soldOut && event.modalities.length > 0;
 // combinación ya agotada primero, el CTA no puede nacer naranja y vivo antes
 // de que el JS corra ni una vez.
 const defaultModalityClosed = showPicker && event.modalities[0]?.status === 'agotado';
+
+// El CTA ya NO sale del sitio (`event.registrationUrl`, un link a Eventrid o
+// similar): entra a la inscripción nativa de este mismo dominio, con la
+// modalidad ya elegida en el picker como query param (`?d=&v=`, diseño D2).
+// La disponibilidad la decide el mismo dato que `showPicker` (hay modalidades
+// cargadas y la carrera sigue viva) — `event.registrationUrl` deja de ser la
+// señal de "hay inscripción"; ahora lo es tener modalidades.
+function registrationHrefFor(slug: string, distance: string, label: string): string {
+  const params = new URLSearchParams({ d: distance, v: label });
+  return `/calendario/${slug}/inscripcion?${params.toString()}`;
+}
+const defaultModality = event.modalities[0];
+const registrationHref =
+  showPicker && defaultModality
+    ? registrationHrefFor(event.slug, defaultModality.distance, defaultModality.label)
+    : undefined;
 ---
 
-<aside class="sb">
+<aside class="sb" data-race-slug={event.slug}>
   {/* Los datos duros primero: son los que el corredor viene a buscar y los que
       necesita para decidir. La carrera corrida los conserva —siguen siendo su
       registro— pero pierde el precio y el botón. */}
@@ -107,7 +123,7 @@ const defaultModalityClosed = showPicker && event.modalities[0]?.status === 'ago
         <span class="sb__closed-label">Inscripciones</span>
         <span class="sb__closed-state">Agotadas</span>
       </div>
-    ) : registrationUrl ? (
+    ) : showPicker ? (
       <>
         {/* Dos bloques, uno visible por vez: el picker puede aterrizar en una
             combinación agotada (elegida por el visitante, o ya así de fábrica
@@ -117,9 +133,7 @@ const defaultModalityClosed = showPicker && event.modalities[0]?.status === 'ago
             ambos bloques existen pero el segundo nunca se activa, sin script. */}
         <a
           class="sb__cta"
-          href={registrationUrl}
-          target="_blank"
-          rel="noopener noreferrer"
+          href={registrationHref}
           data-live-cta
           hidden={defaultModalityClosed || undefined}
         >
@@ -392,18 +406,31 @@ const defaultModalityClosed = showPicker && event.modalities[0]?.status === 'ago
   // en vivo. Si `data-live-cta`/`data-modality-closed` no existen en esta
   // página (sin picker: una sola modalidad, o carrera cerrada/finalizada), los
   // querySelector devuelven null y el listener no hace nada.
+  //
+  // Además del show/hide por estado, el CTA ahora es un link INTERNO a
+  // `/calendario/<slug>/inscripcion` (ver diseño D2): cuando el picker cambia
+  // de combinación, el `?d=&v=` del href tiene que seguirla, para que el
+  // formulario nativo abra con la MISMA modalidad que el corredor acaba de
+  // elegir, no con la primera del array.
   let activeListener: ((e: Event) => void) | null = null;
 
   document.addEventListener('astro:page-load', () => {
-    const liveCta = document.querySelector<HTMLElement>('.sb [data-live-cta]');
+    const sidebar = document.querySelector<HTMLElement>('.sb');
+    const liveCta = document.querySelector<HTMLAnchorElement>('.sb [data-live-cta]');
     const closedBlock = document.querySelector<HTMLElement>('.sb [data-modality-closed]');
     if (!liveCta || !closedBlock) return;
 
+    const slug = sidebar?.dataset.raceSlug;
+
     activeListener = (e) => {
-      const { status } = (e as CustomEvent<{ status: string }>).detail;
+      const { distance, label, status } = (e as CustomEvent<{ distance: string; label: string; status: string }>).detail;
       const closed = status === 'agotado';
       liveCta.hidden = closed;
       closedBlock.hidden = !closed;
+      if (slug) {
+        const params = new URLSearchParams({ d: distance, v: label });
+        liveCta.href = `/calendario/${slug}/inscripcion?${params.toString()}`;
+      }
     };
     document.addEventListener('race:modality-change', activeListener);
   });
