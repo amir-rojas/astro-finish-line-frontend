@@ -1,0 +1,133 @@
+---
+// Ruta pública "/calendario/[slug]/inscripcion" — paso único de inscripción
+// nativa (reemplaza el link de salida a Eventrid/`event.registrationUrl` para
+// las carreras que ya lo tienen: ver `sdd/registration-form`, decisión D1).
+//
+// SSG, mismo patrón que `[slug].astro`: una página por carrera publicada,
+// `event` completo como prop. Un slug inexistente no se genera → 404.
+//
+// Precondición de inscripción (mismo criterio que `showPicker` en
+// DetailSidebar): la carrera no puede estar corrida ni agotada, y tiene que
+// tener al menos una modalidad cargada (si no, no hay nada que registrar
+// contra el backend). Cuando no se cumple, la página existe igual —el slug
+// puede compartirse— pero muestra el mismo tipo de bloque apagado que la
+// ficha del detalle, nunca un formulario roto o un 404 injustificado.
+import PublicLayout from '@public/layouts/PublicLayout.astro';
+import SiteHeader from '@public/components/SiteHeader.astro';
+import SiteFooter from '@public/components/SiteFooter.astro';
+import RegistrationForm from '@public/features/calendar/sections/RegistrationForm.astro';
+import { getEvents } from '@shared/lib/content/events';
+import { hasRaced } from '@shared/lib/race-date';
+import { raceStatus } from '@public/features/calendar/format';
+import { longDate } from '@public/features/calendar/format';
+import type { CalendarEvent } from '@shared/lib/content/events';
+
+export async function getStaticPaths() {
+  const events = await getEvents();
+  return events.map((event) => ({ params: { slug: event.slug }, props: { event } }));
+}
+
+interface Props {
+  event: CalendarEvent;
+}
+const { event } = Astro.props;
+
+const pageUrl = Astro.url.href;
+const finished = hasRaced(event);
+const soldOut = raceStatus(event.modalities)?.tone === 'closed';
+const canRegister = !finished && !soldOut && event.modalities.length > 0;
+---
+
+<PublicLayout title={`Inscripción — ${event.title}`} description={`Formulario de inscripción para ${event.title}.`} canonical={pageUrl}>
+  <SiteHeader />
+
+  <main id="contenido">
+    <div class="insc">
+      <div class="insc__inner">
+        {
+          canRegister ? (
+            <RegistrationForm event={event} />
+          ) : (
+            <div class="insc__closed">
+              <span class="insc__closed-label">{event.title}</span>
+              {finished ? (
+                <>
+                  <span class="insc__closed-state">Esta carrera ya se corrió</span>
+                  <p class="insc__closed-note">Se corrió el {longDate(event.date)}. Gracias a todos los que largaron.</p>
+                </>
+              ) : soldOut ? (
+                <>
+                  <span class="insc__closed-state">Inscripciones agotadas</span>
+                  <p class="insc__closed-note">Ya no quedan cupos disponibles para esta carrera.</p>
+                </>
+              ) : (
+                <>
+                  <span class="insc__closed-state">Inscripciones todavía no habilitadas</span>
+                  <p class="insc__closed-note">Pronto anunciamos precios, categorías y el recorrido.</p>
+                </>
+              )}
+              <a class="insc__closed-link" href={`/calendario/${event.slug}`}>
+                Volver al detalle de la carrera
+              </a>
+            </div>
+          )
+        }
+      </div>
+    </div>
+  </main>
+
+  <SiteFooter />
+</PublicLayout>
+
+<style>
+  .insc {
+    background: var(--fl-cream);
+    min-height: 60vh;
+  }
+  .insc__inner {
+    max-width: var(--fl-container);
+    margin: 0 auto;
+    padding: clamp(32px, 4.5vw, 60px) clamp(20px, 5vw, 56px) clamp(56px, 8vw, 96px);
+  }
+
+  .insc__closed {
+    max-width: 520px;
+    margin: 0 auto;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: clamp(40px, 6vw, 64px) clamp(24px, 4vw, 40px);
+    background: var(--fl-surface);
+    border: 1px solid var(--fl-hairline-ink);
+  }
+  .insc__closed-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--fl-on-cream-faint);
+  }
+  .insc__closed-state {
+    margin-top: 6px;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(22px, 3vw, 28px);
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    color: var(--fl-status-closed);
+  }
+  .insc__closed-note {
+    margin: 6px 0 0;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--fl-on-cream-muted);
+  }
+  .insc__closed-link {
+    display: inline-block;
+    margin-top: 18px;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--fl-orange-ink);
+  }
+</style>

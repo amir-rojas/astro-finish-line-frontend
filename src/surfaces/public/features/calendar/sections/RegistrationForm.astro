@@ -1,0 +1,899 @@
+---
+// RegistrationForm — el paso único de inscripción: "Datos del corredor" +
+// ficha "TU INSCRIPCIÓN" (mismo objeto de decisión que DetailSidebar, ahora
+// aplicado al formulario). v1 es GRATIS y de UN SOLO PASO: sin stepper de
+// 3 pasos, sin talla de polera, sin precio ni total — ver spec
+// `sdd/registration-form` (Non-Goals). Referencia visual: mockup
+// `Carrera Renacer Mejorada.dc.html` pantallas 6a/6b, con los campos y el
+// patrón de ficha lateral sticky traducidos a los tokens reales del surface
+// (--fl-*, clases .sb__* de DetailSidebar) en vez de los hex crudos del mock.
+//
+// Modalidad: llega por query param (`?d=<distancia>&v=<variante>`, ver D2 del
+// diseño) que arma el CTA del detalle (DetailSidebar/MobileCta) al disparar
+// `race:modality-change`. Esta página es ESTÁTICA (una sola build por carrera,
+// compartida por cualquier query string), así que la resolución es 100% client
+// side: el HTML servido ya trae la PRIMERA modalidad como fallback real (no un
+// placeholder), y el script solo la reemplaza si hay un query param válido —
+// mismo principio de progressive enhancement que ModalityPicker.
+import type { CalendarEvent } from '@shared/lib/content/events';
+import { weekdayDate } from '@shared/lib/date-format';
+
+interface Props {
+  event: CalendarEvent;
+}
+const { event } = Astro.props;
+
+const place = event.location ?? event.city;
+
+// Igual que ModalityPicker: la modalidad por defecto es la PRIMERA del array
+// (orden editorial de Sanity), y si la carrera no cargó modalidades (caso
+// límite — no debería llegar acá, el caller lo filtra) cae a la primera
+// distancia legacy o a un texto neutro. Nunca deja el resumen sin dato.
+const defaultDistance = event.modalities[0]?.distance ?? event.distances[0] ?? '';
+const defaultLabel = event.modalities[0]?.label ?? defaultDistance;
+
+// Dataset liviano para el script: solo distancia + variante, sin precio — el
+// precio no se muestra en este paso (fuera de alcance v1).
+const modalityOptions = event.modalities.map((m) => ({ distance: m.distance, label: m.label }));
+---
+
+<div class="rf" data-registration-form data-race-slug={event.slug}>
+  <div class="rf__main">
+    <p class="rf__eyebrow">// Datos del corredor</p>
+    <h1 class="rf__title">Datos del corredor</h1>
+    <p class="rf__intro">
+      Estos datos van en tu dorsal y tu clasificación oficial. Toma un par de minutos.
+    </p>
+
+    <form class="rf__form" novalidate data-rf-form>
+      <div class="rf__grid">
+        <div class="rf__field rf__field--full">
+          <label for="rf-name">Nombres y apellidos</label>
+          <input
+            id="rf-name"
+            name="fullName"
+            type="text"
+            autocomplete="name"
+            placeholder="Como figura en tu CI"
+            aria-describedby="rf-name-error"
+            required
+          />
+          <p class="rf__error" id="rf-name-error" role="alert" hidden></p>
+        </div>
+
+        <div class="rf__field">
+          <label for="rf-document">Cédula de identidad (CI)</label>
+          <input
+            id="rf-document"
+            name="documentId"
+            type="text"
+            inputmode="numeric"
+            autocomplete="off"
+            placeholder="Ej. 1234567"
+            aria-describedby="rf-document-error"
+            required
+          />
+          <p class="rf__error" id="rf-document-error" role="alert" hidden></p>
+        </div>
+
+        <div class="rf__field">
+          <label for="rf-birthdate">Fecha de nacimiento</label>
+          <input
+            id="rf-birthdate"
+            name="birthDate"
+            type="date"
+            aria-describedby="rf-birthdate-error"
+            required
+          />
+          <p class="rf__error" id="rf-birthdate-error" role="alert" hidden></p>
+        </div>
+
+        <div class="rf__field">
+          <label for="rf-email">Correo electrónico</label>
+          <input
+            id="rf-email"
+            name="email"
+            type="email"
+            autocomplete="email"
+            placeholder="correo@ejemplo.com"
+            aria-describedby="rf-email-hint rf-email-error"
+            required
+          />
+          <span class="rf__hint" id="rf-email-hint">Aquí te llega tu confirmación y tu dorsal.</span>
+          <p class="rf__error" id="rf-email-error" role="alert" hidden></p>
+        </div>
+
+        <div class="rf__field">
+          <label for="rf-phone">Teléfono / WhatsApp</label>
+          <div class="rf__phone">
+            <span class="rf__phone-prefix" aria-hidden="true">+591</span>
+            <input
+              id="rf-phone"
+              name="phone"
+              type="tel"
+              inputmode="numeric"
+              autocomplete="tel-national"
+              placeholder="71234567"
+              aria-describedby="rf-phone-error"
+              required
+            />
+          </div>
+          <p class="rf__error" id="rf-phone-error" role="alert" hidden></p>
+        </div>
+      </div>
+
+      <fieldset class="rf__field rf__field--gender">
+        <legend>
+          Género <span class="rf__legend-note">· define tu categoría de premiación</span>
+        </legend>
+        <div class="rf__pills">
+          <label class="rf__pill">
+            <input type="radio" name="gender" value="M" required />
+            <span>Masculino</span>
+          </label>
+          <label class="rf__pill">
+            <input type="radio" name="gender" value="F" />
+            <span>Femenino</span>
+          </label>
+          <label class="rf__pill">
+            <input type="radio" name="gender" value="X" />
+            <span>Otro</span>
+          </label>
+        </div>
+        <p class="rf__error" id="rf-gender-error" role="alert" hidden></p>
+      </fieldset>
+
+      <label class="rf__checkbox">
+        <input type="checkbox" name="acceptsRules" aria-describedby="rf-rules-error" required />
+        <span>
+          Declaro estar en condiciones físicas para participar y acepto el reglamento de la carrera.
+        </span>
+      </label>
+      <p class="rf__error" id="rf-rules-error" role="alert" hidden></p>
+
+      <p class="rf__form-error" data-rf-form-error role="alert" hidden></p>
+
+      <div class="rf__actions">
+        <button type="submit" class="rf__submit" data-rf-submit>
+          <span data-rf-submit-label>Confirmar inscripción</span>
+          <span class="rf__arrow" aria-hidden="true" data-rf-submit-arrow>→</span>
+        </button>
+      </div>
+    </form>
+
+    <div class="rf__success" data-rf-success hidden tabindex="-1">
+      <span class="rf__success-label">Inscripción confirmada</span>
+      <h2 class="rf__success-title" data-rf-success-title>¡Listo!</h2>
+      <p class="rf__success-body" data-rf-success-body></p>
+      <a class="rf__success-link" href="/calendario">Volver al calendario</a>
+    </div>
+  </div>
+
+  <aside class="rf__summary" data-modalities={JSON.stringify(modalityOptions)}>
+    <div class="rf__summary-card">
+      <div class="rf__summary-label">Tu inscripción</div>
+      <div class="rf__summary-name">{event.title}{event.city ? ` · ${event.city}` : ''}</div>
+      <dl class="rf__summary-facts">
+        <div class="rf__summary-fact">
+          <dt>Fecha</dt>
+          <dd>{weekdayDate(event.date)}</dd>
+        </div>
+        {
+          event.startTime && (
+            <div class="rf__summary-fact">
+              <dt>Largada</dt>
+              <dd>{event.startTime}</dd>
+            </div>
+          )
+        }
+        {
+          place && (
+            <div class="rf__summary-fact">
+              <dt>Lugar</dt>
+              <dd>{place}</dd>
+            </div>
+          )
+        }
+        <div class="rf__summary-fact">
+          <dt>Distancia</dt>
+          <dd data-rf-summary-distance>{defaultLabel === defaultDistance ? defaultDistance : `${defaultDistance} · ${defaultLabel}`}</dd>
+        </div>
+      </dl>
+      {
+        modalityOptions.length > 1 && (
+          <a class="rf__summary-change" href={`/calendario/${event.slug}`}>
+            Cambiar distancia o modalidad
+          </a>
+        )
+      }
+    </div>
+  </aside>
+</div>
+
+<style>
+  .rf {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+    gap: clamp(32px, 5vw, 64px);
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .rf {
+      grid-template-columns: 1fr;
+    }
+    .rf__summary {
+      order: -1;
+    }
+  }
+
+  .rf__eyebrow {
+    margin: 0 0 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--fl-on-cream-faint);
+  }
+  .rf__title {
+    margin: 0 0 8px;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(32px, 4.6vw, 46px);
+    line-height: 1;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    color: var(--fl-ink);
+  }
+  .rf__intro {
+    margin: 0 0 clamp(24px, 3vw, 32px);
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--fl-on-cream-muted);
+  }
+
+  .rf__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px 16px;
+  }
+  @media (max-width: 560px) {
+    .rf__grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  .rf__field {
+    display: block;
+  }
+  .rf__field--full {
+    grid-column: 1 / -1;
+  }
+  .rf__field label,
+  .rf__field--gender legend {
+    display: block;
+    margin-bottom: 7px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--fl-ink);
+  }
+  .rf__legend-note {
+    font-weight: 400;
+    letter-spacing: 0.6px;
+    text-transform: none;
+    color: var(--fl-on-cream-faint);
+  }
+
+  .rf__field input[type='text'],
+  .rf__field input[type='email'],
+  .rf__field input[type='tel'],
+  .rf__field input[type='date'] {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 13px 15px;
+    font-family: inherit;
+    font-size: 15px;
+    color: var(--fl-ink);
+    background: var(--fl-surface);
+    border: 1.5px solid var(--fl-hairline-ink);
+    border-radius: 4px;
+    outline: none;
+    transition:
+      border-color 140ms var(--ease-out),
+      background-color 140ms var(--ease-out);
+  }
+  .rf__field input:focus-visible {
+    border-color: var(--fl-orange-strong);
+  }
+  /* Placeholder ilegible por defecto: sube a la misma tinta que el hint, que
+     ya está verificada AA sobre --fl-surface (ver token en PublicLayout). */
+  .rf__field input::placeholder {
+    color: var(--fl-on-cream-faint);
+  }
+
+  .rf__phone {
+    display: flex;
+    gap: 8px;
+  }
+  .rf__phone-prefix {
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    background: var(--fl-navy);
+    color: var(--fl-cream);
+    font-weight: 800;
+    font-size: 14px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .rf__phone input {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .rf__hint {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--fl-on-cream-faint);
+  }
+
+  /* Error de campo: texto + icono, nunca solo un borde rojo (WCAG 1.4.1). El
+     borde SÍ cambia (refuerzo visual), pero el mensaje es lo que lo declara. */
+  .rf__error {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 6px 0 0;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--fl-status-closed);
+  }
+  .rf__error[hidden] {
+    display: none;
+  }
+  .rf__error::before {
+    content: '⚠';
+    flex-shrink: 0;
+  }
+  .rf__field:has(input[aria-invalid='true']) input,
+  .rf__field:has(input[aria-invalid='true']) .rf__phone {
+    border-color: var(--fl-status-closed);
+  }
+  .rf__phone:has(input[aria-invalid='true']) {
+    outline: 1.5px solid var(--fl-status-closed);
+    outline-offset: -1.5px;
+    border-radius: 4px;
+  }
+
+  .rf__field--gender {
+    margin: 24px 0 0;
+    padding: 0;
+    border: none;
+  }
+  .rf__pills {
+    display: flex;
+    gap: 8px;
+  }
+  .rf__pill {
+    flex: 1;
+    position: relative;
+    cursor: pointer;
+  }
+  .rf__pill input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+  }
+  .rf__pill span {
+    display: block;
+    padding: 12px 0;
+    text-align: center;
+    font-family: 'Archivo', sans-serif;
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    border: 2px solid var(--fl-navy);
+    color: var(--fl-navy);
+    border-radius: 4px;
+    transition:
+      background-color 140ms var(--ease-out),
+      color 140ms var(--ease-out);
+  }
+  .rf__pill input:checked + span {
+    background: var(--fl-navy);
+    color: var(--fl-cream);
+  }
+  .rf__pill input:focus-visible + span {
+    outline: 2px solid var(--fl-orange-strong);
+    outline-offset: 2px;
+  }
+  @media (hover: hover) {
+    .rf__pill input:not(:checked):hover + span {
+      background: var(--fl-wash-orange);
+    }
+  }
+
+  .rf__checkbox {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: 24px;
+    cursor: pointer;
+  }
+  .rf__checkbox input {
+    width: 20px;
+    height: 20px;
+    min-width: 24px;
+    min-height: 24px;
+    margin: 0;
+    accent-color: var(--fl-orange-strong);
+  }
+  .rf__checkbox span {
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--fl-on-cream-muted);
+  }
+
+  .rf__form-error {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 20px 0 0;
+    padding: 14px 16px;
+    background: var(--fl-cream-2);
+    border: 1.5px solid var(--fl-status-closed);
+    border-radius: 4px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--fl-status-closed);
+  }
+  .rf__form-error[hidden] {
+    display: none;
+  }
+
+  .rf__actions {
+    margin-top: 28px;
+  }
+  .rf__submit {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 17px 32px;
+    font-family: 'Archivo', sans-serif;
+    font-weight: 800;
+    font-size: 15px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: #fff;
+    background: var(--fl-orange-strong);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition:
+      background-color 160ms var(--ease-out),
+      transform 160ms var(--ease-out);
+  }
+  .rf__arrow {
+    transition: transform 160ms var(--ease-out);
+  }
+  @media (hover: hover) {
+    .rf__submit:hover:not(:disabled) {
+      background: var(--fl-orange-hover);
+    }
+    .rf__submit:hover:not(:disabled) .rf__arrow {
+      transform: translateX(4px);
+    }
+  }
+  .rf__submit:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+  .rf__submit:focus-visible {
+    outline: 2px solid var(--fl-orange);
+    outline-offset: 3px;
+  }
+  .rf__submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  /* Confirmación: reemplaza el form, mismo lenguaje "placa sobre crema" que
+     sb__closed/sb__soon. No hay paso de pago que anunciar (v1 gratis). */
+  .rf__success {
+    padding: clamp(28px, 3.5vw, 40px);
+    background: var(--fl-surface);
+    border: 1px solid var(--fl-hairline-ink);
+  }
+  .rf__success[hidden] {
+    display: none;
+  }
+  .rf__success-label {
+    display: block;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--fl-status-open);
+  }
+  .rf__success-title {
+    margin: 8px 0 0;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(26px, 3.6vw, 36px);
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    color: var(--fl-ink);
+  }
+  .rf__success-body {
+    margin: 12px 0 0;
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--fl-on-cream-muted);
+  }
+  .rf__success-link {
+    display: inline-block;
+    margin-top: 20px;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--fl-orange-ink);
+  }
+
+  /* Ficha "TU INSCRIPCIÓN" — mismo objeto visual que DetailSidebar.sb__facts. */
+  .rf__summary {
+    position: sticky;
+    top: 96px;
+  }
+  @media (max-width: 900px) {
+    .rf__summary {
+      position: static;
+    }
+  }
+  .rf__summary-card {
+    background: var(--fl-surface);
+    border: 1px solid var(--fl-hairline-ink);
+    padding: clamp(20px, 2.4vw, 26px);
+  }
+  .rf__summary-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--fl-on-cream-faint);
+  }
+  .rf__summary-name {
+    margin-top: 6px;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(19px, 2.2vw, 22px);
+    line-height: 1.15;
+    text-transform: uppercase;
+    color: var(--fl-ink);
+  }
+  .rf__summary-facts {
+    margin: 18px 0 0;
+    padding-top: 14px;
+    border-top: 1px solid var(--fl-hairline-ink);
+  }
+  .rf__summary-fact {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 0;
+  }
+  .rf__summary-fact dt {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--fl-on-cream-faint);
+    flex-shrink: 0;
+  }
+  .rf__summary-fact dd {
+    margin: 0;
+    font-family: 'Archivo', sans-serif;
+    font-weight: 800;
+    font-size: 14px;
+    text-align: right;
+    color: var(--fl-ink);
+  }
+  .rf__summary-change {
+    display: block;
+    margin-top: 14px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--fl-orange-ink);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rf__submit,
+    .rf__arrow,
+    .rf__pill span,
+    .rf__field input {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  // Dos responsabilidades en un solo script, porque comparten el mismo estado
+  // (la modalidad elegida en el detalle):
+  //  1. Resolver `?d=&v=` -> actualizar el dato de distancia en la ficha
+  //     "TU INSCRIPCIÓN" y fijar el valor que viaja al backend como `modalidad`.
+  //  2. Validar y enviar el formulario a `/api/inscripciones` (el BFF).
+  //
+  // Sin framework, mismo patrón data-attributes + astro:page-load que el resto
+  // del feature (ModalityPicker, DetailSidebar, MobileCta).
+  interface ModalityOption {
+    distance: string;
+    label: string;
+  }
+
+  interface SubmitPayload {
+    raceSlug: string;
+    fullName: string;
+    documentId: string;
+    birthDate: string;
+    email: string;
+    phone: string;
+    gender: string;
+    acceptsRules: boolean;
+    modalidad: string;
+  }
+
+  interface BffSuccess {
+    ok: true;
+    status?: string;
+    dorsal?: number | null;
+    firstNames?: string;
+  }
+  interface BffError {
+    ok: false;
+    code: 'conflict' | 'validation' | 'not_found' | 'server';
+    message: string;
+  }
+
+  const DOCUMENT_ID_RE = /^[0-9]{5,10}(-[0-9A-Za-z]{1,3})?$/;
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const PHONE_RE = /^[0-9]{7,9}$/;
+
+  function resolveModality(root: HTMLElement) {
+    const summaryEl = root.querySelector<HTMLElement>('[data-rf-summary-distance]');
+    const raw = root.dataset.modalities;
+    let options: ModalityOption[] = [];
+    try {
+      options = raw ? JSON.parse(raw) : [];
+    } catch {
+      options = [];
+    }
+    if (options.length === 0) return options[0];
+
+    const params = new URLSearchParams(window.location.search);
+    const wantedDistance = params.get('d');
+    const wantedLabel = params.get('v');
+
+    const resolved =
+      (wantedDistance &&
+        (options.find((m) => m.distance === wantedDistance && m.label === wantedLabel) ??
+          options.find((m) => m.distance === wantedDistance))) ??
+      options[0];
+
+    if (summaryEl) {
+      summaryEl.textContent =
+        resolved.label === resolved.distance ? resolved.distance : `${resolved.distance} · ${resolved.label}`;
+    }
+    return resolved;
+  }
+
+  function fieldError(form: HTMLFormElement, name: string): HTMLElement | null {
+    return form.querySelector<HTMLElement>(`#rf-${name}-error`);
+  }
+
+  function setFieldError(form: HTMLFormElement, inputName: string, errorId: string, message: string | null) {
+    const input = form.elements.namedItem(inputName) as HTMLInputElement | RadioNodeList | null;
+    const errorEl = fieldError(form, errorId);
+    const setInvalid = (el: HTMLInputElement, invalid: boolean) => {
+      if (invalid) el.setAttribute('aria-invalid', 'true');
+      else el.removeAttribute('aria-invalid');
+    };
+
+    if (input instanceof RadioNodeList) {
+      for (const el of Array.from(input)) {
+        if (el instanceof HTMLInputElement) setInvalid(el, Boolean(message));
+      }
+    } else if (input instanceof HTMLInputElement) {
+      setInvalid(input, Boolean(message));
+    }
+
+    if (errorEl) {
+      if (message) {
+        errorEl.textContent = message;
+        errorEl.hidden = false;
+      } else {
+        errorEl.textContent = '';
+        errorEl.hidden = true;
+      }
+    }
+  }
+
+  function clearErrors(form: HTMLFormElement) {
+    for (const el of Array.from(form.querySelectorAll<HTMLElement>('.rf__error'))) {
+      el.textContent = '';
+      el.hidden = true;
+    }
+    for (const el of Array.from(form.querySelectorAll<HTMLInputElement>('[aria-invalid]'))) {
+      el.removeAttribute('aria-invalid');
+    }
+  }
+
+  // Valida localmente TODOS los campos requeridos. Dos escenarios del spec
+  // (`sdd/registration-form`) dependen de que esto bloquee SIN llamar a la
+  // red: email inválido y checkbox del reglamento sin marcar.
+  function validate(form: HTMLFormElement): Record<string, string> {
+    const errors: Record<string, string> = {};
+    const data = new FormData(form);
+
+    const fullName = String(data.get('fullName') ?? '').trim();
+    if (!fullName) {
+      errors.name = 'Escribe tu nombre completo.';
+    } else if (fullName.split(/\s+/).length < 2) {
+      errors.name = 'Escribe tu nombre y apellido completo.';
+    }
+
+    const documentId = String(data.get('documentId') ?? '').trim();
+    if (!DOCUMENT_ID_RE.test(documentId)) {
+      errors.document = 'Ingresa un número de CI válido.';
+    }
+
+    const birthDateRaw = String(data.get('birthDate') ?? '').trim();
+    if (!birthDateRaw) {
+      errors.birthdate = 'Ingresa tu fecha de nacimiento.';
+    } else {
+      const birthDate = new Date(`${birthDateRaw}T00:00:00Z`);
+      const now = new Date();
+      const minDate = new Date(now);
+      minDate.setUTCFullYear(minDate.getUTCFullYear() - 120);
+      if (Number.isNaN(birthDate.getTime()) || birthDate > now || birthDate < minDate) {
+        errors.birthdate = 'Ingresa una fecha de nacimiento válida.';
+      }
+    }
+
+    const email = String(data.get('email') ?? '').trim();
+    if (!EMAIL_RE.test(email)) {
+      errors.email = 'Ingresa un correo electrónico válido.';
+    }
+
+    // Tolera espacios/guiones al tipear (mismo criterio que Go's NormalizePhone,
+    // que también los limpia) — solo los dígitos importan para la validación.
+    const phone = String(data.get('phone') ?? '').replace(/[\s-]/g, '');
+    if (!PHONE_RE.test(phone)) {
+      errors.phone = 'Ingresa un número de celular válido (7 a 9 dígitos).';
+    }
+
+    const gender = String(data.get('gender') ?? '');
+    if (!gender) {
+      errors.gender = 'Selecciona una opción.';
+    }
+
+    if (!data.get('acceptsRules')) {
+      errors.rules = 'Tienes que aceptar el reglamento para continuar.';
+    }
+
+    return errors;
+  }
+
+  const ERROR_TO_FIELD: Record<string, { inputName: string; errorId: string }> = {
+    name: { inputName: 'fullName', errorId: 'name' },
+    document: { inputName: 'documentId', errorId: 'document' },
+    birthdate: { inputName: 'birthDate', errorId: 'birthdate' },
+    email: { inputName: 'email', errorId: 'email' },
+    phone: { inputName: 'phone', errorId: 'phone' },
+    gender: { inputName: 'gender', errorId: 'gender' },
+    rules: { inputName: 'acceptsRules', errorId: 'rules' },
+  };
+
+  function applyErrors(form: HTMLFormElement, errors: Record<string, string>) {
+    for (const key of Object.keys(ERROR_TO_FIELD)) {
+      const { inputName, errorId } = ERROR_TO_FIELD[key];
+      setFieldError(form, inputName, errorId, errors[key] ?? null);
+    }
+  }
+
+  function focusFirstError(form: HTMLFormElement) {
+    const first = form.querySelector<HTMLInputElement>('[aria-invalid="true"]');
+    first?.focus();
+  }
+
+  function mapBffMessage(err: BffError): string {
+    if (err.code === 'conflict') return err.message || 'Ya estás inscrito en esta carrera con este correo.';
+    if (err.code === 'not_found')
+      return err.message || 'No encontramos esta carrera. Es posible que las inscripciones todavía no estén habilitadas.';
+    if (err.code === 'validation') return err.message || 'Revisa los datos del formulario e intenta de nuevo.';
+    return 'No pudimos completar tu inscripción. Intenta de nuevo en unos minutos.';
+  }
+
+  function initForm(root: HTMLElement) {
+    const form = root.querySelector<HTMLFormElement>('[data-rf-form]');
+    const successEl = root.querySelector<HTMLElement>('[data-rf-success]');
+    const successTitle = root.querySelector<HTMLElement>('[data-rf-success-title]');
+    const successBody = root.querySelector<HTMLElement>('[data-rf-success-body]');
+    const formErrorEl = root.querySelector<HTMLElement>('[data-rf-form-error]');
+    const submitBtn = root.querySelector<HTMLButtonElement>('[data-rf-submit]');
+    const submitLabel = root.querySelector<HTMLElement>('[data-rf-submit-label]');
+    const summaryEl = root.querySelector<HTMLElement>('.rf__summary');
+    if (!form || !successEl || !formErrorEl || !submitBtn || !submitLabel) return;
+
+    const raceSlug = root.dataset.raceSlug ?? '';
+    const modality = summaryEl ? resolveModality(summaryEl) : undefined;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearErrors(form);
+      formErrorEl.hidden = true;
+      formErrorEl.textContent = '';
+
+      const errors = validate(form);
+      if (Object.keys(errors).length > 0) {
+        applyErrors(form, errors);
+        focusFirstError(form);
+        return; // sin llamada de red — spec: rechazo local
+      }
+
+      const data = new FormData(form);
+      const phone = String(data.get('phone') ?? '').replace(/[\s-]/g, '');
+      const modalidad = modality ? (modality.label === modality.distance ? modality.distance : `${modality.distance} · ${modality.label}`) : '';
+
+      const payload: SubmitPayload = {
+        raceSlug,
+        fullName: String(data.get('fullName') ?? '').trim(),
+        documentId: String(data.get('documentId') ?? '').trim(),
+        birthDate: String(data.get('birthDate') ?? '').trim(),
+        email: String(data.get('email') ?? '').trim(),
+        phone: `+591${phone}`,
+        gender: String(data.get('gender') ?? ''),
+        acceptsRules: Boolean(data.get('acceptsRules')),
+        modalidad,
+      };
+
+      submitBtn.disabled = true;
+      submitLabel.textContent = 'Enviando…';
+
+      try {
+        const res = await fetch('/api/inscripciones', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const body: BffSuccess | BffError = await res.json();
+
+        if (body.ok) {
+          form.hidden = true;
+          successEl.hidden = false;
+          if (successTitle) successTitle.textContent = `¡Listo, ${body.firstNames ?? ''}!`.trim();
+          if (successBody) {
+            successBody.textContent =
+              body.dorsal != null
+                ? `Tu inscripción quedó confirmada. Tu dorsal es el ${body.dorsal}. Te llegará la confirmación a tu correo.`
+                : 'Tu inscripción quedó confirmada. Te llegará la confirmación a tu correo.';
+          }
+          successEl.focus();
+        } else {
+          formErrorEl.textContent = mapBffMessage(body);
+          formErrorEl.hidden = false;
+          formErrorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      } catch {
+        formErrorEl.textContent = 'No pudimos conectar con el servidor. Revisa tu conexión e intenta de nuevo.';
+        formErrorEl.hidden = false;
+      } finally {
+        submitBtn.disabled = false;
+        submitLabel.textContent = 'Confirmar inscripción';
+      }
+    });
+  }
+
+  document.addEventListener('astro:page-load', () => {
+    document.querySelectorAll<HTMLElement>('[data-registration-form]').forEach(initForm);
+  });
+</script>
