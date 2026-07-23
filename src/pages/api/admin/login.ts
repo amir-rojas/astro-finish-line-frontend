@@ -11,7 +11,7 @@
 // Post/Redirect/Get 303, never JSON.
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
-import { login } from '@admin/features/auth/api';
+import { login, setSessionCookies } from '@admin/features/auth/api';
 
 export const prerender = false;
 
@@ -47,21 +47,17 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   const result = await login(parsed.data);
 
   if (!result.ok) {
-    // D3: Go answers 401 both for bad credentials and for a misconfigured
-    // `X-Service-Secret` — both map to `?error=invalid` here. See
-    // `features/auth/api.ts` for the full rationale and the open D3
-    // follow-up (Phase 4.4).
+    // D3 (resolved, Phase 4.4): Go's 401 here is always genuine invalid
+    // credentials, never a misconfigured `X-Service-Secret` (Go doesn't
+    // check that header on this route) — see `features/auth/api.ts`.
     const emailParam = encodeURIComponent(parsed.data.email);
     return redirect(`/admin/login?error=${result.reason}&email=${emailParam}`, 303);
   }
 
-  cookies.set('session', result.accessToken, {
-    httpOnly: true,
-    secure: import.meta.env.PROD,
-    sameSite: 'lax',
-    path: '/',
-    expires: new Date(result.expiresAt),
-  });
+  // Astro re-emite sus propias cookies al navegador — nunca reenvía el
+  // `Set-Cookie` crudo de Go (esa cookie de Go nunca sale de la llamada
+  // server-to-server en `features/auth/api.ts`).
+  setSessionCookies(cookies, result);
 
   return redirect('/admin', 303);
 };
