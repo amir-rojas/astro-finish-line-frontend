@@ -21,13 +21,15 @@ interface GoLoginResponse {
   expires_at?: string;
 }
 
-// D3: Go's `/api/v1/auth/login` returns 401 both for bad credentials AND for
-// a misconfigured `X-Service-Secret` — unlike `inscripciones.ts`, where 401
-// on that header is treated as a server misconfiguration. Here 401 is the
-// EXPECTED invalid-credentials response, so it maps to `reason: 'invalid'`.
-// If a misconfigured secret is ever distinguishable (e.g. Go starts
-// returning 403 for that case — see design's open D3 question, validated in
-// Phase 4.4), add a dedicated branch here instead of widening this one.
+// D3 (resolved, Phase 4.4): read the Go source directly —
+// `internal/auth/adapters/rest/handler.go` registers `POST /auth/login`
+// behind only a rate limiter, and `internal/common/config/config.go`
+// documents `ServiceSecret` as scoped to `POST /api/v1/registrations` only.
+// Go never checks `X-Service-Secret` on this route at all, unlike
+// `inscripciones.ts`'s endpoint. So 401 here is always a genuine
+// invalid-credentials response (never a secret mismatch), which is why it
+// maps to `reason: 'invalid'` unconditionally. The header below is sent
+// anyway, defensively, in case Go starts validating it on this route later.
 export async function login({ email, password }: LoginCredentials): Promise<LoginResult> {
   let goRes: Response;
   try {
@@ -36,8 +38,9 @@ export async function login({ email, password }: LoginCredentials): Promise<Logi
       headers: {
         'Content-Type': 'application/json',
         // `envField.string({ optional: true })` types this as `string | undefined`;
-        // fall back to `''` for `HeadersInit` — an unset secret already fails Go's
-        // check the same way an `undefined` header would, so this is a type-only fix.
+        // fall back to `''` for `HeadersInit`. Purely a type-satisfaction fix — Go
+        // doesn't validate this header on `/auth/login` (see D3 above), so an empty
+        // string has no runtime effect either way.
         'X-Service-Secret': BACKEND_SERVICE_SECRET ?? '',
       },
       body: JSON.stringify({ email, password }),
