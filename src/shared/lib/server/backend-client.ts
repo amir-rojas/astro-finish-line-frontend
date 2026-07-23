@@ -21,9 +21,12 @@ export interface BackendClient {
  * @param baseUrl — URL base; por defecto usa BACKEND_URL del env schema.
  */
 export function createBackendClient(baseUrl: string = BACKEND_URL): BackendClient {
-  // TODO(admin integration): implementar fetch wrapper real con
-  //   - reenvío de cookies de sesión
-  //   - manejo de errores y reintentos
-  //   - tipado de respuestas por endpoint
+  // Intencionalmente sin implementar — no es el cliente que usa admin auth.
+  // La convención BFF vigente es raw `fetch` por endpoint (ver
+  // src/pages/api/inscripciones.ts y src/surfaces/admin/features/auth/api.ts):
+  // un solo consumidor no justifica esta abstracción compartida (YAGNI). Este
+  // stub queda como marcador de intención por si en el futuro aparecen
+  // varios consumidores BFF→Go con necesidades comunes (reintentos, reenvío
+  // de cookies, tipado por endpoint) que sí justifiquen generalizar.
   throw new Error(`createBackendClient not yet implemented (baseUrl: ${baseUrl})`);
 }

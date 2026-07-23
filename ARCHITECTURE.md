@@ -91,8 +91,10 @@ src/
 
 - **Astro 6** ya no tiene `output: 'hybrid'`. Usamos `output: 'static'`
   (sitio estático por defecto) y las rutas de `admin` optan a SSR con
-  `export const prerender = false`. Cualquier ruta SSR requiere adapter
-  (`@astrojs/node` en modo standalone).
+  `export const prerender = false`. Cualquier ruta SSR requiere un adapter;
+  este proyecto usa `@astrojs/vercel` (ya configurado en `astro.config.mjs`),
+  que despliega esas rutas como funciones serverless. No se necesita
+  `@astrojs/node`.
 - La superficie `public` queda 100% estática / cacheable en CDN.
 
 ## Alias de import (tsconfig)
@@ -115,22 +117,24 @@ import Hero from '@public/features/home/sections/Hero.astro';
 Declaradas en `astro.config.mjs` vía `envField` (módulo virtual `astro:env`).
 El proyecto NO tiene valor hardcodeado para `SESSION_SECRET` (intencionado).
 
-| Variable         | Contexto | Acceso  | Default                  | Descripción |
-| ---------------- | -------- | ------- | ------------------------ | ----------- |
-| `BACKEND_URL`    | server   | public  | `http://localhost:8080`  | URL base del backend Go (solo BFF server-side) |
-| `SESSION_SECRET` | server   | secret  | —                        | Secreto para firmar la cookie de sesión admin |
+| Variable                  | Contexto | Acceso  | Default                  | Descripción |
+| ------------------------- | -------- | ------- | ------------------------ | ----------- |
+| `BACKEND_URL`             | server   | public  | `http://localhost:8080`  | URL base del backend Go (solo BFF server-side) |
+| `BACKEND_SERVICE_SECRET`  | server   | secret  | —                        | Secreto compartido BFF↔Go; se envía como header `X-Service-Secret` en cada llamada a `{BACKEND_URL}/api/v1/*` |
+| `SESSION_SECRET`          | server   | secret  | —                        | RESERVADO — no se usa aún. El `access_token` de Go es la fuente de verdad de la sesión (se guarda tal cual en la cookie httpOnly `session`); este secreto queda declarado para una futura iteración de cookie firmada/cifrada |
 
 **Convención de importación:**
 
 ```ts
 // Solo en módulos server-side (.astro frontmatter o rutas API con prerender=false)
 import { BACKEND_URL } from 'astro:env/server';
+import { BACKEND_SERVICE_SECRET } from 'astro:env/server';
 import { SESSION_SECRET } from 'astro:env/server';
 ```
 
-> Crea un archivo `.env.example` en la raíz del repo con estos dos valores
-> comentados (ver diseño/spec). Ese archivo NO se puede generar automáticamente
-> en el entorno de CI actual — créalo manualmente antes del primer `pnpm dev`.
+> `.env.example` en la raíz del repo documenta todas las variables server-side
+> (incluidas las de Strapi, parqueadas). Copiarlo a `.env` con los valores
+> reales antes del primer `pnpm dev`.
 
 ---
 
