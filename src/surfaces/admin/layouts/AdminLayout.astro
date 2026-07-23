@@ -41,15 +41,24 @@ const { title, description, ogImage, ogUrl, canonical } = Astro.props;
 <style>
   .admin-surface {
     /* Tokens semánticos propios del panel admin — ver sdd/admin-auth-surface-migration/design.
-       Set mínimo (5): solo lo que ya usaba el login re-portado. Se amplía cuando
-       exista más UI admin que lo justifique, no antes. */
+       Ampliado de 5 a 9 tokens: ya no es solo el set mínimo del login re-portado,
+       sino la identidad completa del panel como herramienta de trabajo (card blanca
+       sobre fondo gris neutro), decidida tras la crítica de diseño que descartó el
+       lenguaje visual de marca (wordmark gigante, panel navy) para esta superficie. */
     --adm-accent: #fc4c02; /* acento de marca / CTA */
-    --adm-navy: #0c152e; /* fondo del panel de marca / titulares */
+    --adm-ink: #14213a; /* texto fuerte / valores de input */
     --adm-text: #5b6675; /* texto de cuerpo */
-    --adm-muted: #9aa6b6; /* texto tenue / placeholder */
+    --adm-muted: #6b7280; /* texto tenue / placeholder / íconos — #9aa6b6 daba ~2.47:1 sobre
+       blanco (falla AA 4.5:1); este valor da ~4.8:1. Único token para placeholders,
+       íconos y labels tenues. */
     --adm-danger: #ba1a1a; /* error / aria-invalid */
+    --adm-bg: #f4f5f7; /* fondo de página del panel — gris neutro, no crema/navy */
+    --adm-surface: #ffffff; /* fondo de card/superficie */
+    --adm-border: #e2e5ea; /* borde de inputs/cards */
+    --adm-radius-card: 20px; /* esquinas del card de login y futuras superficies tipo card */
+    --adm-radius-control: 10px; /* inputs, botones, badges */
 
-    background: #ffffff;
+    background: var(--adm-bg);
     color: var(--adm-text);
     font-family: 'Barlow', system-ui, sans-serif;
   }

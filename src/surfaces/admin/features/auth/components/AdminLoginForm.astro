@@ -2,17 +2,25 @@
 // AdminLoginForm — re-porta el diseño verificado de la rama parqueada
 // `feat/admin-login-auth` (login-simple-wordmark) sobre la superficie admin
 // actual (ver `sdd/admin-auth-surface-migration`, Fase 3). Cambios respecto
-// al original: (1) los 5 colores hardcodeados del diseño (`#FC4C02`,
-// `#0c152e`, `#5b6675`, `#9aa6b6`, `#ba1a1a`) pasan a los tokens `--adm-*`
-// que declara `AdminLayout.astro`; las variantes rgba() que codificaban
-// exactamente esos mismos colores con alpha usan `color-mix()` sobre el
-// token en vez de repetir el literal. (2) el `<form>` postea nativamente a
-// `/api/admin/login` (el endpoint de la Fase 2), no al `/api/admin/auth`
-// de la rama parqueada. Todo lo demás —estructura, validación cliente,
-// accesibilidad, animación— se mantiene igual.
+// al original: (1) los colores hardcodeados del diseño pasan a los tokens
+// `--adm-*` que declara `AdminLayout.astro`; las variantes rgba() que
+// codificaban exactamente esos mismos colores con alpha usan `color-mix()`
+// sobre el token en vez de repetir el literal. (2) el `<form>` postea
+// nativamente a `/api/admin/login` (el endpoint de la Fase 2), no al
+// `/api/admin/auth` de la rama parqueada.
 //
-// Sin props: es un componente de presentación puro, el `?error` se lee y
-// mapea en `login.astro`.
+// Rediseño post-crítica (`/impeccable critique`): la entrada escalonada por
+// campo (`field-in` con `animation-delay` distintos) se quitó — el único
+// fade-in ahora vive en el `.card` de `login.astro`. Radios y bordes suben
+// a los tokens `--adm-radius-control` / `--adm-border` en vez de literales.
+//
+// Prop opcional `email`: repuebla el campo de correo tras un error de login
+// (fix P1, `login.astro` lo pasa desde `?email`). La contraseña NUNCA se
+// re-popula ni viaja por URL.
+interface Props {
+  email?: string;
+}
+const { email } = Astro.props;
 ---
 
 <form class="form" method="POST" action="/api/admin/login" novalidate>
@@ -33,6 +41,7 @@
         placeholder="admin@finishline.bo"
         autocomplete="email"
         aria-describedby="email-error"
+        value={email ?? ''}
         required
       />
     </div>
@@ -86,8 +95,8 @@
     <p class="error-msg" id="password-error" role="alert" aria-live="polite"></p>
   </div>
 
-  <button type="submit" class="submit-btn">
-    <span>Ingresar al panel</span>
+  <button type="submit" id="submitBtn" class="submit-btn">
+    <span id="submitBtnLabel">Ingresar al panel</span>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
       <path d="M5 12h14M12 5l7 7-7 7" />
     </svg>
@@ -99,32 +108,6 @@
     display: flex;
     flex-direction: column;
     gap: 22px;
-  }
-
-  /* entrada escalonada — una única secuencia orquestada al cargar */
-  .field,
-  .submit-btn {
-    animation: field-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
-  }
-  .field:nth-of-type(1) {
-    animation-delay: 0.44s;
-  }
-  .field:nth-of-type(2) {
-    animation-delay: 0.54s;
-  }
-  .submit-btn {
-    animation-delay: 0.64s;
-  }
-
-  @keyframes field-in {
-    from {
-      opacity: 0;
-      transform: translateY(12px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
   }
 
   .field {
@@ -165,13 +148,13 @@
   .input {
     width: 100%;
     background: #ffffff;
-    border: 1.5px solid #d6dbe3;
-    border-radius: 8px;
+    border: 1.5px solid var(--adm-border);
+    border-radius: var(--adm-radius-control);
     padding: 15px 16px 15px 48px;
     font-family: 'Barlow', sans-serif;
     font-size: 16px;
     font-weight: 500;
-    color: var(--adm-navy);
+    color: var(--adm-ink);
     outline: none;
     transition:
       border-color 0.18s,
@@ -214,7 +197,7 @@
     transition: color 0.15s;
   }
   .toggle-btn:hover {
-    color: var(--adm-navy);
+    color: var(--adm-ink);
   }
   .toggle-btn svg {
     width: 20px;
@@ -255,13 +238,13 @@
     background: var(--adm-accent);
     color: #ffffff;
     border: none;
-    border-radius: 8px;
+    border-radius: var(--adm-radius-control);
     padding: 17px;
     margin-top: 6px;
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 21px;
-    font-weight: 800;
-    letter-spacing: 1.5px;
+    font-family: 'Barlow', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
     text-transform: uppercase;
     cursor: pointer;
     display: flex;
@@ -269,6 +252,10 @@
     justify-content: center;
     gap: 12px;
     transition: background-color 0.18s;
+  }
+  .submit-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.8;
   }
   .submit-btn svg {
     width: 18px;
@@ -278,15 +265,8 @@
     background: color-mix(in srgb, var(--adm-accent) 85%, black);
   }
   .submit-btn:focus-visible {
-    outline: 2px solid var(--adm-navy);
+    outline: 2px solid var(--adm-ink);
     outline-offset: 3px;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .field,
-    .submit-btn {
-      animation: none;
-    }
   }
 </style>
 
@@ -350,13 +330,32 @@
     return true;
   }
 
+  // ── estado de carga en submit (evita doble-submit en conexión lenta) ──
+  const submitBtn = document.getElementById('submitBtn') as HTMLButtonElement;
+  const submitBtnLabel = document.getElementById('submitBtnLabel') as HTMLSpanElement;
+  const originalSubmitLabel = submitBtnLabel?.textContent ?? '';
+
   form?.addEventListener('submit', (event) => {
     const emailOk = validateEmail();
     const passwordOk = validatePassword();
     if (!emailOk || !passwordOk) {
       event.preventDefault();
       (!emailOk ? emailInput : input).focus();
+      return;
     }
+    // Validación cliente OK: el form sigue su curso normal (navega vía
+    // POST/Redirect/Get), solo cambiamos el estado visual del botón.
+    submitBtn.disabled = true;
+    submitBtnLabel.textContent = 'Ingresando…';
+  });
+
+  // Si el usuario vuelve a esta página vía bfcache (back/forward del
+  // navegador tras un error), el botón quedaría deshabilitado con el
+  // texto de carga congelado — lo restauramos.
+  window.addEventListener('pageshow', (event) => {
+    if (!(event as PageTransitionEvent).persisted) return;
+    submitBtn.disabled = false;
+    submitBtnLabel.textContent = originalSubmitLabel;
   });
 
   // Una vez marcado un campo como inválido, revalida mientras el usuario corrige.

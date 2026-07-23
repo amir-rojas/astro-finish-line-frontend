@@ -35,8 +35,13 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
 
   if (!parsed.success) {
     // Missing/empty email or password never reaches the backend — spec
-    // "Missing Required Fields Are Rejected Server-Side".
-    return redirect('/admin/login?error=missing', 303);
+    // "Missing Required Fields Are Rejected Server-Side". `parsed.data`
+    // doesn't exist on this branch (zod parse failed), so read the raw
+    // form value directly to repopulate the email field on redirect —
+    // never the password.
+    const rawEmail = formData.get('email');
+    const emailParam = typeof rawEmail === 'string' && rawEmail ? `&email=${encodeURIComponent(rawEmail)}` : '';
+    return redirect(`/admin/login?error=missing${emailParam}`, 303);
   }
 
   const result = await login(parsed.data);
@@ -46,7 +51,8 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     // `X-Service-Secret` — both map to `?error=invalid` here. See
     // `features/auth/api.ts` for the full rationale and the open D3
     // follow-up (Phase 4.4).
-    return redirect(`/admin/login?error=${result.reason}`, 303);
+    const emailParam = encodeURIComponent(parsed.data.email);
+    return redirect(`/admin/login?error=${result.reason}&email=${emailParam}`, 303);
   }
 
   cookies.set('session', result.accessToken, {
