@@ -1,0 +1,56 @@
+---
+// AdminLayout — chrome de la SUPERFICIE admin (staff, sesión + cookie, SSR).
+// Compone sobre BaseLayout (el shell <html> con metas compartidas) y aplica
+// el lenguaje visual propio del panel: estética formal, tokens `--adm-*`.
+// No reusa `--fl-*` de la superficie pública (DESIGN.md: admin tiene su
+// propio lenguaje visual). El surface público usa su propio PublicLayout;
+// nunca se mezclan.
+//
+// A diferencia de PublicLayout, no lleva <ClientRouter/>: navegar entre
+// admin y público debe caer a full reload, que es lo correcto en una
+// frontera de auth. Tampoco lleva el script de revelado por scroll, propio
+// del marketing público y no de un panel de staff.
+import BaseLayout from '@shared/layouts/BaseLayout.astro';
+
+interface Props {
+  title: string;
+  description?: string;
+  ogImage?: string;
+  ogUrl?: string;
+  canonical?: string;
+}
+const { title, description, ogImage, ogUrl, canonical } = Astro.props;
+---
+
+<BaseLayout {title} {description} {ogImage} {ogUrl} {canonical}>
+  <Fragment slot="head">
+    {/* El panel admin no es contenido público: fuera de índices y de resultados de búsqueda. */}
+    <meta name="robots" content="noindex,nofollow" />
+    {/* Tipografía: reutiliza Barlow (ya cargada por BaseLayout) para todo el panel;
+        no se agrega una familia nueva. DESIGN.md aún no fija una tipografía propia
+        para admin (open question del design de este cambio). Si eso se resuelve,
+        el <link> correspondiente entra acá, igual que PublicLayout hace con Archivo. */}
+    <slot name="head" />
+  </Fragment>
+
+  <div data-surface="admin" class="admin-surface">
+    <slot />
+  </div>
+</BaseLayout>
+
+<style>
+  .admin-surface {
+    /* Tokens semánticos propios del panel admin — ver sdd/admin-auth-surface-migration/design.
+       Set mínimo (5): solo lo que ya usaba el login re-portado. Se amplía cuando
+       exista más UI admin que lo justifique, no antes. */
+    --adm-accent: #fc4c02; /* acento de marca / CTA */
+    --adm-navy: #0c152e; /* fondo del panel de marca / titulares */
+    --adm-text: #5b6675; /* texto de cuerpo */
+    --adm-muted: #9aa6b6; /* texto tenue / placeholder */
+    --adm-danger: #ba1a1a; /* error / aria-invalid */
+
+    background: #ffffff;
+    color: var(--adm-text);
+    font-family: 'Barlow', system-ui, sans-serif;
+  }
+</style>
