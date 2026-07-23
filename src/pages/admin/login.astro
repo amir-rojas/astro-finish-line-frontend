@@ -1,0 +1,254 @@
+---
+// Ruta "/admin/login" — pantalla de acceso del panel admin
+// (ver `sdd/admin-auth-surface-migration`, Fase 3). SSR: necesita leer el
+// query param `?error` en cada petición (lo escribe el POST 303 de
+// `src/pages/api/admin/login.ts`, Fase 2).
+//
+// Re-porta el diseño verificado de la rama parqueada `feat/admin-login-auth`
+// (split brand-panel/form-panel, wordmark "Finish Line", banda diagonal)
+// sobre `AdminLayout` y sus tokens `--adm-*`. El fondo hueso (#F4F1EA) y el
+// banner de error (#fdeae2/#e8461a/#0d1b3e) quedan fuera del set de 5
+// tokens que define el design (D4): son literales propios de esta pantalla,
+// no del lenguaje visual compartido del panel.
+import AdminLayout from '@admin/layouts/AdminLayout.astro';
+import AdminLoginForm from '@admin/features/auth/components/AdminLoginForm.astro';
+
+export const prerender = false;
+
+// Mensaje según lo que devolvió `/api/admin/login` — mapeo exacto del spec.
+const ERROR_MESSAGES: Record<string, string> = {
+  missing: 'Completa tu correo y contraseña.',
+  invalid: 'Correo o contraseña incorrectos.',
+  server: 'No pudimos conectar con el servidor. Intenta de nuevo.',
+};
+const errorCode = Astro.url.searchParams.get('error');
+const errorMessage = errorCode ? (ERROR_MESSAGES[errorCode] ?? 'Ocurrió un error.') : null;
+---
+
+<AdminLayout title="Acceso administrativo">
+  <main class="page">
+    <!-- ─── IZQUIERDA: PANEL DE MARCA ─────────────────────────────────── -->
+    <aside class="brand-panel">
+      <div class="brand-inner">
+        <h1 class="wordmark">
+          <span class="wm-line"><span class="wm-text">Finish</span></span>
+          <span class="wm-line"><span class="wm-text">Line</span></span>
+        </h1>
+        <div class="track-bands" aria-hidden="true"></div>
+      </div>
+    </aside>
+
+    <!-- ─── DERECHA: PANEL DE FORMULARIO ──────────────────────────────── -->
+    <section class="form-panel">
+      <div class="form-inner">
+        <header class="form-head">
+          <h2 class="title"><span class="title-inner">Ingresar</span></h2>
+          <p class="subtitle">Accede a tu panel de control y gestiona tus eventos.</p>
+        </header>
+
+        {errorMessage && <div class="alert" role="alert">{errorMessage}</div>}
+
+        <AdminLoginForm />
+      </div>
+    </section>
+  </main>
+</AdminLayout>
+
+<style>
+  /* split de dos columnas: riel navy de marca + panel hueso de formulario */
+  .page {
+    min-height: 100dvh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: #f4f1ea;
+  }
+
+  /* ── IZQUIERDA: PANEL NAVY ── */
+  .brand-panel {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: clamp(40px, 6vw, 96px);
+    background: var(--adm-navy);
+    overflow: hidden;
+  }
+  .brand-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .wordmark {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: clamp(64px, 9vw, 120px);
+    font-weight: 800;
+    line-height: 0.86;
+    letter-spacing: -2px;
+    text-transform: uppercase;
+    color: #ffffff;
+  }
+  /* cada línea sube desde una máscara de overflow, escalonada */
+  .wm-line {
+    display: block;
+    overflow: hidden;
+  }
+  .wm-text {
+    display: block;
+    transform: translateY(110%);
+    animation: rise-mask 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .wm-line:nth-child(1) .wm-text {
+    animation-delay: 0.12s;
+  }
+  .wm-line:nth-child(2) .wm-text {
+    animation-delay: 0.24s;
+  }
+
+  /* banda diagonal — el motivo de "pista" reducido a una franja */
+  .track-bands {
+    width: clamp(180px, 22vw, 256px);
+    height: 16px;
+    margin-top: clamp(28px, 4vw, 48px);
+    background-image: repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 10px,
+      var(--adm-accent) 10px,
+      var(--adm-accent) 20px
+    );
+    /* se dibuja de izquierda a derecha luego de que el wordmark se asienta */
+    transform: scaleX(0);
+    transform-origin: left center;
+    animation: band-draw 0.75s cubic-bezier(0.22, 1, 0.36, 1) 0.46s both;
+  }
+
+  /* ── DERECHA: PANEL HUESO ── */
+  .form-panel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(32px, 5vw, 72px) clamp(24px, 4vw, 64px);
+    background: #f4f1ea;
+  }
+  .form-inner {
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .form-head {
+    margin-bottom: 36px;
+  }
+  .title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: clamp(40px, 5vw, 56px);
+    font-weight: 800;
+    color: var(--adm-navy);
+    line-height: 0.95;
+    letter-spacing: -1px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    overflow: hidden; /* máscara para el título que sube */
+  }
+  .title-inner {
+    display: block;
+    transform: translateY(110%);
+    animation: rise-mask 0.85s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
+  }
+  .subtitle {
+    font-family: 'Barlow', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--adm-text);
+    max-width: 38ch;
+    animation: fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.32s both;
+  }
+
+  /* ── BANNER DE ERROR ── */
+  .alert {
+    margin-bottom: 24px;
+    padding: 12px 16px;
+    background: #fdeae2;
+    border-left: 3px solid #e8461a;
+    font-family: 'Barlow', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #0d1b3e;
+  }
+
+  @keyframes rise-mask {
+    from {
+      transform: translateY(110%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes band-draw {
+    to {
+      transform: scaleX(1);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .wm-text,
+    .title-inner,
+    .subtitle,
+    .track-bands {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* ── MOBILE: una sola pantalla hueso, centrada verticalmente ──
+     En vez de apilar un bloque navy completo arriba, el wordmark pasa a
+     navy sobre hueso como cabecera compacta y el form queda debajo, todo
+     centrado como una sola tarjeta. */
+  @media (max-width: 680px) {
+    .page {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: clamp(24px, 7vw, 36px);
+      padding: clamp(32px, 9vw, 56px) 24px;
+    }
+
+    .brand-panel {
+      background: transparent;
+      min-height: auto;
+      width: 100%;
+      max-width: 400px;
+      padding: 0;
+    }
+    /* sobre hueso, el wordmark va en navy (no en blanco) */
+    .wordmark {
+      color: var(--adm-navy);
+      font-size: clamp(44px, 15vw, 60px);
+    }
+    .track-bands {
+      width: 132px;
+      height: 12px;
+      margin-top: 16px;
+    }
+
+    .form-panel {
+      background: transparent;
+      width: 100%;
+      max-width: 400px;
+      padding: 0;
+    }
+    .form-head {
+      margin-bottom: 28px;
+    }
+  }
+</style>
