@@ -35,7 +35,10 @@ export async function login({ email, password }: LoginCredentials): Promise<Logi
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Service-Secret': BACKEND_SERVICE_SECRET,
+        // `envField.string({ optional: true })` types this as `string | undefined`;
+        // fall back to `''` for `HeadersInit` — an unset secret already fails Go's
+        // check the same way an `undefined` header would, so this is a type-only fix.
+        'X-Service-Secret': BACKEND_SERVICE_SECRET ?? '',
       },
       body: JSON.stringify({ email, password }),
     });

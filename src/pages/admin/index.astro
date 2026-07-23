@@ -1,0 +1,42 @@
+---
+// Ruta "/admin" — placeholder protegido del panel admin
+// (ver `sdd/admin-auth-surface-migration`, Fase 3, spec "Admin Routes
+// Require an Active Session"). Sin sesión (ausente o expirada — el navegador
+// simplemente no envía una cookie vencida, así que ambos casos llegan acá
+// como "ausente") redirige a `/admin/login` en silencio, sin aviso especial
+// (decisión de negocio ya tomada). Con sesión, muestra un placeholder mínimo
+// hasta que exista un dashboard real (fuera de alcance de este cambio).
+//
+// No valida el token contra el backend todavía — solo confirma que la
+// cookie `session` existe. La validación server-side queda documentada como
+// limitación conocida en el design (Data Flow / Migración).
+import AdminLayout from '@admin/layouts/AdminLayout.astro';
+
+export const prerender = false;
+
+if (!Astro.cookies.has('session')) {
+  return Astro.redirect('/admin/login');
+}
+---
+
+<AdminLayout title="Panel administrativo">
+  <main class="dash">
+    <p class="ok">Sesión iniciada correctamente.</p>
+  </main>
+</AdminLayout>
+
+<style>
+  .dash {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    font-family: 'Barlow', sans-serif;
+    font-size: 1.1rem;
+    color: var(--adm-ink);
+  }
+  .ok {
+    font-weight: 600;
+  }
+</style>

@@ -1,0 +1,368 @@
+---
+// AdminLoginForm — re-porta el diseño verificado de la rama parqueada
+// `feat/admin-login-auth` (login-simple-wordmark) sobre la superficie admin
+// actual (ver `sdd/admin-auth-surface-migration`, Fase 3). Cambios respecto
+// al original: (1) los colores hardcodeados del diseño pasan a los tokens
+// `--adm-*` que declara `AdminLayout.astro`; las variantes rgba() que
+// codificaban exactamente esos mismos colores con alpha usan `color-mix()`
+// sobre el token en vez de repetir el literal. (2) el `<form>` postea
+// nativamente a `/api/admin/login` (el endpoint de la Fase 2), no al
+// `/api/admin/auth` de la rama parqueada.
+//
+// Rediseño post-crítica (`/impeccable critique`): la entrada escalonada por
+// campo (`field-in` con `animation-delay` distintos) se quitó — el único
+// fade-in ahora vive en el `.card` de `login.astro`. Radios y bordes suben
+// a los tokens `--adm-radius-control` / `--adm-border` en vez de literales.
+//
+// Prop opcional `email`: repuebla el campo de correo tras un error de login
+// (fix P1, `login.astro` lo pasa desde `?email`). La contraseña NUNCA se
+// re-popula ni viaja por URL.
+interface Props {
+  email?: string;
+}
+const { email } = Astro.props;
+---
+
+<form class="form" method="POST" action="/api/admin/login" novalidate>
+  <div class="field">
+    <label for="email" class="label">Correo electrónico</label>
+    <div class="control">
+      <span class="icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="4" width="20" height="16" rx="2" />
+          <path d="m22 7-10 6L2 7" />
+        </svg>
+      </span>
+      <input
+        type="email"
+        id="email"
+        name="email"
+        class="input"
+        placeholder="admin@finishline.bo"
+        autocomplete="email"
+        aria-describedby="email-error"
+        value={email ?? ''}
+        required
+      />
+    </div>
+    <p class="error-msg" id="email-error" role="alert" aria-live="polite"></p>
+  </div>
+
+  <div class="field">
+    <label for="password" class="label">Contraseña</label>
+    <div class="control">
+      <span class="icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2" />
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </svg>
+      </span>
+      <input
+        type="password"
+        id="password"
+        name="password"
+        class="input"
+        placeholder="••••••••••••"
+        autocomplete="current-password"
+        aria-describedby="password-error"
+        required
+      />
+      <button
+        type="button"
+        id="togglePwd"
+        class="toggle-btn"
+        aria-label="Mostrar contraseña"
+        aria-pressed="false"
+      >
+        <svg id="eyeShow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
+        </svg>
+        <svg
+          id="eyeHide"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          style="display:none"
+          aria-hidden="true"
+        >
+          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+          <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+          <line x1="1" y1="1" x2="23" y2="23" />
+        </svg>
+      </button>
+    </div>
+    <p class="error-msg" id="password-error" role="alert" aria-live="polite"></p>
+  </div>
+
+  <button type="submit" id="submitBtn" class="submit-btn">
+    <span id="submitBtnLabel">Ingresar al panel</span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+      <path d="M5 12h14M12 5l7 7-7 7" />
+    </svg>
+  </button>
+</form>
+
+<style>
+  .form {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+
+  .label {
+    font-family: 'Barlow', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--adm-text);
+  }
+
+  /* ── input con ícono inicial ── */
+  .control {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .icon {
+    position: absolute;
+    left: 16px;
+    display: inline-flex;
+    color: var(--adm-muted);
+    pointer-events: none;
+    transition: color 0.18s;
+  }
+  .icon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .input {
+    width: 100%;
+    background: #ffffff;
+    border: 1.5px solid var(--adm-border);
+    border-radius: var(--adm-radius-control);
+    padding: 15px 16px 15px 48px;
+    font-family: 'Barlow', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--adm-ink);
+    outline: none;
+    transition:
+      border-color 0.18s,
+      box-shadow 0.18s;
+  }
+  .input::placeholder {
+    color: var(--adm-muted);
+    font-weight: 400;
+  }
+
+  .input:focus {
+    border-color: var(--adm-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--adm-accent) 14%, transparent);
+  }
+  /* tiñe el ícono inicial mientras se edita */
+  .control:focus-within .icon {
+    color: var(--adm-accent);
+  }
+
+  /* deja espacio para el toggle en el campo de contraseña */
+  .control:has(.toggle-btn) .input {
+    padding-right: 52px;
+  }
+
+  .toggle-btn {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    min-width: 44px; /* touch target cómodo (WCAG 2.5.8) */
+    min-height: 44px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--adm-muted);
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s;
+  }
+  .toggle-btn:hover {
+    color: var(--adm-ink);
+  }
+  .toggle-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+  .toggle-btn:focus-visible {
+    outline: 2px solid var(--adm-accent);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  /* ── error de validación inline ── */
+  .error-msg {
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--adm-danger);
+    margin-top: 2px;
+  }
+  .error-msg:empty {
+    display: none;
+  }
+
+  /* estado inválido: borde e ícono en rojo */
+  .field.has-error .input {
+    border-color: var(--adm-danger);
+  }
+  .field.has-error .input:focus {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--adm-danger) 14%, transparent);
+  }
+  .field.has-error .icon {
+    color: var(--adm-danger);
+  }
+
+  /* ── botón primario ── */
+  .submit-btn {
+    width: 100%;
+    background: var(--adm-accent);
+    color: #ffffff;
+    border: none;
+    border-radius: var(--adm-radius-control);
+    padding: 17px;
+    margin-top: 6px;
+    font-family: 'Barlow', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    transition: background-color 0.18s;
+  }
+  .submit-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.8;
+  }
+  .submit-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+  .submit-btn:hover {
+    background: color-mix(in srgb, var(--adm-accent) 85%, black);
+  }
+  .submit-btn:focus-visible {
+    outline: 2px solid var(--adm-ink);
+    outline-offset: 3px;
+  }
+</style>
+
+<script>
+  // ── toggle de visibilidad de contraseña ──
+  const btn = document.getElementById('togglePwd') as HTMLButtonElement;
+  const input = document.getElementById('password') as HTMLInputElement;
+  const eyeShow = document.getElementById('eyeShow') as unknown as SVGElement;
+  const eyeHide = document.getElementById('eyeHide') as unknown as SVGElement;
+
+  btn?.addEventListener('click', () => {
+    const isPassword = input.type === 'password';
+    input.type = isPassword ? 'text' : 'password';
+    eyeShow.style.display = isPassword ? 'none' : '';
+    eyeHide.style.display = isPassword ? '' : 'none';
+    btn.setAttribute('aria-pressed', String(isPassword));
+    btn.setAttribute('aria-label', isPassword ? 'Ocultar contraseña' : 'Mostrar contraseña');
+  });
+
+  // ── validación cliente (backstop: el BFF revalida en el servidor) ──
+  const form = document.querySelector('.form') as HTMLFormElement;
+  const emailInput = document.getElementById('email') as HTMLInputElement;
+  const emailError = document.getElementById('email-error') as HTMLParagraphElement;
+  const passwordError = document.getElementById('password-error') as HTMLParagraphElement;
+
+  // Regex pragmática: algo@algo.dominio, sin espacios. No pretende cubrir el RFC.
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  function setError(el: HTMLInputElement, msgEl: HTMLParagraphElement, msg: string) {
+    msgEl.textContent = msg;
+    el.setAttribute('aria-invalid', 'true');
+    el.closest('.field')?.classList.add('has-error');
+  }
+
+  function clearError(el: HTMLInputElement, msgEl: HTMLParagraphElement) {
+    msgEl.textContent = '';
+    el.removeAttribute('aria-invalid');
+    el.closest('.field')?.classList.remove('has-error');
+  }
+
+  function validateEmail(): boolean {
+    const value = emailInput.value.trim();
+    if (!value) {
+      setError(emailInput, emailError, 'Ingresa tu correo electrónico.');
+      return false;
+    }
+    if (!EMAIL_RE.test(value)) {
+      setError(emailInput, emailError, 'Ingresa un correo electrónico válido.');
+      return false;
+    }
+    clearError(emailInput, emailError);
+    return true;
+  }
+
+  function validatePassword(): boolean {
+    if (!input.value) {
+      setError(input, passwordError, 'Ingresa tu contraseña.');
+      return false;
+    }
+    clearError(input, passwordError);
+    return true;
+  }
+
+  // ── estado de carga en submit (evita doble-submit en conexión lenta) ──
+  const submitBtn = document.getElementById('submitBtn') as HTMLButtonElement;
+  const submitBtnLabel = document.getElementById('submitBtnLabel') as HTMLSpanElement;
+  const originalSubmitLabel = submitBtnLabel?.textContent ?? '';
+
+  form?.addEventListener('submit', (event) => {
+    const emailOk = validateEmail();
+    const passwordOk = validatePassword();
+    if (!emailOk || !passwordOk) {
+      event.preventDefault();
+      (!emailOk ? emailInput : input).focus();
+      return;
+    }
+    // Validación cliente OK: el form sigue su curso normal (navega vía
+    // POST/Redirect/Get), solo cambiamos el estado visual del botón.
+    submitBtn.disabled = true;
+    submitBtnLabel.textContent = 'Ingresando…';
+  });
+
+  // Si el usuario vuelve a esta página vía bfcache (back/forward del
+  // navegador tras un error), el botón quedaría deshabilitado con el
+  // texto de carga congelado — lo restauramos.
+  window.addEventListener('pageshow', (event) => {
+    if (!(event as PageTransitionEvent).persisted) return;
+    submitBtn.disabled = false;
+    submitBtnLabel.textContent = originalSubmitLabel;
+  });
+
+  // Una vez marcado un campo como inválido, revalida mientras el usuario corrige.
+  emailInput?.addEventListener('input', () => {
+    if (emailInput.getAttribute('aria-invalid')) validateEmail();
+  });
+  input?.addEventListener('input', () => {
+    if (input.getAttribute('aria-invalid')) validatePassword();
+  });
+</script>
