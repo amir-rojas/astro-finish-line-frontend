@@ -117,7 +117,7 @@ export interface RaceEvent {
   courseTitle?: string;
   courseDescription?: string;
   routeMap?: ImageMetadata;
-  routeMapAlt?: string;
+  routeMapAlt: string;
   /** Estado de la carrera (chip del hero). */
   status?: 'proximo' | 'inscripciones_abiertas' | 'cerrado' | 'finalizado';
   /** Co-organizador, p.ej. "Alcaldía de La Paz" (chip del hero). */
@@ -128,30 +128,30 @@ export interface RaceEvent {
       junto al nombre de la serie; sin ella, el lockup degrada al nombre a secas. */
   runTourStage?: number;
   heroImage?: ImageMetadata;
-  heroImageAlt?: string;
+  heroImageAlt: string;
   /** Variante apaisada del hero para pantallas anchas. Si falta, desktop reusa
       `heroImage`. Es art direction: no es la misma foto más grande, es otra toma. */
   heroImageDesktop?: ImageMetadata;
   /** Afiche oficial. Solo para el detalle, que muestra la imagen contenida y sin
       texto encima. Si falta, el detalle reusa `heroImage`. */
   poster?: ImageMetadata;
-  posterAlt?: string;
+  posterAlt: string;
   /** Álbum de fotos de la carrera (hoy, Facebook). Solo las carreras que de verdad
       tienen fotos lo traen: gobierna si su tarjeta de recap es clickeable. */
   photosUrl?: string;
   /** Foto de la vitrina "Así se vivió". Cae a `heroImage` si falta. */
   recapImage?: ImageMetadata;
-  recapImageAlt?: string;
+  recapImageAlt: string;
   /** `object-position` de la foto del recap. Default "50% 40%". */
   recapImageFocus?: string;
   /** Polera oficial del evento (foto de merch). Opcional: no todos los eventos la tienen. */
   shirt?: ImageMetadata;
-  shirtAlt?: string;
+  shirtAlt: string;
   /** Condición para llevarse la polera. Sin ella la pieza no se muestra. */
   shirtTerms?: string;
   /** Medalla finisher del evento (foto). Opcional: no todos los eventos la tienen. */
   medal?: ImageMetadata;
-  medalAlt?: string;
+  medalAlt: string;
   /** Condición para llevarse la medalla. Sin ella la pieza no se muestra. */
   medalTerms?: string;
   /** Markdown crudo tal cual viene de Sanity. Renderizar en la superficie que lo use. */
@@ -197,23 +197,22 @@ const imageAssetSchema = z.object({
   }),
 });
 
-// `raceImage` (heroImage, heroImageDesktop, poster, recapImage, routeMap): el
-// `alt` vive DENTRO del objeto de imagen en el Studio, no como campo hermano
-// top-level — de ahí que `mapRace` lo lea vía `raw.heroImage?.alt`, etc.
+// `raceImage` (heroImage, heroImageDesktop, poster, recapImage, routeMap): sin
+// `alt` editable en el Studio — el texto alternativo lo fija `mapRace` con una
+// descripción fija por campo, no un dato que venga del payload.
 const raceImageSchema = z
   .object({
-    alt: z.string().nullable().optional(),
     asset: imageAssetSchema.nullable().optional(),
   })
   .nullable()
   .optional();
 
-// `rewardImage` (shirt, medal): además del `alt` anidado, trae `terms` DENTRO
-// del mismo objeto — corrección confirmada contra el schema real del Studio.
-// Nunca leer un `shirtTerms`/`medalTerms` top-level: ese campo no existe.
+// `rewardImage` (shirt, medal): trae `terms` DENTRO del objeto — corrección
+// confirmada contra el schema real del Studio. Nunca leer un
+// `shirtTerms`/`medalTerms` top-level: ese campo no existe. Sin `alt` editable,
+// mismo criterio que `raceImageSchema`.
 const rewardImageSchema = z
   .object({
-    alt: z.string().nullable().optional(),
     terms: z.string().nullable().optional(),
     asset: imageAssetSchema.nullable().optional(),
   })
@@ -311,12 +310,10 @@ type RawRaceImage = z.infer<typeof raceImageSchema>;
 // explícito del Studio como identidad (nunca el `_id` interno del documento).
 
 const RACE_IMAGE_PROJECTION = `{
-    "alt": alt,
     asset->{ url, extension, metadata{ dimensions{ width, height } } }
   }`;
 
 const REWARD_IMAGE_PROJECTION = `{
-    "alt": alt,
     "terms": terms,
     asset->{ url, extension, metadata{ dimensions{ width, height } } }
   }`;
@@ -450,30 +447,31 @@ function mapRace(raw: RawRace): RaceEvent {
     courseTitle: raw.courseTitle ?? undefined,
     courseDescription: raw.courseDescription ?? undefined,
     routeMap: sanityImage(raw.routeMap),
-    // El alt del mapa vive anidado en `routeMap.alt`, no en un campo top-level.
-    routeMapAlt: raw.routeMap?.alt ?? undefined,
+    // Ya sabemos que acá siempre va un mapa de recorrido: alt fijo, no editable en Studio.
+    routeMapAlt: `Mapa del recorrido de la carrera ${raw.title}`,
     status: STATUS_MAP[raw.status],
     coorganizer: raw.coorganizer ?? undefined,
     isRunTour: raw.isRunTour ?? false,
     runTourStage: raw.runTourStage ?? undefined,
     heroImage: sanityImage(raw.heroImage),
-    heroImageAlt: raw.heroImage?.alt ?? raw.title,
+    // Foto de acción de la carrera, siempre: alt fijo, no editable en Studio.
+    heroImageAlt: `Foto de acción de la carrera ${raw.title}`,
     heroImageDesktop: sanityImage(raw.heroImageDesktop),
     poster: sanityImage(raw.poster),
-    posterAlt: raw.poster?.alt ?? undefined,
+    posterAlt: `Afiche oficial de la carrera ${raw.title}`,
     photosUrl: raw.photosUrl ?? undefined,
     // La foto del recap cae a la del hero: casi siempre es la misma carrera vista
     // desde la misma cámara, y obligar a cargar dos veces la misma imagen sería
     // trabajo de autoría sin ganancia.
     recapImage: sanityImage(raw.recapImage) ?? sanityImage(raw.heroImage),
-    recapImageAlt: raw.recapImage?.alt ?? raw.heroImage?.alt ?? raw.title,
+    recapImageAlt: `Foto de cómo se vivió la carrera ${raw.title}`,
     recapImageFocus: raw.recapImageFocus ?? '50% 40%',
     shirt: sanityImage(raw.shirt),
-    shirtAlt: raw.shirt?.alt ?? `Polera oficial de ${raw.title}`,
+    shirtAlt: `Polera oficial de ${raw.title}`,
     // `terms` vive DENTRO del objeto `shirt`, no en un campo `shirtTerms` aparte.
     shirtTerms: raw.shirt?.terms ?? undefined,
     medal: sanityImage(raw.medal),
-    medalAlt: raw.medal?.alt ?? `Medalla finisher de ${raw.title}`,
+    medalAlt: `Medalla finisher de ${raw.title}`,
     // Mismo caso que `shirt.terms`: anidado, no top-level.
     medalTerms: raw.medal?.terms ?? undefined,
     descriptionRaw: raw.description ?? undefined,

@@ -49,10 +49,10 @@ const image = finished
   : (event.poster ?? event.heroImage ?? event.recapImage);
 // El alt describe la imagen que SE VE, no la primera que exista.
 const imageAlt = isPoster
-  ? (event.posterAlt ?? event.title)
+  ? event.posterAlt
   : image === event.heroImage
-    ? (event.heroImageAlt ?? event.title)
-    : (event.recapImageAlt ?? event.title);
+    ? event.heroImageAlt
+    : event.recapImageAlt;
 
 // El afiche trae un botón DIBUJADO que dice "Inscríbete ahora". Si el link de
 // inscripción está vivo, el afiche entero es ese link y el botón dibujado hace

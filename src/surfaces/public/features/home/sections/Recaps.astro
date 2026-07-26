@@ -90,7 +90,7 @@ const facebookUrl = site.socials.find((s) => s.icon === 'facebook')?.href;
                   <Image
                     class="recap__media"
                     src={photo}
-                    alt={r.recapImageAlt ?? r.title}
+                    alt={r.recapImageAlt}
                     widths={featured ? [560, 680, 900, 1120] : [440, 560, 720, 880]}
                     sizes={
                       featured

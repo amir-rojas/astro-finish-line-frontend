@@ -84,7 +84,7 @@ const rewards: RewardItem[] = [];
 if (event.shirt && event.shirtTerms) {
   rewards.push({
     src: event.shirt,
-    alt: event.shirtAlt ?? `Polera oficial de ${event.title}`,
+    alt: event.shirtAlt,
     label: 'Polera oficial',
     terms: event.shirtTerms,
     media: 'render',
@@ -93,7 +93,7 @@ if (event.shirt && event.shirtTerms) {
 if (event.medal && event.medalTerms) {
   rewards.push({
     src: event.medal,
-    alt: event.medalAlt ?? `Medalla finisher de ${event.title}`,
+    alt: event.medalAlt,
     label: 'Medalla finisher',
     terms: event.medalTerms,
     media: 'photo',

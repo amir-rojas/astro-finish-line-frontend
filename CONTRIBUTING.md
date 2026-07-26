@@ -95,10 +95,16 @@ Como el sitio es estático (SSG), publicar en Studio **no** actualiza
 resuelve con un **webhook de Sanity apuntando a un Vercel Deploy Hook**
 (configuración externa, sin código en el repo):
 
-1. **Vercel**: Project Settings → Git → Deploy Hooks → crear un hook por rama
-   (`develop` para staging, `main` para producción). Copiar la URL generada.
+1. **Vercel**: Project Settings → Git → Deploy Hooks → crear un hook **solo
+   para la rama `develop`**. Copiar la URL generada.
 2. **Sanity Studio**: Project → API → Webhooks → crear un webhook con esa URL,
    disparado `on publish`/`on delete` del tipo `race`.
 
-Sin este webhook, un cambio publicado en Studio queda invisible hasta el
-próximo deploy manual (push a `develop`/`main`).
+**A propósito, NO se conecta un Deploy Hook de `main`.** Que César publique
+una carrera dispara el rebuild de staging, no de producción — así hay
+oportunidad de revisar cómo quedó (fechas, imágenes, campos) antes de
+promoverla. Pasar `develop` → `main` sigue siendo un paso manual (merge/PR),
+igual que cualquier otro cambio.
+
+Sin este webhook, un cambio publicado en Studio queda invisible en staging
+hasta el próximo deploy manual.

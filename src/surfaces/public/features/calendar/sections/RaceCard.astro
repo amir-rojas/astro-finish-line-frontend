@@ -44,9 +44,6 @@ const { day, month, year } = cardDate(event.date);
 // Afiche primero; si no hay, la foto (el adaptador ya resolvió recapImage ?? heroImage).
 const isPoster = Boolean(event.poster);
 const image = event.poster ?? event.recapImage;
-const imageAlt = isPoster
-  ? (event.posterAlt ?? `Afiche de ${event.title}`)
-  : (event.recapImageAlt ?? event.title);
 
 // Una carrera CORRIDA lleva al ÁLBUM, no al detalle: lo que queda de una carrera
 // que ya pasó son sus fotos, y su página de detalle hoy está flaca (sin recorrido,
