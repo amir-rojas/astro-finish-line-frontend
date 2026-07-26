@@ -27,9 +27,7 @@ const href = `/calendario/${event.slug}`;
 // El afiche es la pieza que la carrera de verdad publica. Si no hay, cae a la
 // foto del evento (el adaptador ya resolvió recapImage ?? heroImage).
 const image = event.poster ?? event.recapImage;
-const imageAlt = event.poster
-  ? (event.posterAlt ?? `Afiche de ${event.title}`)
-  : (event.recapImageAlt ?? event.title);
+const imageAlt = event.poster ? event.posterAlt : event.recapImageAlt;
 
 const distances = [...new Set(event.distances)];
 const status = raceStatus(event.modalities);
