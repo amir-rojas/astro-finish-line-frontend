@@ -1,0 +1,60 @@
+---
+// BlockError — estado de fallo/vacío de un bloque server-rendered del
+// dashboard (ver `sdd/admin-dashboard`, design "Manejo de errores por
+// bloque"). Un bloque que consumió `safeBlock()` y recibió `{ok:false}`
+// renderiza esto en su lugar, sin tumbar el resto del shell (spec "Sanity
+// block failure isolation").
+interface Props {
+  variant: 'error' | 'empty';
+  message?: string;
+}
+const { variant, message } = Astro.props;
+
+const DEFAULTS: Record<Props['variant'], string> = {
+  error: 'No pudimos cargar esta información. Intenta de nuevo más tarde.',
+  empty: 'No hay datos para mostrar todavía.',
+};
+const text = message ?? DEFAULTS[variant];
+---
+
+<div class="block-error" data-variant={variant} role={variant === 'error' ? 'alert' : undefined}>
+  {
+    variant === 'error' && (
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" />
+        <line x1="12" y1="8" x2="12" y2="13" />
+        <line x1="12" y1="16.5" x2="12" y2="16.51" />
+      </svg>
+    )
+  }
+  <p class="text">{text}</p>
+</div>
+
+<style>
+  .block-error {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 18px 20px;
+    border-radius: var(--adm-radius-control);
+    font-family: 'Barlow', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .block-error[data-variant='error'] {
+    background: var(--adm-danger-soft);
+    color: var(--adm-danger);
+  }
+  .block-error[data-variant='empty'] {
+    background: var(--adm-bg);
+    color: var(--adm-muted);
+  }
+  .icon {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+  }
+  .text {
+    margin: 0;
+  }
+</style>

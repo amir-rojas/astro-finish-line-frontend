@@ -1,0 +1,106 @@
+---
+// AdminShell — envuelve TODA pantalla admin (sidebar + header + contenido),
+// 100% SSR sin JS de cliente (ver `sdd/admin-dashboard`, design "Technical
+// Approach"). Cada página `pages/admin/*.astro` la usa en vez de componer
+// `AdminSidebar`/`AdminHeader` por su cuenta — así el gate de identidad
+// (`me()`) vive en un solo lugar (design D3).
+//
+// D3: la identidad se pide ACÁ, no en `middleware.ts` — el middleware queda
+// como gate de auth puro (responsabilidad única) y el fallo de `/users/me`
+// se maneja donde se muestra (el header). Si `session` falta o `me()` falla
+// por cualquier motivo (red, timeout, 401, contrato roto), `name` queda
+// `undefined` y `AdminHeader` saluda genérico — nunca un nombre inventado.
+import AdminLayout from '@admin/layouts/AdminLayout.astro';
+import AdminSidebar from '@admin/components/AdminSidebar.astro';
+import AdminHeader from '@admin/components/AdminHeader.astro';
+import { me } from '@admin/features/auth/api';
+
+interface Props {
+  title: string;
+}
+const { title } = Astro.props;
+
+const sessionToken = Astro.cookies.get('session')?.value;
+let adminName: string | undefined;
+if (sessionToken) {
+  try {
+    const result = await me(sessionToken);
+    if (result.ok) adminName = result.name;
+  } catch {
+    // `me()` ya no debería lanzar (devuelve `{ok:false}`), pero este shell
+    // corre en el camino crítico de CADA página admin: un fallo inesperado
+    // acá nunca debe tumbar el render completo, solo el saludo.
+    adminName = undefined;
+  }
+}
+---
+
+<AdminLayout title={`${title} · Panel administrativo`}>
+  <div class="shell">
+    <AdminSidebar>
+      <div slot="footer" class="user-footer">
+        <p class="user-name">{adminName ?? 'Cuenta'}</p>
+        <a href="/admin/configuracion" class="user-link">Configuración</a>
+      </div>
+    </AdminSidebar>
+
+    <div class="content-column">
+      <AdminHeader name={adminName} />
+      <main class="content">
+        <slot />
+      </main>
+    </div>
+  </div>
+</AdminLayout>
+
+<style>
+  .shell {
+    display: flex;
+    min-height: 100dvh;
+  }
+  .content-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .content {
+    flex: 1;
+    padding: 32px;
+  }
+
+  .user-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .user-name {
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--adm-ink);
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .user-link {
+    font-family: 'Barlow', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--adm-muted);
+    text-decoration: none;
+  }
+  .user-link:hover {
+    color: var(--adm-accent);
+  }
+
+  @media (max-width: 860px) {
+    .shell {
+      flex-direction: column;
+    }
+    .content {
+      padding: 20px;
+    }
+  }
+</style>

@@ -1,0 +1,111 @@
+---
+// UpcomingRacesBlock — "Próximas carreras" del dashboard (ver
+// `sdd/admin-dashboard`, spec "Dashboard content scope"). Consume el
+// resultado ya resuelto por `safeBlock(getEvents())` que le pasa
+// `pages/admin/index.astro` — este componente no hace fetch propio, solo
+// filtra/renderiza. Sin barra de cupos ni ningún número sin fuente
+// verificada (spec "Dashboard omits unbuilt widgets").
+import BlockError from '@admin/components/BlockError.astro';
+import { upcomingRaces } from '@shared/lib/race-date';
+import { weekdayDate } from '@shared/lib/date-format';
+import type { SafeBlockResult } from '@admin/lib/safe-block';
+import type { RaceEvent } from '@shared/lib/content/events';
+
+interface Props {
+  result: SafeBlockResult<RaceEvent[]>;
+}
+const { result } = Astro.props;
+
+const races = result.ok ? upcomingRaces(result.data) : [];
+---
+
+<section class="block">
+  <h2 class="block-title">Próximas carreras</h2>
+
+  {!result.ok && <BlockError variant="error" />}
+
+  {result.ok && races.length === 0 && <BlockError variant="empty" message="No hay carreras próximas registradas." />}
+
+  {
+    result.ok && races.length > 0 && (
+      <ul class="race-list">
+        {races.map((race) => (
+          <li class="race-item">
+            <div class="race-info">
+              <p class="race-title">{race.title}</p>
+              <p class="race-meta">
+                {weekdayDate(race.date)}
+                {race.city && ` · ${race.city}`}
+              </p>
+            </div>
+            <a href="/admin/carreras" class="race-link">
+              Ver
+            </a>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</section>
+
+<style>
+  .block {
+    background: var(--adm-surface);
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius-card);
+    padding: 24px;
+  }
+  .block-title {
+    font-family: 'Barlow', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--adm-ink);
+    margin: 0 0 16px;
+  }
+
+  .race-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .race-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--adm-border);
+  }
+  .race-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+  .race-title {
+    font-family: 'Barlow', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--adm-ink);
+    margin: 0;
+  }
+  .race-meta {
+    font-family: 'Barlow', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--adm-muted);
+    margin: 2px 0 0;
+  }
+  .race-link {
+    flex-shrink: 0;
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--adm-accent);
+    text-decoration: none;
+  }
+  .race-link:hover {
+    text-decoration: underline;
+  }
+</style>

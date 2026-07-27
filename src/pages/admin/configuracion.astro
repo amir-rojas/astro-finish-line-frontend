@@ -1,0 +1,153 @@
+---
+// Ruta "/admin/configuracion" — pantalla de cuenta mínima (ver
+// `sdd/admin-dashboard`, design D8 + spec sidebar "Configuración" como ítem
+// con pantalla real). Datos de cuenta desde `me()`, link a Sanity y el botón
+// "Cerrar sesión" que postea a `/api/admin/logout` (tasks 4.2/4.3).
+//
+// Llama a `me()` una segunda vez (además de la que hace `AdminShell` para el
+// saludo del header): ese componente solo expone `name` hacia abajo, no el
+// `email` que esta pantalla también necesita mostrar. Sin RBAC en Go, no hay
+// nada más que listar hoy (design D8: "sin RBAC en Go, no hay nada más que
+// mostrar").
+import AdminShell from '@admin/components/AdminShell.astro';
+import BlockError from '@admin/components/BlockError.astro';
+import { me } from '@admin/features/auth/api';
+
+export const prerender = false;
+
+const sessionToken = Astro.cookies.get('session')?.value;
+const identity = sessionToken ? await me(sessionToken) : { ok: false as const };
+---
+
+<AdminShell title="Configuración">
+  <div class="page">
+    <section class="block">
+      <h2 class="block-title">Cuenta</h2>
+      {
+        identity.ok ? (
+          <dl class="account-data">
+            <div class="row">
+              <dt>Nombre</dt>
+              <dd>{identity.name}</dd>
+            </div>
+            <div class="row">
+              <dt>Correo</dt>
+              <dd>{identity.email}</dd>
+            </div>
+          </dl>
+        ) : (
+          <BlockError variant="error" message="No pudimos cargar los datos de tu cuenta." />
+        )
+      }
+    </section>
+
+    <section class="block">
+      <h2 class="block-title">Contenido</h2>
+      <p class="hint">Las carreras y su contenido editorial se gestionan desde Sanity Studio.</p>
+      <a href="https://finishline.sanity.studio" target="_blank" rel="noopener noreferrer" class="sanity-link">
+        Gestionar en Sanity
+      </a>
+    </section>
+
+    <section class="block">
+      <h2 class="block-title">Sesión</h2>
+      <form method="POST" action="/api/admin/logout">
+        <button type="submit" class="logout-btn">Cerrar sesión</button>
+      </form>
+    </section>
+  </div>
+</AdminShell>
+
+<style>
+  .page {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-width: 480px;
+  }
+  .block {
+    background: var(--adm-surface);
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius-card);
+    padding: 24px;
+  }
+  .block-title {
+    font-family: 'Barlow', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--adm-ink);
+    margin: 0 0 16px;
+  }
+
+  .account-data {
+    margin: 0;
+  }
+  .row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--adm-border);
+  }
+  .row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+  dt {
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--adm-muted);
+  }
+  dd {
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--adm-ink);
+    margin: 0;
+    text-align: right;
+  }
+
+  .hint {
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--adm-text);
+    margin: 0 0 14px;
+  }
+  .sanity-link {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 18px;
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius-control);
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--adm-text);
+    text-decoration: none;
+  }
+  .sanity-link:hover {
+    border-color: var(--adm-accent);
+    color: var(--adm-accent);
+  }
+
+  .logout-btn {
+    background: none;
+    border: 1px solid var(--adm-danger);
+    border-radius: var(--adm-radius-control);
+    padding: 10px 18px;
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--adm-danger);
+    cursor: pointer;
+    transition:
+      background-color 0.15s,
+      color 0.15s;
+  }
+  .logout-btn:hover {
+    background: var(--adm-danger);
+    color: #ffffff;
+  }
+</style>

@@ -1,37 +1,38 @@
 ---
-// Ruta "/admin" — placeholder protegido del panel admin
-// (ver `sdd/admin-auth-surface-migration`, Fase 3, spec "Admin Routes
-// Require an Active Session"). El gate real vive en `src/middleware.ts`
-// (corre para todo `/admin/*` salvo `/admin/login`): sin `session` ni
-// `refresh_token` válidos redirige a `/admin/login` en silencio, sin aviso
-// especial (decisión de negocio ya tomada); con `session` vencida pero
-// `refresh_token` vivo, rota la sesión antes de llegar acá. Este archivo ya
-// no repite ese chequeo — si se está renderizando, el middleware ya lo dejó
-// pasar. Muestra un placeholder mínimo hasta que exista un dashboard real
-// (fuera de alcance de este cambio).
-import AdminLayout from '@admin/layouts/AdminLayout.astro';
+// Ruta "/admin" — dashboard del panel admin (ver `sdd/admin-dashboard`,
+// spec "Dashboard content scope"). Reemplaza el placeholder mínimo de
+// `sdd/admin-auth-surface-migration` ahora que hay un dashboard real. El gate
+// de sesión sigue viviendo en `src/middleware.ts` (corre para todo
+// `/admin/*` salvo `/admin/login`) — esta página no repite ese chequeo.
+//
+// Una sola llamada a `getEvents()`, envuelta en `safeBlock()` (design "Data
+// Flow"): ambos bloques (`UpcomingRacesBlock`, `DeadlinesBlock`) comparten el
+// MISMO resultado, así que un fallo de Sanity se ve una sola vez y ninguno de
+// los dos hace su propio fetch. Sin barra de cupos, tarjeta de pagos, tabs de
+// "requiere tu atención" ni indicador de sincronización (spec "Dashboard
+// omits unbuilt widgets" — no hay fuente de datos verificada para ninguno).
+import AdminShell from '@admin/components/AdminShell.astro';
+import UpcomingRacesBlock from '@admin/features/dashboard/components/UpcomingRacesBlock.astro';
+import DeadlinesBlock from '@admin/features/dashboard/components/DeadlinesBlock.astro';
+import { safeBlock } from '@admin/lib/safe-block';
+import { getEvents } from '@shared/lib/content/events';
 
 export const prerender = false;
+
+const eventsResult = await safeBlock(() => getEvents());
 ---
 
-<AdminLayout title="Panel administrativo">
-  <main class="dash">
-    <p class="ok">Sesión iniciada correctamente.</p>
-  </main>
-</AdminLayout>
+<AdminShell title="Dashboard">
+  <div class="dashboard-grid">
+    <UpcomingRacesBlock result={eventsResult} />
+    <DeadlinesBlock result={eventsResult} />
+  </div>
+</AdminShell>
 
 <style>
-  .dash {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-    font-family: 'Barlow', sans-serif;
-    font-size: 1.1rem;
-    color: var(--adm-ink);
-  }
-  .ok {
-    font-weight: 600;
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
   }
 </style>

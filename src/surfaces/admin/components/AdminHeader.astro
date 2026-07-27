@@ -1,0 +1,98 @@
+---
+// AdminHeader — saludo + fecha + link a Sanity (ver `sdd/admin-dashboard`,
+// design D3 + spec "Admin header identity"). `name` llega como prop desde
+// `AdminShell.astro`, que ya resolvió `me()` con su propio try/catch — este
+// componente solo decide CÓMO mostrarlo, nunca inventa un nombre si viene
+// `undefined` (spec "Header shows real name" / design "sin nombre inventado").
+interface Props {
+  name?: string;
+}
+const { name } = Astro.props;
+
+const today = new Intl.DateTimeFormat('es-BO', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  timeZone: 'America/La_Paz',
+}).format(new Date());
+const capitalizedToday = today.charAt(0).toUpperCase() + today.slice(1);
+
+const greeting = name ? `Hola, ${name}` : 'Panel administrativo';
+---
+
+<header class="header">
+  <div class="greeting-block">
+    <h1 class="greeting">{greeting}</h1>
+    <p class="date">{capitalizedToday}</p>
+  </div>
+
+  <a
+    href="https://finishline.sanity.studio"
+    target="_blank"
+    rel="noopener noreferrer"
+    class="sanity-link"
+  >
+    <span>Gestionar en Sanity</span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <path d="M7 17 17 7M7 7h10v10" />
+    </svg>
+  </a>
+</header>
+
+<style>
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 24px 32px;
+    border-bottom: 1px solid var(--adm-border);
+    background: var(--adm-surface);
+  }
+
+  .greeting-block {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .greeting {
+    font-family: 'Barlow', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--adm-ink);
+    margin: 0;
+  }
+  .date {
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--adm-muted);
+    margin: 0;
+  }
+
+  .sanity-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 16px;
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius-control);
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--adm-text);
+    text-decoration: none;
+    transition:
+      border-color 0.15s,
+      color 0.15s;
+  }
+  .sanity-link:hover {
+    border-color: var(--adm-accent);
+    color: var(--adm-accent);
+  }
+  .sanity-link svg {
+    width: 14px;
+    height: 14px;
+  }
+</style>
