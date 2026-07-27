@@ -137,6 +137,38 @@ async function safeJson<T>(res: Response): Promise<T | null> {
   }
 }
 
+export type MeResult = { ok: true; name: string; email: string } | { ok: false };
+
+interface GoMeResponse {
+  name?: string;
+  email?: string;
+}
+
+// `AdminShell.astro` la llama en el frontmatter (design D3) con try/catch
+// propio — acá basta con nunca lanzar y nunca inventar un nombre: cualquier
+// fallo (red, timeout, 401, contrato roto) cae a `{ok:false}` y el header
+// saluda genérico. Mismo timeout corto que `refresh()`: esto corre en el
+// camino crítico de CADA página admin, no puede colgar la carga si Render
+// está dormido.
+export async function me(accessToken: string): Promise<MeResult> {
+  let goRes: Response;
+  try {
+    goRes = await fetch(`${BACKEND_URL}/api/v1/users/me`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      signal: AbortSignal.timeout(REFRESH_TIMEOUT_MS),
+    });
+  } catch {
+    return { ok: false };
+  }
+
+  if (goRes.status !== 200) return { ok: false };
+
+  const body = await safeJson<GoMeResponse>(goRes);
+  if (!body?.name || !body?.email) return { ok: false };
+
+  return { ok: true, name: body.name, email: body.email };
+}
+
 interface CookieJar {
   set(name: string, value: string, options: Record<string, unknown>): void;
 }

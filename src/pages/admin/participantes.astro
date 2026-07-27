@@ -1,0 +1,16 @@
+---
+// Ruta "/admin/participantes" — placeholder (ver `sdd/admin-dashboard`,
+// design D6 + spec "Placeholder routes"). Ver `carreras.astro` para el
+// comentario completo del patrón thin compartido por las 4 rutas placeholder.
+import AdminShell from '@admin/components/AdminShell.astro';
+import ComingSoon from '@admin/components/ComingSoon.astro';
+import { ADMIN_NAV } from '@admin/components/nav';
+
+export const prerender = false;
+
+const label = ADMIN_NAV.find((item) => item.href === '/admin/participantes')!.label;
+---
+
+<AdminShell title={label}>
+  <ComingSoon label={label} />
+</AdminShell>

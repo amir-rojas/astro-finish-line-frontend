@@ -540,7 +540,13 @@ async function fetchEvents(): Promise<RaceEvent[]> {
 /** Lista de carreras, ordenadas por fecha ascendente. */
 export function getEvents(): Promise<RaceEvent[]> {
   if (!cachedEvents) {
-    cachedEvents = fetchEvents();
+    // Si el fetch falla, se limpia el caché para que la siguiente llamada
+    // reintente en vez de repetir el mismo rechazo para siempre (relevante
+    // en funciones serverless "warm" que reusan el módulo entre requests).
+    cachedEvents = fetchEvents().catch((err) => {
+      cachedEvents = null;
+      throw err;
+    });
   }
   return cachedEvents;
 }

@@ -1,0 +1,432 @@
+---
+// RegistrationsBrowser — LA isla del panel admin (ver `sdd/admin-dashboard`,
+// design "Technical Approach" + D1/D2). Todo lo que depende de Go en
+// `/admin/inscripciones` vive acá: el resto de la página (AdminShell) sigue
+// SSR sin JS. D1: `<script type="module">` + `data-*`, mismo patrón que
+// `RegistrationForm.astro` (el único fetch cliente→BFF del repo) — sin
+// `client:*` porque este repo no tiene ningún framework de componentes
+// instalado.
+//
+// D2: pide carreras al montar e inscritos recién al elegir una — así el
+// cold start de Go (free tier Render, ~30-50s) nunca bloquea el TTFB de la
+// página, solo el estado "Cargando…" de este bloque. Estados: loading |
+// ready | empty | error | 401 (design "Manejo de errores por bloque").
+//
+// A diferencia de `RegistrationForm.astro`, `AdminLayout.astro` NO usa
+// `<ClientRouter/>` (navegar dentro/fuera de admin cae a full reload por
+// diseño) — así que el script corre directo al parsear, sin esperar
+// `astro:page-load` (mismo patrón que `AdminLoginForm.astro`).
+import { ROW_DISPLAY_LIMIT } from '../types';
+---
+
+<div class="rb" data-registrations-browser>
+  <div class="rb__toolbar">
+    <label class="rb__select-label" for="rb-race-select">Carrera</label>
+    <select id="rb-race-select" class="rb__select" data-rb-select disabled>
+      <option value="">Cargando carreras…</option>
+    </select>
+    <p class="rb__count" data-rb-count hidden></p>
+  </div>
+
+  <div class="rb__body">
+    <div class="rb__state" data-rb-state hidden>
+      <p class="rb__state-text" data-rb-state-text></p>
+      <button type="button" class="rb__retry" data-rb-retry hidden>Reintentar</button>
+    </div>
+
+    <div class="rb__table-wrap" data-rb-table-wrap hidden>
+      <table class="rb__table">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Email</th>
+            <th>Teléfono</th>
+            <th>Género</th>
+            <th>Estado</th>
+            <th>Dorsal</th>
+            <th>Fecha</th>
+          </tr>
+        </thead>
+        <tbody data-rb-tbody></tbody>
+      </table>
+      <p class="rb__truncated" data-rb-truncated hidden>
+        Mostrando las primeras {ROW_DISPLAY_LIMIT} inscripciones. Hay más registradas — exporta desde Go para ver el resto.
+      </p>
+    </div>
+  </div>
+</div>
+
+<style>
+  .rb {
+    background: var(--adm-surface);
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius-card);
+    padding: 24px;
+  }
+
+  .rb__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 20px;
+    margin-bottom: 20px;
+  }
+  .rb__select-label {
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--adm-ink);
+  }
+  .rb__select {
+    min-width: 260px;
+    padding: 10px 14px;
+    font-family: 'Barlow', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--adm-ink);
+    background: #ffffff;
+    border: 1.5px solid var(--adm-border);
+    border-radius: var(--adm-radius-control);
+    outline: none;
+  }
+  .rb__select:focus-visible {
+    border-color: var(--adm-accent);
+  }
+  .rb__select:disabled {
+    color: var(--adm-muted);
+    cursor: not-allowed;
+  }
+  .rb__count {
+    margin: 0;
+    margin-left: auto;
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--adm-ink);
+  }
+
+  .rb__state {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 28px 20px;
+    background: var(--adm-bg);
+    border-radius: var(--adm-radius-control);
+  }
+  .rb__state[hidden] {
+    display: none;
+  }
+  .rb__state-text {
+    margin: 0;
+    font-family: 'Barlow', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--adm-text);
+  }
+  .rb__retry {
+    padding: 8px 16px;
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--adm-accent);
+    background: none;
+    border: 1.5px solid var(--adm-accent);
+    border-radius: var(--adm-radius-control);
+    cursor: pointer;
+  }
+  .rb__retry[hidden] {
+    display: none;
+  }
+  .rb__retry:hover {
+    background: color-mix(in srgb, var(--adm-accent) 10%, transparent);
+  }
+
+  .rb__table-wrap[hidden] {
+    display: none;
+  }
+  .rb__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+  }
+  .rb__table th {
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--adm-muted);
+    border-bottom: 1.5px solid var(--adm-border);
+  }
+  .rb__table td {
+    padding: 12px;
+    color: var(--adm-ink);
+    border-bottom: 1px solid var(--adm-border);
+  }
+  .rb__table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .rb__truncated {
+    margin: 14px 0 0;
+    padding: 10px 12px;
+    font-family: 'Barlow', sans-serif;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--adm-muted);
+    background: var(--adm-bg);
+    border-radius: var(--adm-radius-control);
+  }
+  .rb__truncated[hidden] {
+    display: none;
+  }
+
+  @media (max-width: 720px) {
+    .rb__table-wrap {
+      overflow-x: auto;
+    }
+    .rb__table {
+      min-width: 640px;
+    }
+  }
+</style>
+
+<script>
+  // Contratos duplicados de `features/registrations/types.ts` a propósito:
+  // este script se bundlea aparte para el navegador y no puede importar un
+  // módulo server-only (`astro:env/server` vive en la cadena de `api.ts`).
+  interface RaceOption {
+    id: string;
+    label: string;
+  }
+  interface RegistrationRow {
+    id: string;
+    firstNames: string;
+    lastNames: string;
+    email: string;
+    phone: string;
+    gender: string;
+    status: string;
+    dorsal: number | null;
+    createdAt: string;
+  }
+  type BffErrCode = 'unauthorized' | 'validation' | 'server';
+  type RacesResponse = { ok: true; races: RaceOption[] } | { ok: false; code: BffErrCode; message: string };
+  type RegistrationsResponse =
+    | { ok: true; count: number; rows: RegistrationRow[]; truncated: boolean }
+    | { ok: false; code: BffErrCode; message: string };
+
+  const GENDER_LABEL: Record<string, string> = { M: 'Masculino', F: 'Femenino', X: 'Otro' };
+
+  // Guard de secuencia: si el fetch de una carrera anterior resuelve DESPUÉS
+  // que el de la carrera actualmente seleccionada, sus datos no deben pisar
+  // la tabla. No hace falta `AbortController`, alcanza con descartar
+  // respuestas obsoletas comparando contra el id más reciente.
+  let currentRequestId = 0;
+
+  function formatDate(iso: string): string {
+    if (!iso) return '—';
+    const parsed = new Date(iso);
+    if (Number.isNaN(parsed.getTime())) return '—';
+    return parsed.toLocaleDateString('es-BO', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+
+  function initBrowser(root: HTMLElement) {
+    const select = root.querySelector<HTMLSelectElement>('[data-rb-select]');
+    const countEl = root.querySelector<HTMLElement>('[data-rb-count]');
+    const stateEl = root.querySelector<HTMLElement>('[data-rb-state]');
+    const stateTextEl = root.querySelector<HTMLElement>('[data-rb-state-text]');
+    const retryBtn = root.querySelector<HTMLButtonElement>('[data-rb-retry]');
+    const tableWrap = root.querySelector<HTMLElement>('[data-rb-table-wrap]');
+    const tbody = root.querySelector<HTMLElement>('[data-rb-tbody]');
+    const truncatedEl = root.querySelector<HTMLElement>('[data-rb-truncated]');
+    if (!select || !countEl || !stateEl || !stateTextEl || !retryBtn || !tableWrap || !tbody || !truncatedEl) return;
+
+    // Nunca recarga sola (evita bucles de 401 — design "Isla — 401"): siempre
+    // requiere el clic del botón, que dispara una navegación completa que sí
+    // pasa por `src/middleware.ts` (rota con `refresh_token` o manda a login).
+    let retryAction: (() => void) | null = null;
+
+    // `function` declarations (hoisted) lose TS's null-narrowing on the
+    // guarded elements above — `const ... = () => {}` expressions defined
+    // AFTER the guard keep it (verified: only nested `function` bindings
+    // widen captured `T | null` back to nullable, arrow consts don't).
+    const showState = (message: string, action?: { label: string; run: () => void }) => {
+      tableWrap.hidden = true;
+      countEl.hidden = true;
+      stateEl.hidden = false;
+      stateTextEl.textContent = message;
+      if (action) {
+        retryAction = action.run;
+        retryBtn.textContent = action.label;
+        retryBtn.hidden = false;
+      } else {
+        retryAction = null;
+        retryBtn.hidden = true;
+      }
+    };
+
+    retryBtn.addEventListener('click', () => retryAction?.());
+
+    const renderRows = (rows: RegistrationRow[]) => {
+      tbody.innerHTML = '';
+      const fragment = document.createDocumentFragment();
+      for (const row of rows) {
+        const tr = document.createElement('tr');
+        const cells = [
+          `${row.firstNames} ${row.lastNames}`.trim() || '—',
+          row.email || '—',
+          row.phone || '—',
+          GENDER_LABEL[row.gender] ?? (row.gender || '—'),
+          row.status || '—',
+          row.dorsal != null ? String(row.dorsal) : '—',
+          formatDate(row.createdAt),
+        ];
+        for (const value of cells) {
+          const td = document.createElement('td');
+          td.textContent = value;
+          tr.appendChild(td);
+        }
+        fragment.appendChild(tr);
+      }
+      tbody.appendChild(fragment);
+    };
+
+    const loadRegistrations = async (raceId: string) => {
+      const requestId = ++currentRequestId;
+      showState('Cargando inscritos…');
+
+      let res: Response;
+      try {
+        res = await fetch(`/api/admin/registrations?raceId=${encodeURIComponent(raceId)}`);
+      } catch {
+        if (requestId !== currentRequestId) return;
+        showState('No pudimos conectar con el servidor.', { label: 'Reintentar', run: () => loadRegistrations(raceId) });
+        return;
+      }
+
+      let body: RegistrationsResponse;
+      try {
+        body = await res.json();
+      } catch {
+        if (requestId !== currentRequestId) return;
+        showState('Ocurrió un error inesperado.', { label: 'Reintentar', run: () => loadRegistrations(raceId) });
+        return;
+      }
+
+      if (requestId !== currentRequestId) return;
+
+      if (!body.ok) {
+        if (body.code === 'unauthorized') {
+          // Sesión vencida en la LLAMADA a Go, no en el gate de middleware —
+          // el resto del panel sigue con su cookie tal cual (spec: "el admin
+          // session remains valid"). Solo este bloque cae a error.
+          showState('Tu sesión expiró.', { label: 'Recargar', run: () => window.location.reload() });
+          return;
+        }
+        showState(body.message || 'No pudimos cargar los inscritos.', {
+          label: 'Reintentar',
+          run: () => loadRegistrations(raceId),
+        });
+        return;
+      }
+
+      if (body.rows.length === 0) {
+        // Vacío explícito, nunca un conteo/tabla en cero (spec "Race with
+        // zero registrations").
+        showState('Todavía no hay inscritos en esta carrera.');
+        countEl.hidden = false;
+        countEl.textContent = '0 inscritos';
+        return;
+      }
+
+      stateEl.hidden = true;
+      renderRows(body.rows);
+      tableWrap.hidden = false;
+      countEl.hidden = false;
+      // Nunca un denominador ("N/limit") — spec "Registrant count without
+      // denominator".
+      countEl.textContent = `${body.count} inscritos`;
+      truncatedEl.hidden = !body.truncated;
+    };
+
+    const loadRaces = async () => {
+      select.disabled = true;
+      showState('Cargando carreras…');
+
+      let res: Response;
+      try {
+        res = await fetch('/api/admin/races');
+      } catch {
+        showState('No pudimos conectar con el servidor.', { label: 'Reintentar', run: loadRaces });
+        return;
+      }
+
+      let body: RacesResponse;
+      try {
+        body = await res.json();
+      } catch {
+        showState('Ocurrió un error inesperado.', { label: 'Reintentar', run: loadRaces });
+        return;
+      }
+
+      if (!body.ok) {
+        if (body.code === 'unauthorized') {
+          showState('Tu sesión expiró.', { label: 'Recargar', run: () => window.location.reload() });
+          return;
+        }
+        showState(body.message || 'No pudimos cargar las carreras.', { label: 'Reintentar', run: loadRaces });
+        return;
+      }
+
+      if (body.races.length === 0) {
+        showState('Todavía no hay carreras registradas.');
+        return;
+      }
+
+      select.innerHTML = '';
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = 'Selecciona una carrera';
+      select.appendChild(placeholder);
+      for (const race of body.races) {
+        const option = document.createElement('option');
+        option.value = race.id;
+        option.textContent = race.label;
+        select.appendChild(option);
+      }
+      select.disabled = false;
+
+      // `?carrera=<id>` sobrevive al recargar (design "Data Flow" — enlace
+      // compartible).
+      const params = new URLSearchParams(window.location.search);
+      const wanted = params.get('carrera');
+      const match = wanted && body.races.some((race) => race.id === wanted) ? wanted : '';
+      if (match) {
+        select.value = match;
+        void loadRegistrations(match);
+      } else {
+        showState('Selecciona una carrera para ver sus inscritos.');
+      }
+    };
+
+    select.addEventListener('change', () => {
+      const raceId = select.value;
+      const url = new URL(window.location.href);
+      if (raceId) url.searchParams.set('carrera', raceId);
+      else url.searchParams.delete('carrera');
+      window.history.replaceState({}, '', url);
+
+      if (raceId) void loadRegistrations(raceId);
+      else showState('Selecciona una carrera para ver sus inscritos.');
+    });
+
+    void loadRaces();
+  }
+
+  const root = document.querySelector<HTMLElement>('[data-registrations-browser]');
+  if (root) initBrowser(root);
+</script>

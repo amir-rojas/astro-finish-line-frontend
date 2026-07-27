@@ -1,0 +1,40 @@
+---
+// Ruta "/admin/inscripciones" — pantalla de inscritos por carrera (ver
+// `sdd/admin-dashboard`, spec "admin-registrations-view" + design D1/D2).
+// Thin: `AdminShell` (SSR, sin JS) + `RegistrationsBrowser` (la única isla,
+// ver ese componente). Sin props: toda la data se pide desde el cliente.
+import AdminShell from '@admin/components/AdminShell.astro';
+import RegistrationsBrowser from '@admin/features/registrations/components/RegistrationsBrowser.astro';
+
+export const prerender = false;
+---
+
+<AdminShell title="Inscripciones">
+  <div class="page">
+    <h1 class="page-title">Inscripciones</h1>
+    <p class="page-hint">Elige una carrera para ver quiénes se inscribieron.</p>
+    <RegistrationsBrowser />
+  </div>
+</AdminShell>
+
+<style>
+  .page {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .page-title {
+    font-family: 'Barlow', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--adm-ink);
+    margin: 0;
+  }
+  .page-hint {
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--adm-muted);
+    margin: 0 0 20px;
+  }
+</style>

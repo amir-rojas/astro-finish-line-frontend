@@ -57,6 +57,11 @@ const { title, description, ogImage, ogUrl, canonical } = Astro.props;
     --adm-border: #e2e5ea; /* borde de inputs/cards */
     --adm-radius-card: 20px; /* esquinas del card de login y futuras superficies tipo card */
     --adm-radius-control: 10px; /* inputs, botones, badges */
+    /* Sumados en `sdd/admin-dashboard` (design "Tokens") para el shell del
+       dashboard — el set de 9 de arriba era solo el mínimo re-portado del login. */
+    --adm-accent-soft: #fff1ea; /* fondo del ítem activo del sidebar (no había tinte del acento) */
+    --adm-danger-soft: #fdecec; /* fondo de <BlockError variant="error"> */
+    --adm-radius-pill: 999px; /* badge "Próximamente" y chips */
 
     background: var(--adm-bg);
     color: var(--adm-text);

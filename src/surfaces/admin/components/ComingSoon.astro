@@ -1,0 +1,61 @@
+---
+// ComingSoon — cuerpo compartido de las 4 páginas placeholder del sidebar
+// (Carreras, Participantes, Pagos, Reportes; ver `sdd/admin-dashboard`,
+// design D6 y spec "Placeholder routes"). Cada página thin en
+// `pages/admin/*.astro` solo le pasa el `label` de su propio ítem de
+// `nav.ts` — nunca lo repite a mano, así ambos no pueden divergir.
+interface Props {
+  label: string;
+}
+const { label } = Astro.props;
+---
+
+<div class="coming-soon">
+  <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v5l3 3" />
+  </svg>
+  <h1 class="title">{label}</h1>
+  <p class="subtitle">Próximamente</p>
+  <p class="body">Esta sección todavía no está disponible. Estamos trabajando en ella.</p>
+</div>
+
+<style>
+  .coming-soon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 10px;
+    padding: 96px 24px;
+    color: var(--adm-muted);
+  }
+  .icon {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 6px;
+  }
+  .title {
+    font-family: 'Barlow', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--adm-ink);
+    margin: 0;
+  }
+  .subtitle {
+    font-family: 'Barlow', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--adm-accent);
+    margin: 0;
+  }
+  .body {
+    font-family: 'Barlow', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    max-width: 360px;
+    margin: 4px 0 0;
+  }
+</style>

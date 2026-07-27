@@ -1,0 +1,101 @@
+---
+// DeadlinesBlock — "Cierre de inscripciones" del dashboard (ver
+// `sdd/admin-dashboard`, spec "Dashboard content scope"). Reusa el MISMO
+// resultado de `safeBlock(getEvents())` que `UpcomingRacesBlock` — una sola
+// llamada a Sanity por render de `/admin` (design "Data Flow"), no una
+// segunda. Solo muestra carreras con `registrationDeadline` fijado y ya
+// próximas (mismo criterio `upcomingRaces`, sobre el plazo en vez de la fecha
+// de la carrera).
+import BlockError from '@admin/components/BlockError.astro';
+import { isPastRace } from '@shared/lib/race-date';
+import { weekdayDate } from '@shared/lib/date-format';
+import type { SafeBlockResult } from '@admin/lib/safe-block';
+import type { RaceEvent } from '@shared/lib/content/events';
+
+interface Props {
+  result: SafeBlockResult<RaceEvent[]>;
+}
+const { result } = Astro.props;
+
+const deadlines = result.ok
+  ? result.data
+      .filter((race): race is RaceEvent & { registrationDeadline: Date } => Boolean(race.registrationDeadline))
+      .filter((race) => !isPastRace(race.registrationDeadline))
+      .sort((a, b) => a.registrationDeadline.getTime() - b.registrationDeadline.getTime())
+  : [];
+---
+
+<section class="block">
+  <h2 class="block-title">Cierre de inscripciones</h2>
+
+  {!result.ok && <BlockError variant="error" />}
+
+  {
+    result.ok && deadlines.length === 0 && (
+      <BlockError variant="empty" message="No hay plazos de inscripción próximos registrados." />
+    )
+  }
+
+  {
+    result.ok && deadlines.length > 0 && (
+      <ul class="deadline-list">
+        {deadlines.map((race) => (
+          <li class="deadline-item">
+            <span class="race-title">{race.title}</span>
+            <span class="deadline-date">{weekdayDate(race.registrationDeadline)}</span>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</section>
+
+<style>
+  .block {
+    background: var(--adm-surface);
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius-card);
+    padding: 24px;
+  }
+  .block-title {
+    font-family: 'Barlow', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--adm-ink);
+    margin: 0 0 16px;
+  }
+
+  .deadline-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .deadline-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--adm-border);
+  }
+  .deadline-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+  .race-title {
+    font-family: 'Barlow', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--adm-ink);
+  }
+  .deadline-date {
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--adm-accent);
+    flex-shrink: 0;
+  }
+</style>
