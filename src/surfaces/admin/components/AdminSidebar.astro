@@ -5,18 +5,24 @@
 // Los ítems `soon` son links reales con un badge atenuado — nunca
 // `aria-disabled` ni un `#` muerto (spec "Placeholder item is visually
 // marked").
+//
+// Toggle mobile: checkbox + `:has()`, sin JS de cliente (`AdminShell` es
+// SSR puro, ver ese archivo). El estado del checkbox se resetea solo al
+// navegar porque `AdminLayout` no lleva `<ClientRouter/>` — cada link es
+// full reload, así que no hace falta cerrar el drawer "a mano".
 import { ADMIN_NAV } from '@admin/components/nav';
 
 const currentPath = Astro.url.pathname;
 ---
 
 <aside class="sidebar">
-  <div class="brand">
-    <svg class="brand-icon" viewBox="50 3 852 391" fill="currentColor" aria-hidden="true" focusable="false">
-      {/* Mismo isotipo inline que `pages/admin/login.astro` — un solo color a
-          este tamaño. Ver ese archivo para el comentario completo sobre por
-          qué no se extrajo a un componente todavía. */}
-      <g transform="translate(0,632) scale(0.1,-0.1)">
+  <div class="topbar">
+    <div class="brand">
+      <svg class="brand-icon" viewBox="50 3 852 391" fill="currentColor" aria-hidden="true" focusable="false">
+        {/* Mismo isotipo inline que `pages/admin/login.astro` — un solo color a
+            este tamaño. Ver ese archivo para el comentario completo sobre por
+            qué no se extrajo a un componente todavía. */}
+        <g transform="translate(0,632) scale(0.1,-0.1)">
         <path d="M4753 6278 c-11 -13 -97 -176 -192 -362 -189 -373 -192 -383 -103
 -352 24 9 82 21 130 27 95 13 112 21 112 53 1 90 157 246 246 246 12 0 27 6
 33 14 14 17 13 20 -53 130 -22 39 -57 108 -76 154 -42 101 -66 123 -97 90z" />
@@ -61,30 +67,42 @@ l75 -146 90 0 c50 1 169 4 265 9 96 4 330 9 520 12 190 3 354 5 365 6 40 1
 391 -17 33 -40 70 -51 83 -15 16 -18 25 -10 33 21 21 -43 163 -104 230 -66 73
 -184 114 -248 85z" />
       </g>
-    </svg>
-    <span class="wordmark">FINISH LINE</span>
+      </svg>
+      <span class="wordmark">FINISH LINE</span>
+    </div>
+
+    <input type="checkbox" id="admin-nav-toggle" class="nav-toggle-input" aria-label="Abrir menú de navegación" />
+    <label for="admin-nav-toggle" class="nav-toggle">
+      <span class="nav-toggle-icon" aria-hidden="true"></span>
+    </label>
   </div>
 
-  <nav class="nav" aria-label="Navegación del panel">
-    <ul class="nav-list">
-      {
-        ADMIN_NAV.map((item) => {
-          const isActive = item.href === '/admin' ? currentPath === '/admin' : currentPath.startsWith(item.href);
-          return (
-            <li>
-              <a href={item.href} class="nav-item" data-active={isActive} data-soon={item.status === 'soon'}>
-                <span class="label">{item.label}</span>
-                {item.status === 'soon' && <span class="badge">Próximamente</span>}
-              </a>
-            </li>
-          );
-        })
-      }
-    </ul>
-  </nav>
+  {/* Fondo del drawer mobile — es un <label> del mismo checkbox: clickearlo
+      afuera del panel lo cierra sin JS. Invisible/inerte en desktop. */}
+  <label for="admin-nav-toggle" class="nav-backdrop" aria-hidden="true"></label>
 
-  <div class="footer">
-    <slot name="footer" />
+  <div class="collapsible">
+    <nav class="nav" aria-label="Navegación del panel">
+      <ul class="nav-list">
+        {
+          ADMIN_NAV.map((item) => {
+            const isActive = item.href === '/admin' ? currentPath === '/admin' : currentPath.startsWith(item.href);
+            return (
+              <li>
+                <a href={item.href} class="nav-item" data-active={isActive} data-soon={item.status === 'soon'}>
+                  <span class="label">{item.label}</span>
+                  {item.status === 'soon' && <span class="badge">Próximamente</span>}
+                </a>
+              </li>
+            );
+          })
+        }
+      </ul>
+    </nav>
+
+    <div class="footer">
+      <slot name="footer" />
+    </div>
   </div>
 </aside>
 
@@ -100,6 +118,12 @@ l75 -146 90 0 c50 1 169 4 265 9 96 4 330 9 520 12 190 3 354 5 365 6 40 1
     padding: 20px 16px;
   }
 
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
   .brand {
     display: flex;
     align-items: center;
@@ -117,6 +141,76 @@ l75 -146 90 0 c50 1 169 4 265 9 96 4 330 9 520 12 190 3 354 5 365 6 40 1
     font-weight: 700;
     letter-spacing: 0.4px;
     color: var(--adm-ink);
+  }
+
+  /* Toggle mobile — oculto por defecto, `.topbar` solo lo muestra bajo
+     860px (regla de abajo). El checkbox queda visualmente oculto pero
+     enfocable (no `display:none`) para no romper el foco por teclado. */
+  .nav-toggle-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .nav-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius-control);
+    cursor: pointer;
+  }
+  .nav-toggle-input:focus-visible + .nav-toggle {
+    outline: 2px solid var(--adm-accent);
+    outline-offset: 2px;
+  }
+  .nav-backdrop {
+    display: none;
+  }
+  .nav-toggle-icon,
+  .nav-toggle-icon::before,
+  .nav-toggle-icon::after {
+    width: 16px;
+    height: 2px;
+    background: var(--adm-ink);
+    border-radius: 1px;
+  }
+  .nav-toggle-icon {
+    position: relative;
+    transition: background-color 0.15s;
+  }
+  .nav-toggle-icon::before,
+  .nav-toggle-icon::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    transition: transform 0.15s;
+  }
+  .nav-toggle-icon::before {
+    top: -5px;
+  }
+  .nav-toggle-icon::after {
+    top: 5px;
+  }
+  /* Estado abierto: hamburguesa → X. */
+  .sidebar:has(.nav-toggle-input:checked) .nav-toggle-icon {
+    background: transparent;
+  }
+  .sidebar:has(.nav-toggle-input:checked) .nav-toggle-icon::before {
+    top: 0;
+    transform: rotate(45deg);
+  }
+  .sidebar:has(.nav-toggle-input:checked) .nav-toggle-icon::after {
+    top: 0;
+    transform: rotate(-45deg);
   }
 
   .nav {
@@ -186,13 +280,65 @@ l75 -146 90 0 c50 1 169 4 265 9 96 4 330 9 520 12 190 3 354 5 365 6 40 1
       min-height: auto;
       border-right: none;
       border-bottom: 1px solid var(--adm-border);
+      padding: 12px 16px;
     }
+    .brand {
+      padding: 4px 8px;
+    }
+    .nav-toggle {
+      display: flex;
+    }
+    /* Fondo oscuro detrás del drawer — clickeable (es el <label> del
+       toggle) para cerrar sin JS. */
+    .nav-backdrop {
+      display: block;
+      position: fixed;
+      inset: 0;
+      background: rgba(20, 33, 58, 0.45);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      z-index: 55;
+    }
+    .sidebar:has(.nav-toggle-input:checked) .nav-backdrop {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Panel lateral: se superpone al contenido en vez de empujarlo.
+       `visibility` transiciona junto con `transform` para sacar el
+       drawer del árbol de foco/tab cuando está cerrado, sin JS
+       (comportamiento nativo de `visibility` en transiciones: entra
+       visible al abrir, sale hidden al terminar de cerrar). */
+    .collapsible {
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: min(280px, 80vw);
+      display: flex;
+      flex-direction: column;
+      background: var(--adm-surface);
+      padding: 20px 16px;
+      overflow-y: auto;
+      box-shadow: 4px 0 24px rgba(20, 33, 58, 0.16);
+      transform: translateX(-100%);
+      visibility: hidden;
+      transition:
+        transform 0.25s ease,
+        visibility 0.25s ease;
+      z-index: 60;
+    }
+    .sidebar:has(.nav-toggle-input:checked) .collapsible {
+      transform: translateX(0);
+      visibility: visible;
+    }
+
     .nav-list {
-      flex-direction: row;
-      flex-wrap: wrap;
+      flex-direction: column;
     }
     .footer {
-      display: none;
+      display: block;
     }
   }
 </style>
