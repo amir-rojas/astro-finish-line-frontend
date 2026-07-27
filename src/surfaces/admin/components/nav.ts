@@ -20,7 +20,7 @@ export const ADMIN_NAV: AdminNavItem[] = [
   // `pages/admin/inscripciones.astro`. Antes de este PR estaba en `'soon'`
   // (ver comentario histórico en `apply-progress`) porque el link habría
   // quedado muerto fuera del AdminShell en PR 1 solo.
-  { href: '/admin/inscripciones', label: 'Inscripciones', status: 'soon' },
+  { href: '/admin/inscripciones', label: 'Inscripciones', status: 'ready' },
   { href: '/admin/participantes', label: 'Participantes', status: 'soon' },
   { href: '/admin/pagos', label: 'Pagos', status: 'soon' },
   { href: '/admin/reportes', label: 'Reportes', status: 'soon' },
