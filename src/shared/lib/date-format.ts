@@ -38,7 +38,18 @@ export function datePart(date: Date, opts: Intl.DateTimeFormatOptions): string {
  */
 export function startDateTimeISO(date: Date, startTime?: string, tz = '-04:00'): string {
   const ymd = date.toISOString().slice(0, 10);
-  return startTime ? `${ymd}T${startTime}:00${tz}` : ymd;
+  return startTime ? `${ymd}T${normalizeTime(startTime)}:00${tz}` : ymd;
+}
+
+/**
+ * Zero-pad defensivo: Sanity guarda `startTime`/`gatheringTime` como string libre
+ * (el picker de Studio ya fuerza HH:mm, pero datos viejos o cargados por API pueden
+ * traer "7:00"). Sin el padding, el ISO resultante ("...T7:00:00-04:00") es inválido
+ * y el countdown del Hero muestra NaN.
+ */
+function normalizeTime(time: string): string {
+  const [h = '0', m = '0'] = time.split(':');
+  return `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
 }
 
 /** "Domingo 16 / Ago / 2026" — la fecha completa de una carrera. El día de la
