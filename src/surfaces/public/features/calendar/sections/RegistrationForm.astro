@@ -129,6 +129,25 @@ const meetLine = `Nos vemos el ${weekdayDate(event.date)}${event.startTime ? `, 
         </div>
       </div>
 
+      <div class="rf__field rf__field--full rf__field--referral">
+        <label for="rf-referral">¿Cómo te enteraste?</label>
+        <select
+          id="rf-referral"
+          name="referralSource"
+          aria-describedby="rf-referral-error"
+          required
+        >
+          <option value="" disabled selected>Selecciona una opción</option>
+          <option value="Instagram">Instagram</option>
+          <option value="Facebook">Facebook</option>
+          <option value="TikTok">TikTok</option>
+          <option value="Grupos de WhatsApp">Grupos de WhatsApp</option>
+          <option value="Recomendación">Recomendación</option>
+          <option value="Otro">Otro</option>
+        </select>
+        <p class="rf__error" id="rf-referral-error" role="alert" hidden></p>
+      </div>
+
       <fieldset class="rf__field rf__field--gender">
         <legend>
           Género <span class="rf__legend-note">· define tu categoría de premiación</span>
@@ -302,7 +321,8 @@ const meetLine = `Nos vemos el ${weekdayDate(event.date)}${event.startTime ? `, 
   .rf__field input[type='text'],
   .rf__field input[type='email'],
   .rf__field input[type='tel'],
-  .rf__field input[type='date'] {
+  .rf__field input[type='date'],
+  .rf__field select {
     width: 100%;
     box-sizing: border-box;
     padding: 13px 15px;
@@ -317,8 +337,19 @@ const meetLine = `Nos vemos el ${weekdayDate(event.date)}${event.startTime ? `, 
       border-color 140ms var(--ease-out),
       background-color 140ms var(--ease-out);
   }
-  .rf__field input:focus-visible {
+  .rf__field input:focus-visible,
+  .rf__field select:focus-visible {
     border-color: var(--fl-orange-strong);
+  }
+  .rf__field select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%230e1c30' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 15px center;
+    padding-right: 38px;
+  }
+  .rf__field select:invalid {
+    color: var(--fl-on-cream-faint);
   }
   /* Placeholder ilegible por defecto: sube a la misma tinta que el hint, que
      ya está verificada AA sobre --fl-surface (ver token en PublicLayout). */
@@ -379,6 +410,10 @@ const meetLine = `Nos vemos el ${weekdayDate(event.date)}${event.startTime ? `, 
     outline: 1.5px solid var(--fl-status-closed);
     outline-offset: -1.5px;
     border-radius: 4px;
+  }
+
+  .rf__field--referral {
+    margin: 18px 0 0;
   }
 
   .rf__field--gender {
@@ -709,6 +744,7 @@ const meetLine = `Nos vemos el ${weekdayDate(event.date)}${event.startTime ? `, 
     email: string;
     phone: string;
     gender: string;
+    referralSource: string;
     acceptsRules: boolean;
     modalidad: string;
   }
@@ -847,6 +883,11 @@ const meetLine = `Nos vemos el ${weekdayDate(event.date)}${event.startTime ? `, 
       errors.gender = 'Selecciona una opción.';
     }
 
+    const referralSource = String(data.get('referralSource') ?? '').trim();
+    if (!referralSource) {
+      errors.referral = 'Selecciona una opción.';
+    }
+
     if (!data.get('acceptsRules')) {
       errors.rules = 'Tienes que aceptar el reglamento para continuar.';
     }
@@ -861,6 +902,7 @@ const meetLine = `Nos vemos el ${weekdayDate(event.date)}${event.startTime ? `, 
     email: { inputName: 'email', errorId: 'email' },
     phone: { inputName: 'phone', errorId: 'phone' },
     gender: { inputName: 'gender', errorId: 'gender' },
+    referral: { inputName: 'referralSource', errorId: 'referral' },
     rules: { inputName: 'acceptsRules', errorId: 'rules' },
   };
 
@@ -926,6 +968,7 @@ const meetLine = `Nos vemos el ${weekdayDate(event.date)}${event.startTime ? `, 
         email: String(data.get('email') ?? '').trim(),
         phone: `+591${phone}`,
         gender: String(data.get('gender') ?? ''),
+        referralSource: String(data.get('referralSource') ?? '').trim(),
         acceptsRules: Boolean(data.get('acceptsRules')),
         modalidad,
       };

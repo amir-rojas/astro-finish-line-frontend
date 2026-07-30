@@ -30,6 +30,10 @@ const requestSchema = z.object({
   // NormalizePhone accepts an optional leading "+" then 7-15 digits.
   phone: z.string().trim().min(1),
   gender: z.enum(['M', 'F', 'X']),
+  // Texto libre en Go (sin enum de dominio, ver dto.go ReferralSource) — el
+  // cliente sí ofrece opciones cerradas (select), pero el BFF solo exige
+  // no-vacío, igual que el resto de los campos de solo-formato.
+  referralSource: z.string().trim().min(1),
   // Debe llegar exactamente `true` — un checkbox sin marcar nunca aparece en
   // el FormData, así que esto también cubre "campo ausente".
   acceptsRules: z.literal(true),
@@ -92,7 +96,7 @@ export const POST: APIRoute = async ({ request }) => {
     return respond({ ok: false, code: 'validation', message: 'Revisa los datos del formulario e intenta de nuevo.' }, 400);
   }
 
-  const { raceSlug, fullName, documentId, birthDate, email, phone, gender, modalidad } = parsed.data;
+  const { raceSlug, fullName, documentId, birthDate, email, phone, gender, referralSource, modalidad } = parsed.data;
   const { firstNames, lastNames } = splitFullName(fullName);
 
   let goRes: Response;
@@ -116,9 +120,7 @@ export const POST: APIRoute = async ({ request }) => {
         phone,
         birth_date: birthDate,
         gender,
-        // v1 solo tiene un canal de inscripción (este formulario) — sin
-        // selector de referido todavía (ver design D3).
-        referral_source: 'sitio_web',
+        referral_source: referralSource,
         modalidad,
       }),
     });
