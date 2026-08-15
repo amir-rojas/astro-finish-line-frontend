@@ -1,0 +1,297 @@
+---
+// ReferralSourcesWidget — "Canal de adquisición" en `/admin/reportes` (PR2
+// de `sdd/admin-reportes`, design "Technical Approach" + "Page Composition").
+// Mismo shape que `ShirtSizesWidget.astro`: isla autónoma, selector de
+// carrera propio, máquina de estados propia, guard de request-id propio —
+// nada se comparte entre widgets salvo `lib/{island-state,race-options}.ts`.
+//
+// `source` se muestra tal cual llega de Go — ya es texto legible desde el
+// `<select>` fijo del formulario de inscripción (design "Decision:
+// `referral_source` displays raw, no label map"); `label` solo cae a "Sin
+// especificar" cuando `source` viene vacío.
+---
+
+<div class="rsw" data-referral-sources-widget>
+  <div class="rsw__header">
+    <h2 class="rsw__title">Canal de adquisición</h2>
+    <div class="rsw__toolbar">
+      <label class="rsw__select-label" for="rsw-race-select">Carrera</label>
+      <select id="rsw-race-select" class="rsw__select" data-rsw-select disabled>
+        <option value="">Todas las carreras</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="rsw__body">
+    <div class="rsw__state" data-state hidden aria-live="polite">
+      <p class="rsw__state-text" data-state-text></p>
+      <button type="button" class="rsw__retry" data-state-retry hidden></button>
+    </div>
+
+    <ul class="rsw__list" data-rsw-list hidden></ul>
+  </div>
+</div>
+
+<style>
+  .rsw {
+    background: var(--adm-surface);
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius-card);
+    padding: 24px;
+  }
+
+  .rsw__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 20px;
+    margin-bottom: 20px;
+  }
+  .rsw__title {
+    font-family: 'Barlow', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--adm-ink);
+    margin: 0;
+  }
+  .rsw__toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .rsw__select-label {
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--adm-ink);
+  }
+  .rsw__select {
+    min-width: 200px;
+    padding: 8px 12px;
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--adm-ink);
+    background: #ffffff;
+    border: 1.5px solid var(--adm-border);
+    border-radius: var(--adm-radius-control);
+    outline: none;
+  }
+  .rsw__select:focus-visible {
+    border-color: var(--adm-accent);
+  }
+  .rsw__select:disabled {
+    color: var(--adm-muted);
+    cursor: not-allowed;
+  }
+
+  .rsw__state {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 28px 20px;
+    background: var(--adm-bg);
+    border-radius: var(--adm-radius-control);
+  }
+  .rsw__state[hidden] {
+    display: none;
+  }
+  .rsw__state-text {
+    margin: 0;
+    font-family: 'Barlow', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--adm-text);
+  }
+  .rsw__retry {
+    padding: 8px 16px;
+    min-height: 44px;
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--adm-accent);
+    background: none;
+    border: 1.5px solid var(--adm-accent);
+    border-radius: var(--adm-radius-control);
+    cursor: pointer;
+  }
+  .rsw__retry[hidden] {
+    display: none;
+  }
+  .rsw__retry:hover {
+    background: color-mix(in srgb, var(--adm-accent) 10%, transparent);
+  }
+
+  .rsw__list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .rsw__list[hidden] {
+    display: none;
+  }
+  .rsw__row {
+    display: grid;
+    grid-template-columns: 140px 1fr 40px;
+    align-items: center;
+    gap: 12px;
+  }
+  .rsw__row-label {
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--adm-ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .rsw__row-track {
+    height: 10px;
+    background: var(--adm-bg);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .rsw__row-bar {
+    height: 100%;
+    background: var(--adm-accent);
+    border-radius: 999px;
+  }
+  .rsw__row-count {
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--adm-ink);
+    text-align: right;
+  }
+</style>
+
+<script>
+  import { createStateView } from '@admin/lib/island-state';
+  import { getRaceOptions } from '@admin/lib/race-options';
+
+  // Contratos duplicados de `features/reports/types.ts` a propósito (mismo
+  // criterio que `ShirtSizesWidget.astro`).
+  type BffErrCode = 'unauthorized' | 'validation' | 'server';
+  interface ReferralSource {
+    source: string;
+    label: string;
+    count: number;
+  }
+  type ReferralResponse = { ok: true; data: ReferralSource[] } | { ok: false; code: BffErrCode; message: string };
+
+  function initWidget(root: HTMLElement) {
+    const select = root.querySelector<HTMLSelectElement>('[data-rsw-select]');
+    const listEl = root.querySelector<HTMLUListElement>('[data-rsw-list]');
+    if (!select || !listEl) return;
+
+    const view = createStateView(root);
+    if (!view) return;
+
+    let requestId = 0;
+
+    const renderRows = (items: ReferralSource[]) => {
+      listEl.innerHTML = '';
+      const max = Math.max(1, ...items.map((item) => item.count));
+      const fragment = document.createDocumentFragment();
+      for (const item of items) {
+        const li = document.createElement('li');
+        li.className = 'rsw__row';
+
+        const label = document.createElement('span');
+        label.className = 'rsw__row-label';
+        label.textContent = item.label;
+
+        const track = document.createElement('div');
+        track.className = 'rsw__row-track';
+        const bar = document.createElement('div');
+        bar.className = 'rsw__row-bar';
+        bar.style.width = `${Math.round((item.count / max) * 100)}%`;
+        track.appendChild(bar);
+
+        const count = document.createElement('span');
+        count.className = 'rsw__row-count';
+        count.textContent = String(item.count);
+
+        li.append(label, track, count);
+        fragment.appendChild(li);
+      }
+      listEl.appendChild(fragment);
+    };
+
+    const load = async (raceId: string) => {
+      const id = ++requestId;
+      view.loading();
+      listEl.hidden = true;
+
+      let res: Response;
+      try {
+        res = await fetch(
+          `/api/admin/reports-referral-sources${raceId ? `?raceId=${encodeURIComponent(raceId)}` : ''}`,
+        );
+      } catch {
+        if (id !== requestId) return;
+        view.error('No pudimos conectar con el servidor.', () => void load(raceId));
+        return;
+      }
+
+      let body: ReferralResponse;
+      try {
+        body = await res.json();
+      } catch {
+        if (id !== requestId) return;
+        view.error('Ocurrió un error inesperado.', () => void load(raceId));
+        return;
+      }
+
+      if (id !== requestId) return;
+
+      if (!body.ok) {
+        if (body.code === 'unauthorized') {
+          view.unauthorized();
+          return;
+        }
+        view.error(body.message || 'No pudimos cargar los canales de adquisición.', () => void load(raceId));
+        return;
+      }
+
+      if (body.data.length === 0) {
+        view.empty('No hay datos de canal de adquisición para esta carrera.');
+        return;
+      }
+
+      view.ready();
+      renderRows(body.data);
+      listEl.hidden = false;
+    };
+
+    select.addEventListener('change', () => void load(select.value));
+
+    void (async () => {
+      const result = await getRaceOptions();
+      if (result.ok) {
+        select.innerHTML = '';
+        const allOption = document.createElement('option');
+        allOption.value = '';
+        allOption.textContent = 'Todas las carreras';
+        select.appendChild(allOption);
+        for (const race of result.races) {
+          const option = document.createElement('option');
+          option.value = race.id;
+          option.textContent = race.label;
+          select.appendChild(option);
+        }
+      }
+      select.disabled = false;
+    })();
+
+    void load('');
+  }
+
+  const root = document.querySelector<HTMLElement>('[data-referral-sources-widget]');
+  if (root) initWidget(root);
+</script>
