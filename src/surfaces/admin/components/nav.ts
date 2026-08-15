@@ -1,6 +1,6 @@
 // nav.ts — fuente única de la navegación del panel admin (ver
 // `sdd/admin-dashboard`, design D6). `AdminSidebar.astro` la renderiza y las
-// 4 rutas placeholder (`pages/admin/{carreras,participantes,pagos,reportes}.astro`)
+// rutas placeholder que quedan (`pages/admin/{carreras,pagos,reportes}.astro`)
 // la reusan para su propio título — así "ningún link muerto" es un invariante
 // por construcción, no una lista que hay que mantener sincronizada a mano.
 //
@@ -21,7 +21,9 @@ export const ADMIN_NAV: AdminNavItem[] = [
   // (ver comentario histórico en `apply-progress`) porque el link habría
   // quedado muerto fuera del AdminShell en PR 1 solo.
   { href: '/admin/inscripciones', label: 'Inscripciones', status: 'ready' },
-  { href: '/admin/participantes', label: 'Participantes', status: 'soon' },
+  // Pantalla real desde PR1 (`sdd/admin-reportes/tasks`) —
+  // `features/participants/components/ParticipantsBrowser.astro`.
+  { href: '/admin/participantes', label: 'Participantes', status: 'ready' },
   { href: '/admin/pagos', label: 'Pagos', status: 'soon' },
   { href: '/admin/reportes', label: 'Reportes', status: 'soon' },
   { href: '/admin/configuracion', label: 'Configuración', status: 'ready' },

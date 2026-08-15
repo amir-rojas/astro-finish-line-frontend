@@ -1,0 +1,364 @@
+---
+// ParticipantsBrowser — la isla de `/admin/participantes` (PR1 de
+// `sdd/admin-reportes`, design "Technical Approach" + "Participants Table +
+// Pager"). Global roster server-paginado, sin selector de carrera en v1
+// (spec "Aggregate Roster, No Race Filter UI"). Mismo patrón que
+// `RegistrationsBrowser.astro`: `<script type="module">` + `data-*`, sin
+// `client:*` (este repo no tiene ningún framework de componentes instalado).
+//
+// Documento/teléfono se ocultan bajo 768px vía CSS (`.pb__col-doc`,
+// `.pb__col-phone`) — nunca se dejan de pedir, solo se ocultan visualmente.
+---
+
+<div class="pb" data-participants-browser>
+  <div class="pb__toolbar">
+    <p class="pb__count" data-pb-count hidden></p>
+  </div>
+
+  <div class="pb__body">
+    <div class="pb__state" data-state hidden aria-live="polite">
+      <p class="pb__state-text" data-state-text></p>
+      <button type="button" class="pb__retry" data-state-retry hidden></button>
+    </div>
+
+    <div class="pb__table-wrap" data-pb-table-wrap hidden>
+      <table class="pb__table">
+        <thead>
+          <tr>
+            <th scope="col">Nombre</th>
+            <th scope="col" class="pb__col-doc">Documento</th>
+            <th scope="col">Email</th>
+            <th scope="col" class="pb__col-phone">Teléfono</th>
+            <th scope="col">Género</th>
+            <th scope="col">Edad</th>
+            <th scope="col">Carreras</th>
+          </tr>
+        </thead>
+        <tbody data-pb-tbody></tbody>
+      </table>
+    </div>
+
+    <div class="pb__pager" data-pb-pager hidden>
+      <button type="button" class="pb__pager-btn" data-pb-prev>« Anterior</button>
+      <p class="pb__pager-info" data-pb-pager-info></p>
+      <button type="button" class="pb__pager-btn" data-pb-next>Siguiente »</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .pb {
+    background: var(--adm-surface);
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius-card);
+    padding: 24px;
+  }
+
+  .pb__toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 12px;
+  }
+  .pb__count {
+    margin: 0;
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--adm-ink);
+  }
+
+  .pb__state {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 28px 20px;
+    background: var(--adm-bg);
+    border-radius: var(--adm-radius-control);
+  }
+  .pb__state[hidden] {
+    display: none;
+  }
+  .pb__state-text {
+    margin: 0;
+    font-family: 'Barlow', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--adm-text);
+  }
+  .pb__retry {
+    padding: 8px 16px;
+    min-height: 44px;
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--adm-accent);
+    background: none;
+    border: 1.5px solid var(--adm-accent);
+    border-radius: var(--adm-radius-control);
+    cursor: pointer;
+  }
+  .pb__retry[hidden] {
+    display: none;
+  }
+  .pb__retry:hover {
+    background: color-mix(in srgb, var(--adm-accent) 10%, transparent);
+  }
+
+  .pb__table-wrap[hidden] {
+    display: none;
+  }
+  .pb__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+  }
+  .pb__table th {
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--adm-muted);
+    border-bottom: 1.5px solid var(--adm-border);
+  }
+  .pb__table td {
+    padding: 12px;
+    color: var(--adm-ink);
+    border-bottom: 1px solid var(--adm-border);
+  }
+  .pb__table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .pb__pager {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 18px;
+  }
+  .pb__pager[hidden] {
+    display: none;
+  }
+  .pb__pager-info {
+    margin: 0;
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--adm-muted);
+  }
+  .pb__pager-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 8px 16px;
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--adm-ink);
+    background: #ffffff;
+    border: 1.5px solid var(--adm-border);
+    border-radius: var(--adm-radius-control);
+    cursor: pointer;
+  }
+  .pb__pager-btn:disabled {
+    color: var(--adm-muted);
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+  .pb__pager-btn:not(:disabled):hover {
+    border-color: var(--adm-accent);
+    color: var(--adm-accent);
+  }
+  .pb__pager-btn:focus-visible {
+    outline: 2px solid var(--adm-accent);
+    outline-offset: 2px;
+  }
+
+  @media (max-width: 768px) {
+    .pb__col-doc,
+    .pb__col-phone {
+      display: none;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .pb__table-wrap {
+      overflow-x: auto;
+    }
+    .pb__table {
+      min-width: 480px;
+    }
+  }
+</style>
+
+<script>
+  import { createStateView } from '@admin/lib/island-state';
+
+  // Contratos duplicados de `features/participants/types.ts` a propósito:
+  // este script se bundlea aparte para el navegador (mismo criterio que
+  // `RegistrationsBrowser.astro`).
+  type BffErrCode = 'unauthorized' | 'validation' | 'server';
+  interface Participant {
+    id: string;
+    fullName: string;
+    email: string;
+    phone: string;
+    documentId: string;
+    gender: string;
+    genderLabel: string;
+    birthDate: string;
+    age: number | null;
+    racesCount: number;
+  }
+  interface ParticipantsPage {
+    items: Participant[];
+    total: number;
+    page: number;
+    pageSize: number;
+  }
+  type ParticipantsResponse =
+    | { ok: true; data: ParticipantsPage }
+    | { ok: false; code: BffErrCode; message: string };
+
+  function initBrowser(root: HTMLElement) {
+    const countEl = root.querySelector<HTMLElement>('[data-pb-count]');
+    const tableWrap = root.querySelector<HTMLElement>('[data-pb-table-wrap]');
+    const tbody = root.querySelector<HTMLElement>('[data-pb-tbody]');
+    const pagerEl = root.querySelector<HTMLElement>('[data-pb-pager]');
+    const pagerInfo = root.querySelector<HTMLElement>('[data-pb-pager-info]');
+    const prevBtn = root.querySelector<HTMLButtonElement>('[data-pb-prev]');
+    const nextBtn = root.querySelector<HTMLButtonElement>('[data-pb-next]');
+    if (!countEl || !tableWrap || !tbody || !pagerEl || !pagerInfo || !prevBtn || !nextBtn) return;
+
+    const view = createStateView(root);
+    if (!view) return;
+
+    // Guard de secuencia: contador monotónico, no `AbortController` (mismo
+    // criterio que `RegistrationsBrowser.astro` — alcanza con descartar
+    // respuestas obsoletas comparando contra el id más reciente).
+    let requestId = 0;
+    let currentPage = 1;
+
+    const renderRows = (items: Participant[]) => {
+      tbody.innerHTML = '';
+      const fragment = document.createDocumentFragment();
+      for (const item of items) {
+        const tr = document.createElement('tr');
+        const cells: Array<{ value: string; className?: string }> = [
+          { value: item.fullName || '—' },
+          { value: item.documentId || '—', className: 'pb__col-doc' },
+          { value: item.email || '—' },
+          { value: item.phone || '—', className: 'pb__col-phone' },
+          { value: item.genderLabel || '—' },
+          { value: item.age != null ? String(item.age) : '—' },
+          { value: String(item.racesCount) },
+        ];
+        for (const cell of cells) {
+          const td = document.createElement('td');
+          if (cell.className) td.className = cell.className;
+          td.textContent = cell.value;
+          tr.appendChild(td);
+        }
+        fragment.appendChild(tr);
+      }
+      tbody.appendChild(fragment);
+    };
+
+    const setUrlPage = (page: number) => {
+      const url = new URL(window.location.href);
+      if (page > 1) url.searchParams.set('page', String(page));
+      else url.searchParams.delete('page');
+      window.history.replaceState({}, '', url);
+    };
+
+    const load = async (page: number) => {
+      const id = ++requestId;
+      view.loading();
+      tableWrap.hidden = true;
+      pagerEl.hidden = true;
+      countEl.hidden = true;
+      prevBtn.disabled = true;
+      nextBtn.disabled = true;
+
+      let res: Response;
+      try {
+        res = await fetch(`/api/admin/participants?page=${page}`);
+      } catch {
+        if (id !== requestId) return;
+        view.error('No pudimos conectar con el servidor.', () => void load(page));
+        return;
+      }
+
+      let body: ParticipantsResponse;
+      try {
+        body = await res.json();
+      } catch {
+        if (id !== requestId) return;
+        view.error('Ocurrió un error inesperado.', () => void load(page));
+        return;
+      }
+
+      if (id !== requestId) return;
+
+      if (!body.ok) {
+        if (body.code === 'unauthorized') {
+          view.unauthorized();
+          return;
+        }
+        view.error(body.message || 'No pudimos cargar los participantes.', () => void load(page));
+        return;
+      }
+
+      currentPage = body.data.page;
+      setUrlPage(currentPage);
+      countEl.hidden = false;
+      countEl.textContent = `${body.data.total} participantes`;
+
+      if (body.data.items.length === 0) {
+        // Página vacía: 0 participantes en total (roster vacío) vs. una
+        // página fuera de rango tras restaurar `?page=` (spec/design
+        // "Participants Table + Pager" — overshoot muestra una acción para
+        // volver, nunca un error).
+        if (currentPage > 1) {
+          view.empty('Esta página no tiene participantes.', {
+            label: 'Volver a la primera página',
+            run: () => void load(1),
+          });
+        } else {
+          view.empty('Todavía no hay participantes registrados.');
+        }
+        return;
+      }
+
+      view.ready();
+      renderRows(body.data.items);
+      tableWrap.hidden = false;
+
+      const totalPages = Math.max(1, Math.ceil(body.data.total / body.data.pageSize));
+      pagerEl.hidden = false;
+      pagerInfo.textContent = `Página ${currentPage} de ${totalPages}`;
+      prevBtn.disabled = currentPage <= 1;
+      nextBtn.disabled = currentPage >= totalPages;
+    };
+
+    prevBtn.addEventListener('click', () => {
+      if (currentPage > 1) void load(currentPage - 1);
+    });
+    nextBtn.addEventListener('click', () => void load(currentPage + 1));
+
+    // `?page=` sobrevive al recargar (mismo criterio que `?carrera=` en
+    // `RegistrationsBrowser.astro`).
+    const params = new URLSearchParams(window.location.search);
+    const raw = params.get('page');
+    const parsedPage = raw ? Number.parseInt(raw, 10) : 1;
+    const initialPage = Number.isFinite(parsedPage) && parsedPage >= 1 ? parsedPage : 1;
+
+    void load(initialPage);
+  }
+
+  const root = document.querySelector<HTMLElement>('[data-participants-browser]');
+  if (root) initBrowser(root);
+</script>
