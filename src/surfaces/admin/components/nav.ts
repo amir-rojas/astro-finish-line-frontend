@@ -25,6 +25,11 @@ export const ADMIN_NAV: AdminNavItem[] = [
   // `features/participants/components/ParticipantsBrowser.astro`.
   { href: '/admin/participantes', label: 'Participantes', status: 'ready' },
   { href: '/admin/pagos', label: 'Pagos', status: 'soon' },
-  { href: '/admin/reportes', label: 'Reportes', status: 'soon' },
+  // Pantalla real desde PR3 (`sdd/admin-reportes/tasks`) — los 3 widgets
+  // (timeline + tallas + canal de adquisición) ya existen en
+  // `pages/admin/reportes.astro`. Se dejó en `'soon'` durante PR1/PR2 a
+  // propósito: Amir no quería anunciar una pantalla parcialmente construida
+  // (ver tasks "Nav flip timing — RESOLVED con Amir").
+  { href: '/admin/reportes', label: 'Reportes', status: 'ready' },
   { href: '/admin/configuracion', label: 'Configuración', status: 'ready' },
 ];

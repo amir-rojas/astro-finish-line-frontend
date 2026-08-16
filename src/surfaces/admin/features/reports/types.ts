@@ -1,10 +1,8 @@
 // features/reports/types.ts — shared BFF contract for
-// `/api/admin/reports-{shirt-sizes,referral-sources}` (PR2 of
-// `sdd/admin-reportes`, design "Interfaces / Contracts"). Timeline DTOs
-// (`TimelinePointDto`/`TimelinePoint`/`TimelineResponse`) land in PR3 per the
-// design's proposed cut — this file only carries the two widgets this PR
-// ships. DTOs mirror Go's `/reports/*` responses verbatim; domain types are
-// what the widgets actually render.
+// `/api/admin/reports-{shirt-sizes,referral-sources,timeline}` (PR2+PR3 of
+// `sdd/admin-reportes`, design "Interfaces / Contracts"). DTOs mirror Go's
+// `/reports/*` responses verbatim; domain types are what the widgets
+// actually render.
 import type { BffResult } from '@admin/lib/bff-types';
 
 export interface ReferralSourceDto {
@@ -36,3 +34,15 @@ export interface ShirtSize {
 
 export type ReferralResponse = BffResult<ReferralSource[]>;
 export type ShirtSizeResponse = BffResult<ShirtSize[]>;
+
+// Go pre-fills gaps with `count: 0` for the fixed 14-day window (spec "Fixed
+// 14-Day Timeline Window") — no domain transform needed beyond the DTO
+// shape, unlike `ReferralSource`/`ShirtSize` which add a `label`.
+export interface TimelinePointDto {
+  date: string; // 'YYYY-MM-DD'
+  count: number;
+}
+
+export type TimelinePoint = TimelinePointDto;
+
+export type TimelineResponse = BffResult<TimelinePoint[]>;

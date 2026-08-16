@@ -1,0 +1,267 @@
+---
+// RegistrationsTimelineWidget — "Inscripciones por día" en `/admin/reportes`
+// (PR3 de `sdd/admin-reportes`, design "Technical Approach" + "Page
+// Composition"). Isla autónoma: selector de carrera propio (vía
+// `getRaceOptions()`), máquina de estados propia (`loading|ready|empty|error|401`,
+// `island-state.ts`), guard de request-id propio — mismo criterio que
+// `ShirtSizesWidget`/`ReferralSourcesWidget`, salvo que este widget NO tiene
+// ningún control de ventana de fechas: la ventana de 14 días es fija (spec
+// "Fixed 14-Day Timeline Window", "No date-range control exists").
+//
+// El fetch/parseo vive en `features/reports/api.ts`; el render vive detrás
+// de un seam puro (`render/timeline-chart.ts`) que solo recibe datos ya
+// normalizados — nunca hace fetch ni guarda estado propio (spec "Timeline
+// Data/Render Separation").
+---
+
+<div class="rtw" data-timeline-widget>
+  <div class="rtw__header">
+    <h2 class="rtw__title">Inscripciones por día</h2>
+    <div class="rtw__toolbar">
+      <label class="rtw__select-label" for="rtw-race-select">Carrera</label>
+      <select id="rtw-race-select" class="rtw__select" data-rtw-select disabled>
+        <option value="">Todas las carreras</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="rtw__body">
+    <div class="rtw__state" data-state hidden aria-live="polite">
+      <p class="rtw__state-text" data-state-text></p>
+      <button type="button" class="rtw__retry" data-state-retry hidden></button>
+    </div>
+
+    <div class="rtw__chart" data-rtw-chart hidden></div>
+  </div>
+</div>
+
+<style>
+  .rtw {
+    background: var(--adm-surface);
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius-card);
+    padding: 24px;
+  }
+
+  .rtw__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 20px;
+    margin-bottom: 20px;
+  }
+  .rtw__title {
+    font-family: 'Barlow', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--adm-ink);
+    margin: 0;
+  }
+  .rtw__toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .rtw__select-label {
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--adm-ink);
+  }
+  .rtw__select {
+    min-width: 200px;
+    padding: 8px 12px;
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--adm-ink);
+    background: #ffffff;
+    border: 1.5px solid var(--adm-border);
+    border-radius: var(--adm-radius-control);
+    outline: none;
+  }
+  .rtw__select:focus-visible {
+    border-color: var(--adm-accent);
+  }
+  .rtw__select:disabled {
+    color: var(--adm-muted);
+    cursor: not-allowed;
+  }
+
+  .rtw__state {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 28px 20px;
+    background: var(--adm-bg);
+    border-radius: var(--adm-radius-control);
+  }
+  .rtw__state[hidden] {
+    display: none;
+  }
+  .rtw__state-text {
+    margin: 0;
+    font-family: 'Barlow', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--adm-text);
+  }
+  .rtw__retry {
+    padding: 8px 16px;
+    min-height: 44px;
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--adm-accent);
+    background: none;
+    border: 1.5px solid var(--adm-accent);
+    border-radius: var(--adm-radius-control);
+    cursor: pointer;
+  }
+  .rtw__retry[hidden] {
+    display: none;
+  }
+  .rtw__retry:hover {
+    background: color-mix(in srgb, var(--adm-accent) 10%, transparent);
+  }
+
+  .rtw__chart {
+    width: 100%;
+  }
+  .rtw__chart[hidden] {
+    display: none;
+  }
+  .rtw__chart :global(.timeline-chart) {
+    display: block;
+    width: 100%;
+    height: 180px;
+  }
+  .rtw__chart :global(.timeline-chart__bar) {
+    fill: var(--adm-accent);
+  }
+  .rtw__chart :global(.timeline-chart__tick) {
+    font-family: 'Barlow', sans-serif;
+    font-size: 8px;
+    font-weight: 600;
+    fill: var(--adm-muted);
+  }
+</style>
+
+<script>
+  import { createStateView } from '@admin/lib/island-state';
+  import { getRaceOptions } from '@admin/lib/race-options';
+  import { renderTimelineChart } from '../render/timeline-chart';
+
+  // Contratos duplicados de `features/reports/types.ts` a propósito (mismo
+  // criterio que `ShirtSizesWidget.astro`/`ParticipantsBrowser.astro` — este
+  // script se bundlea aparte para el navegador).
+  type BffErrCode = 'unauthorized' | 'validation' | 'server';
+  interface TimelinePoint {
+    date: string;
+    count: number;
+  }
+  type TimelineResponse = { ok: true; data: TimelinePoint[] } | { ok: false; code: BffErrCode; message: string };
+
+  // "15 ago" — mismo locale/UTC que `@shared/lib/date-format.ts`, duplicado
+  // acá en vez de importado porque ese módulo es del surface público
+  // (`@public/*` está fuera del alcance de `@admin/*`, ver "Arquitectura por
+  // superficie") y esta etiqueta es de un solo dígito de texto, no vale la
+  // pena una dependencia cruzada de surface por eso.
+  const tickFormatter = new Intl.DateTimeFormat('es-BO', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+  function labelFor(iso: string): string {
+    const date = new Date(`${iso}T00:00:00Z`);
+    if (Number.isNaN(date.getTime())) return iso;
+    return tickFormatter.format(date).replace('.', '');
+  }
+
+  function initWidget(root: HTMLElement) {
+    const select = root.querySelector<HTMLSelectElement>('[data-rtw-select]');
+    const chartEl = root.querySelector<HTMLElement>('[data-rtw-chart]');
+    if (!select || !chartEl) return;
+
+    const view = createStateView(root);
+    if (!view) return;
+
+    // Guard de secuencia: mismo criterio de contador monotónico que
+    // `ShirtSizesWidget.astro`/`ReferralSourcesWidget.astro` — descarta
+    // respuestas obsoletas si el admin cambia de carrera rápido.
+    let requestId = 0;
+
+    const load = async (raceId: string) => {
+      const id = ++requestId;
+      view.loading();
+      chartEl.hidden = true;
+
+      let res: Response;
+      try {
+        res = await fetch(`/api/admin/reports-timeline${raceId ? `?raceId=${encodeURIComponent(raceId)}` : ''}`);
+      } catch {
+        if (id !== requestId) return;
+        view.error('No pudimos conectar con el servidor.', () => void load(raceId));
+        return;
+      }
+
+      let body: TimelineResponse;
+      try {
+        body = await res.json();
+      } catch {
+        if (id !== requestId) return;
+        view.error('Ocurrió un error inesperado.', () => void load(raceId));
+        return;
+      }
+
+      if (id !== requestId) return;
+
+      if (!body.ok) {
+        if (body.code === 'unauthorized') {
+          view.unauthorized();
+          return;
+        }
+        view.error(body.message || 'No pudimos cargar el timeline.', () => void load(raceId));
+        return;
+      }
+
+      // Go rellena huecos con `count: 0` para la ventana fija de 14 días, así
+      // que "vacío" es "todo cero", no solo un arreglo vacío (spec "Zero
+      // registrations is empty, not error").
+      const isEmpty = body.data.length === 0 || body.data.every((point) => point.count === 0);
+      if (isEmpty) {
+        view.empty('Sin inscripciones en los últimos 14 días.');
+        return;
+      }
+
+      view.ready();
+      renderTimelineChart(chartEl, { points: body.data, labelFor });
+      chartEl.hidden = false;
+    };
+
+    select.addEventListener('change', () => void load(select.value));
+
+    // El selector se puebla en paralelo, sin bloquear la carga agregada
+    // (design "Data Flow" — "no forced race pick first").
+    void (async () => {
+      const result = await getRaceOptions();
+      if (result.ok) {
+        select.innerHTML = '';
+        const allOption = document.createElement('option');
+        allOption.value = '';
+        allOption.textContent = 'Todas las carreras';
+        select.appendChild(allOption);
+        for (const race of result.races) {
+          const option = document.createElement('option');
+          option.value = race.id;
+          option.textContent = race.label;
+          select.appendChild(option);
+        }
+      }
+      select.disabled = false;
+    })();
+
+    void load('');
+  }
+
+  const root = document.querySelector<HTMLElement>('[data-timeline-widget]');
+  if (root) initWidget(root);
+</script>

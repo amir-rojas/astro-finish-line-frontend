@@ -1,12 +1,11 @@
-// features/reports/api.ts — testable seam for the two Go calls behind
-// `/api/admin/reports-{referral-sources,shirt-sizes}` (PR2 of
+// features/reports/api.ts — testable seam for the three Go calls behind
+// `/api/admin/reports-{referral-sources,shirt-sizes,timeline}` (PR2+PR3 of
 // `sdd/admin-reportes`, design "Interfaces / Contracts" + "Decision: Four
 // separate BFF routes"). Same shape as `features/participants/api.ts`: raw
 // `fetch`, defensive mapping, kept out of the route files so the Go-contract
 // mapping stays testable in isolation once a runner lands.
-// `getRegistrationsTimeline` lands in PR3 — not implemented here.
 import { BACKEND_URL } from 'astro:env/server';
-import type { ReferralSource, ReferralSourceDto, ShirtSize, ShirtSizeDto } from './types';
+import type { ReferralSource, ReferralSourceDto, ShirtSize, ShirtSizeDto, TimelinePoint, TimelinePointDto } from './types';
 
 // Same criterion as `features/registrations/api.ts` / `features/participants/api.ts`
 // (`GO_TIMEOUT_MS`): tolerates a full Render free-tier cold start (~30-50s)
@@ -93,6 +92,44 @@ export async function getShirtSizes(raceId: string | undefined, accessToken: str
   }));
 
   return { ok: true, sizes };
+}
+
+export type GetRegistrationsTimelineResult = { ok: true; points: TimelinePoint[] } | { ok: false; status: number };
+
+// GET /reports/timeline?race_id=&days=14. `days` is ALWAYS sent as `14` here
+// and is NEVER read from a client-supplied param (spec "Fixed 14-Day
+// Timeline Window"; design Threat Matrix: "never forward an unvalidated
+// query param, notably `days`, which the client cannot set"). Same
+// `race_id` "omitted = all races" criterion as the other two endpoints.
+export async function getRegistrationsTimeline(
+  raceId: string | undefined,
+  accessToken: string,
+): Promise<GetRegistrationsTimelineResult> {
+  const query = new URLSearchParams();
+  if (raceId) query.set('race_id', raceId);
+  query.set('days', '14');
+
+  let goRes: Response;
+  try {
+    goRes = await fetch(`${BACKEND_URL}/api/v1/reports/timeline?${query.toString()}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      signal: AbortSignal.timeout(GO_TIMEOUT_MS),
+    });
+  } catch {
+    return { ok: false, status: 502 };
+  }
+
+  if (goRes.status !== 200) return { ok: false, status: goRes.status };
+
+  // Mismo criterio de `null`/array roto que `getReferralSources`/`getShirtSizes`.
+  const body = await safeJson<TimelinePointDto[] | null>(goRes);
+  if (body !== null && !Array.isArray(body)) return { ok: false, status: 502 };
+
+  const points: TimelinePoint[] = (body ?? []).filter(
+    (row): row is TimelinePointDto => typeof row?.date === 'string' && typeof row.count === 'number',
+  );
+
+  return { ok: true, points };
 }
 
 async function safeJson<T>(res: Response): Promise<T | null> {
