@@ -96,7 +96,7 @@ export async function getShirtSizes(raceId: string | undefined, accessToken: str
 
 export type GetRegistrationsTimelineResult = { ok: true; points: TimelinePoint[] } | { ok: false; status: number };
 
-// GET /reports/timeline?race_id=&days=14. `days` is ALWAYS sent as `14` here
+// GET /reports/registrations-timeline?race_id=&days=14. `days` is ALWAYS sent as `14` here
 // and is NEVER read from a client-supplied param (spec "Fixed 14-Day
 // Timeline Window"; design Threat Matrix: "never forward an unvalidated
 // query param, notably `days`, which the client cannot set"). Same
@@ -111,7 +111,7 @@ export async function getRegistrationsTimeline(
 
   let goRes: Response;
   try {
-    goRes = await fetch(`${BACKEND_URL}/api/v1/reports/timeline?${query.toString()}`, {
+    goRes = await fetch(`${BACKEND_URL}/api/v1/reports/registrations-timeline?${query.toString()}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       signal: AbortSignal.timeout(GO_TIMEOUT_MS),
     });
