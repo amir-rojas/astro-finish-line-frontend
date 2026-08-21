@@ -12,10 +12,12 @@
 // página, solo el estado "Cargando…" de este bloque. Estados: loading |
 // ready | empty | error | 401 (design "Manejo de errores por bloque").
 //
-// A diferencia de `RegistrationForm.astro`, `AdminLayout.astro` NO usa
-// `<ClientRouter/>` (navegar dentro/fuera de admin cae a full reload por
-// diseño) — así que el script corre directo al parsear, sin esperar
-// `astro:page-load` (mismo patrón que `AdminLoginForm.astro`).
+// `AdminShell.astro` ahora pasa `<ClientRouter/>` a `AdminLayout.astro`
+// (opt-in solo para pantallas autenticadas, `login.astro` queda afuera) —
+// el init de este script corre dentro de `astro:page-load`, que dispara
+// tanto en la carga inicial como después de cada navegación SPA, porque un
+// `<script>` bundleado de Astro solo se ejecuta una vez en la vida del tab
+// si no se reengancha así.
 import { ROW_DISPLAY_LIMIT } from '../types';
 ---
 
@@ -29,9 +31,9 @@ import { ROW_DISPLAY_LIMIT } from '../types';
   </div>
 
   <div class="rb__body">
-    <div class="rb__state" data-rb-state hidden>
-      <p class="rb__state-text" data-rb-state-text></p>
-      <button type="button" class="rb__retry" data-rb-retry hidden>Reintentar</button>
+    <div class="rb__state" data-state hidden aria-live="polite">
+      <p class="rb__state-text" data-state-text></p>
+      <button type="button" class="rb__retry" data-state-retry hidden></button>
     </div>
 
     <div class="rb__table-wrap" data-rb-table-wrap hidden>
@@ -161,12 +163,20 @@ import { ROW_DISPLAY_LIMIT } from '../types';
     color: var(--adm-muted);
     border-bottom: 1.5px solid var(--adm-border);
   }
-  .rb__table td {
+  /* :global(): las filas del `<tbody>` las arma `renderRows()` con
+     `document.createElement`, nunca pasan por el compilador de Astro, así
+     que no reciben el atributo `data-astro-cid-*` que el scoping de
+     `<style>` exige — sin esto la regla compila a algo como
+     `.rb__table td[data-astro-cid-x]` y nunca matchea (mismo hueco
+     encontrado y confirmado en vivo en `ParticipantsBrowser.astro`, ver su
+     comentario). `.rb__table th` no lo necesita: el `<thead>` es markup
+     estático del archivo. */
+  :global(.rb__table td) {
     padding: 12px;
     color: var(--adm-ink);
     border-bottom: 1px solid var(--adm-border);
   }
-  .rb__table tbody tr:last-child td {
+  :global(.rb__table tbody tr:last-child td) {
     border-bottom: none;
   }
 
@@ -195,6 +205,8 @@ import { ROW_DISPLAY_LIMIT } from '../types';
 </style>
 
 <script>
+  import { createStateView } from '@admin/lib/island-state';
+
   // Contratos duplicados de `features/registrations/types.ts` a propósito:
   // este script se bundlea aparte para el navegador y no puede importar un
   // módulo server-only (`astro:env/server` vive en la cadena de `api.ts`).
@@ -237,39 +249,28 @@ import { ROW_DISPLAY_LIMIT } from '../types';
   function initBrowser(root: HTMLElement) {
     const select = root.querySelector<HTMLSelectElement>('[data-rb-select]');
     const countEl = root.querySelector<HTMLElement>('[data-rb-count]');
-    const stateEl = root.querySelector<HTMLElement>('[data-rb-state]');
-    const stateTextEl = root.querySelector<HTMLElement>('[data-rb-state-text]');
-    const retryBtn = root.querySelector<HTMLButtonElement>('[data-rb-retry]');
     const tableWrap = root.querySelector<HTMLElement>('[data-rb-table-wrap]');
     const tbody = root.querySelector<HTMLElement>('[data-rb-tbody]');
     const truncatedEl = root.querySelector<HTMLElement>('[data-rb-truncated]');
-    if (!select || !countEl || !stateEl || !stateTextEl || !retryBtn || !tableWrap || !tbody || !truncatedEl) return;
+    if (!select || !countEl || !tableWrap || !tbody || !truncatedEl) return;
+
+    // `island-state.ts` (impeccable critique P1/P2: skeleton en vez de texto
+    // plano, mismo ícono+color de peligro que `BlockError.astro` — antes
+    // este archivo tenía su propio `showState()` a mano, divergente del
+    // patrón que `ParticipantsBrowser.astro` ya usaba).
+    const view = createStateView(root);
+    if (!view) return;
 
     // Nunca recarga sola (evita bucles de 401 — design "Isla — 401"): siempre
     // requiere el clic del botón, que dispara una navegación completa que sí
     // pasa por `src/middleware.ts` (rota con `refresh_token` o manda a login).
-    let retryAction: (() => void) | null = null;
-
-    // `function` declarations (hoisted) lose TS's null-narrowing on the
-    // guarded elements above — `const ... = () => {}` expressions defined
-    // AFTER the guard keep it (verified: only nested `function` bindings
-    // widen captured `T | null` back to nullable, arrow consts don't).
-    const showState = (message: string, action?: { label: string; run: () => void }) => {
+    // `island-state.ts` ya wirea el click del botón de retry — este archivo
+    // solo decide QUÉ estado mostrar.
+    const showEmpty = (message: string) => {
       tableWrap.hidden = true;
       countEl.hidden = true;
-      stateEl.hidden = false;
-      stateTextEl.textContent = message;
-      if (action) {
-        retryAction = action.run;
-        retryBtn.textContent = action.label;
-        retryBtn.hidden = false;
-      } else {
-        retryAction = null;
-        retryBtn.hidden = true;
-      }
+      view.empty(message);
     };
-
-    retryBtn.addEventListener('click', () => retryAction?.());
 
     const renderRows = (rows: RegistrationRow[]) => {
       tbody.innerHTML = '';
@@ -297,14 +298,16 @@ import { ROW_DISPLAY_LIMIT } from '../types';
 
     const loadRegistrations = async (raceId: string) => {
       const requestId = ++currentRequestId;
-      showState('Cargando inscritos…');
+      view.loading();
+      tableWrap.hidden = true;
+      countEl.hidden = true;
 
       let res: Response;
       try {
         res = await fetch(`/api/admin/registrations?raceId=${encodeURIComponent(raceId)}`);
       } catch {
         if (requestId !== currentRequestId) return;
-        showState('No pudimos conectar con el servidor.', { label: 'Reintentar', run: () => loadRegistrations(raceId) });
+        view.error('No pudimos conectar con el servidor.', () => void loadRegistrations(raceId));
         return;
       }
 
@@ -313,7 +316,7 @@ import { ROW_DISPLAY_LIMIT } from '../types';
         body = await res.json();
       } catch {
         if (requestId !== currentRequestId) return;
-        showState('Ocurrió un error inesperado.', { label: 'Reintentar', run: () => loadRegistrations(raceId) });
+        view.error('Ocurrió un error inesperado.', () => void loadRegistrations(raceId));
         return;
       }
 
@@ -324,26 +327,23 @@ import { ROW_DISPLAY_LIMIT } from '../types';
           // Sesión vencida en la LLAMADA a Go, no en el gate de middleware —
           // el resto del panel sigue con su cookie tal cual (spec: "el admin
           // session remains valid"). Solo este bloque cae a error.
-          showState('Tu sesión expiró.', { label: 'Recargar', run: () => window.location.reload() });
+          view.unauthorized();
           return;
         }
-        showState(body.message || 'No pudimos cargar los inscritos.', {
-          label: 'Reintentar',
-          run: () => loadRegistrations(raceId),
-        });
+        view.error(body.message || 'No pudimos cargar los inscritos.', () => void loadRegistrations(raceId));
         return;
       }
 
       if (body.rows.length === 0) {
         // Vacío explícito, nunca un conteo/tabla en cero (spec "Race with
         // zero registrations").
-        showState('Todavía no hay inscritos en esta carrera.');
+        showEmpty('Todavía no hay inscritos en esta carrera.');
         countEl.hidden = false;
         countEl.textContent = '0 inscritos';
         return;
       }
 
-      stateEl.hidden = true;
+      view.ready();
       renderRows(body.rows);
       tableWrap.hidden = false;
       countEl.hidden = false;
@@ -355,13 +355,15 @@ import { ROW_DISPLAY_LIMIT } from '../types';
 
     const loadRaces = async () => {
       select.disabled = true;
-      showState('Cargando carreras…');
+      view.loading();
+      tableWrap.hidden = true;
+      countEl.hidden = true;
 
       let res: Response;
       try {
         res = await fetch('/api/admin/races');
       } catch {
-        showState('No pudimos conectar con el servidor.', { label: 'Reintentar', run: loadRaces });
+        view.error('No pudimos conectar con el servidor.', () => void loadRaces());
         return;
       }
 
@@ -369,21 +371,21 @@ import { ROW_DISPLAY_LIMIT } from '../types';
       try {
         body = await res.json();
       } catch {
-        showState('Ocurrió un error inesperado.', { label: 'Reintentar', run: loadRaces });
+        view.error('Ocurrió un error inesperado.', () => void loadRaces());
         return;
       }
 
       if (!body.ok) {
         if (body.code === 'unauthorized') {
-          showState('Tu sesión expiró.', { label: 'Recargar', run: () => window.location.reload() });
+          view.unauthorized();
           return;
         }
-        showState(body.message || 'No pudimos cargar las carreras.', { label: 'Reintentar', run: loadRaces });
+        view.error(body.message || 'No pudimos cargar las carreras.', () => void loadRaces());
         return;
       }
 
       if (body.races.length === 0) {
-        showState('Todavía no hay carreras registradas.');
+        showEmpty('Todavía no hay carreras registradas.');
         return;
       }
 
@@ -409,7 +411,7 @@ import { ROW_DISPLAY_LIMIT } from '../types';
         select.value = match;
         void loadRegistrations(match);
       } else {
-        showState('Selecciona una carrera para ver sus inscritos.');
+        showEmpty('Selecciona una carrera para ver sus inscritos.');
       }
     };
 
@@ -421,12 +423,14 @@ import { ROW_DISPLAY_LIMIT } from '../types';
       window.history.replaceState({}, '', url);
 
       if (raceId) void loadRegistrations(raceId);
-      else showState('Selecciona una carrera para ver sus inscritos.');
+      else showEmpty('Selecciona una carrera para ver sus inscritos.');
     });
 
     void loadRaces();
   }
 
-  const root = document.querySelector<HTMLElement>('[data-registrations-browser]');
-  if (root) initBrowser(root);
+  document.addEventListener('astro:page-load', () => {
+    const root = document.querySelector<HTMLElement>('[data-registrations-browser]');
+    if (root) initBrowser(root);
+  });
 </script>

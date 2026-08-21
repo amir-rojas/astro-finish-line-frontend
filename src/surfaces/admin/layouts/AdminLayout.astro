@@ -6,10 +6,14 @@
 // propio lenguaje visual). El surface público usa su propio PublicLayout;
 // nunca se mezclan.
 //
-// A diferencia de PublicLayout, no lleva <ClientRouter/>: navegar entre
-// admin y público debe caer a full reload, que es lo correcto en una
-// frontera de auth. Tampoco lleva el script de revelado por scroll, propio
-// del marketing público y no de un panel de staff.
+// A diferencia de PublicLayout, este layout NO trae <ClientRouter/> puesto
+// acá — queda opt-in vía el slot "head" de cada caller. `AdminShell.astro`
+// (todas las pantallas autenticadas) sí lo pasa, para navegación tipo SPA
+// entre ellas; `pages/admin/login.astro` importa `AdminLayout` directo, sin
+// pasar nada al slot "head", así que nunca lo recibe — cruzar la frontera de
+// auth (login ↔ cualquier pantalla autenticada) sigue cayendo a full reload,
+// que es lo correcto ahí. Tampoco lleva el script de revelado por scroll,
+// propio del marketing público y no de un panel de staff.
 import BaseLayout from '@shared/layouts/BaseLayout.astro';
 
 interface Props {
@@ -62,6 +66,38 @@ const { title, description, ogImage, ogUrl, canonical } = Astro.props;
     --adm-accent-soft: #fff1ea; /* fondo del ítem activo del sidebar (no había tinte del acento) */
     --adm-danger-soft: #fdecec; /* fondo de <BlockError variant="error"> */
     --adm-radius-pill: 999px; /* badge "Próximamente" y chips */
+    /* Badges "★ Recurrente"/"Nueva" de `ParticipantsBrowser` (derivados de
+       `racesCount`, sin fetch nuevo). El ámbar copia el valor del mock de
+       diseño (pasa 5.27:1 sobre su propio fondo); el verde del mock
+       (#1e8e3e, 3.71:1) NO pasaba AA de texto normal — se oscureció a
+       #166534 (6.30:1) manteniendo el mismo fondo. */
+    --adm-amber: #8a5b13;
+    --adm-amber-soft: #faf3dc;
+    --adm-success: #166534;
+    --adm-success-soft: #e7f4ec;
+    /* Acento como TEXTO, no como relleno (crítica `/impeccable` de
+       Participantes): `--adm-accent` (#fc4c02) da solo 3.40:1 sobre blanco
+       como color de texto — falla AA 4.5:1 aunque pase de sobra como fondo
+       de botón con texto blanco encima. Este valor da ~5.06:1. Mismo patrón
+       que `--fl-orange-ink` en la superficie pública (naranja-como-fill y
+       naranja-como-texto necesitan tonos distintos). */
+    --adm-accent-ink: #c93d00;
+    /* Escala tipográfica (crítica `/impeccable` re-run, hallazgo P2 "los
+       pasos no ejecutan su propio ratio"): la v1 (7 pasos, 10-22px) tenía 4
+       escalones seguidos a ~1.07-1.08 — más chico que el piso 1.125 que
+       ella misma pedía, 1px de diferencia entre `-sm`/`-base`/`-md`/`-lg`
+       que nadie distingue a simple vista. Esta versión colapsa esos
+       casi-duplicados en 5 pasos reales (11→13→15→20→24px, ratios
+       1.18/1.15/1.33/1.2 — todos ≥1.125) en vez de fingir granularidad que
+       1px no puede sostener. Aplicada en los mismos archivos que v1:
+       `AdminHeader`, `AdminSidebar`, `AdminShell`, los 3 widgets de
+       reportes, `TimelineSummaryCard` y `reportes.astro` — el resto del
+       panel admin sigue con `px` sueltos hasta que se toque en otra pasada. */
+    --adm-text-xs: 0.6875rem; /* 11px — badges/pills, caption */
+    --adm-text-sm: 0.8125rem; /* 13px — body/labels/meta, el tamaño más usado (junta las v1 -sm/-base) */
+    --adm-text-md: 0.9375rem; /* 15px — ítems de nav, filas de estado, títulos de card/widget (junta las v1 -md/-lg) */
+    --adm-text-lg: 1.25rem; /* 20px — saludo del header */
+    --adm-text-xl: 1.5rem; /* 24px — h1 de página */
 
     background: var(--adm-bg);
     color: var(--adm-text);

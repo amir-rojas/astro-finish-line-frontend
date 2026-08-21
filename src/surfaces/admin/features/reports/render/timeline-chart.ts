@@ -1,11 +1,22 @@
 // render/timeline-chart.ts — the swappable render seam for
-// `RegistrationsTimelineWidget` (PR3 of `sdd/admin-reportes`, design
-// "Decision: Timeline renderer behind a mount-style seam" + spec "Timeline
-// Data/Render Separation"). Pure w.r.t. app state: no fetch, no module-level
-// state, no business logic — accepts already-fetched, already-shaped data
-// and produces markup. Fully replaces `el`'s content on every call, so it is
-// safe to call repeatedly (e.g. after a race-selector change).
+// `RegistrationsTimelineWidget` (originally PR3 of `sdd/admin-reportes`;
+// migrated to ApexCharts per Amir's decision to standardize the admin
+// surface's hand-rolled charts on one library). Same contract as before:
+// pure w.r.t. app state (no fetch, no business logic), fully replaces `el`'s
+// content on every call, safe to call repeatedly (e.g. after a race-selector
+// change) — an internal WeakMap tracks the live ApexCharts instance per `el`
+// so a repeat call destroys the old chart before mounting a new one, instead
+// of leaking chart instances.
+//
+// Tree-shaken import (`apexcharts/core` + `apexcharts/area` only, per the
+// library's own tree-shaking convention) — this is a single-series area
+// chart, no other chart type needed here.
+import ApexCharts from 'apexcharts/core';
+import 'apexcharts/area';
+import type { ApexOptions } from 'apexcharts';
 import type { TimelinePoint } from '../types';
+import { readChartTokens } from '@admin/lib/chart-tokens';
+import { apexBaseOptions } from '@admin/lib/apex-defaults';
 
 export interface TimelineChartInput {
   points: readonly TimelinePoint[];
@@ -14,62 +25,67 @@ export interface TimelineChartInput {
 
 export type TimelineRenderer = (el: HTMLElement, input: TimelineChartInput) => void;
 
-const SVG_NS = 'http://www.w3.org/2000/svg';
-const VIEW_WIDTH = 640;
-const VIEW_HEIGHT = 180;
-const PADDING_X = 8;
-const PADDING_TOP = 12;
-const PADDING_BOTTOM = 28;
-const BAR_GAP = 4;
+const instances = new WeakMap<HTMLElement, ApexCharts>();
 
 export const renderTimelineChart: TimelineRenderer = (el, { points, labelFor }) => {
-  // Replaces `el`'s content unconditionally — no diffing, no leftover state
-  // from a previous render (design "must fully replace `el`'s content and be
-  // safe to call repeatedly").
+  instances.get(el)?.destroy();
   el.innerHTML = '';
 
-  const plotWidth = VIEW_WIDTH - PADDING_X * 2;
-  const plotHeight = VIEW_HEIGHT - PADDING_TOP - PADDING_BOTTOM;
-  const max = Math.max(1, ...points.map((point) => point.count));
-  const barWidth = points.length > 0 ? plotWidth / points.length - BAR_GAP : 0;
+  const tokens = readChartTokens(el);
+  const mount = document.createElement('div');
+  el.appendChild(mount);
 
+  // ApexCharts renders real SVG (not canvas), but doesn't produce a
+  // guaranteed plain-language equivalent on its own — keep the same visually
+  // hidden text summary the old hand-rolled SVG exposed via `aria-label`, as
+  // real DOM text instead (dataviz skill: "every chart has a table-view
+  // twin... every value reachable without hovering").
   const total = points.reduce((sum, point) => sum + point.count, 0);
-  const summary =
+  const summary = document.createElement('p');
+  summary.className = 'timeline-chart__sr-only';
+  summary.textContent =
     points.length === 0
       ? 'Sin datos de inscripciones.'
       : `Inscripciones por día, últimos ${points.length} días: ${total} en total. ` +
         points.map((point) => `${labelFor(point.date)}: ${point.count}`).join(', ') +
         '.';
+  el.appendChild(summary);
 
-  const svg = document.createElementNS(SVG_NS, 'svg');
-  svg.setAttribute('viewBox', `0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`);
-  svg.setAttribute('preserveAspectRatio', 'none');
-  svg.setAttribute('role', 'img');
-  svg.setAttribute('aria-label', summary);
-  svg.classList.add('timeline-chart');
+  const categories = points.map((point) => labelFor(point.date));
+  const lastIndex = points.length - 1;
+  const base = apexBaseOptions(tokens);
 
-  points.forEach((point, index) => {
-    const x = PADDING_X + index * (barWidth + BAR_GAP);
-    const barHeight = point.count === 0 ? 0 : Math.max(2, (point.count / max) * plotHeight);
-    const y = PADDING_TOP + (plotHeight - barHeight);
+  const options: ApexOptions = {
+    ...base,
+    chart: { ...base.chart, type: 'area', height: 180 },
+    series: [{ name: 'Inscripciones', data: points.map((point) => point.count) }],
+    xaxis: {
+      categories,
+      axisBorder: { show: false },
+      axisTicks: { show: false },
+      labels: { style: { fontSize: '10px', colors: tokens.muted } },
+    },
+    yaxis: {
+      labels: { formatter: (value) => String(Math.round(value)), style: { fontSize: '10px', colors: tokens.muted } },
+    },
+    grid: { ...base.grid, xaxis: { lines: { show: false } }, yaxis: { lines: { show: true } } },
+    stroke: { curve: 'smooth', width: 2, lineCap: 'round' },
+    // dataviz "Area fill: series hue at ~10% opacity (a wash)" — flat solid
+    // opacity, not a gradient, so it reads as one consistent wash.
+    fill: { type: 'solid', opacity: 0.1 },
+    markers: { size: 0, hover: { size: 6 } },
+    dataLabels: {
+      // "Lines → value at the end" — label only the last point, never every
+      // point (anti-pattern: "a number on every data point").
+      enabled: true,
+      formatter: (val, opts) => (opts?.dataPointIndex === lastIndex ? String(val) : ''),
+      style: { colors: [tokens.ink], fontSize: '11px', fontWeight: 700 },
+      offsetY: -8,
+    },
+    tooltip: { ...base.tooltip, x: { show: true } },
+  };
 
-    const bar = document.createElementNS(SVG_NS, 'rect');
-    bar.setAttribute('x', String(x));
-    bar.setAttribute('y', String(y));
-    bar.setAttribute('width', String(Math.max(0, barWidth)));
-    bar.setAttribute('height', String(barHeight));
-    bar.setAttribute('rx', '2');
-    bar.classList.add('timeline-chart__bar');
-    svg.appendChild(bar);
-
-    const tick = document.createElementNS(SVG_NS, 'text');
-    tick.setAttribute('x', String(x + barWidth / 2));
-    tick.setAttribute('y', String(VIEW_HEIGHT - PADDING_BOTTOM + 16));
-    tick.setAttribute('text-anchor', 'middle');
-    tick.classList.add('timeline-chart__tick');
-    tick.textContent = labelFor(point.date);
-    svg.appendChild(tick);
-  });
-
-  el.appendChild(svg);
+  const chart = new ApexCharts(mount, options);
+  instances.set(el, chart);
+  void chart.render();
 };

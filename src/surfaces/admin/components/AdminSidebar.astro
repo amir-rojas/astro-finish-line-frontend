@@ -6,10 +6,17 @@
 // `aria-disabled` ni un `#` muerto (spec "Placeholder item is visually
 // marked").
 //
-// Toggle mobile: checkbox + `:has()`, sin JS de cliente (`AdminShell` es
-// SSR puro, ver ese archivo). El estado del checkbox se resetea solo al
-// navegar porque `AdminLayout` no lleva `<ClientRouter/>` — cada link es
-// full reload, así que no hace falta cerrar el drawer "a mano".
+// Toggle mobile: checkbox + `:has()`, visualmente sin JS de cliente. PERO
+// `AdminShell.astro` persiste este componente entero (`transition:persist`,
+// crítica `/impeccable` P2 "ClientRouter desvanece todo el shell") para que
+// sidebar/header no se desvanezcan en cada navegación SPA — el mismo nodo
+// (checkbox incluido, y el `data-active` de cada link, calculado en el
+// servidor por request) sobrevive entre páginas en vez de recrearse. Sin
+// re-sincronizar a mano, el ítem activo queda congelado en la primera
+// carga y el drawer mobile no se cierra solo al navegar (crítica P0
+// "sidebar activo se congela") — de ahí el `<script>` al final del archivo,
+// enganchado a `astro:page-load` (dispara en la carga inicial Y en cada
+// navegación SPA, mismo patrón que `ParticipantsBrowser.astro`).
 import { ADMIN_NAV } from '@admin/components/nav';
 import BrandIsotypeMono from '@admin/components/BrandIsotypeMono.astro';
 
@@ -89,7 +96,7 @@ const currentPath = Astro.url.pathname;
   }
   .wordmark {
     font-family: 'Barlow', sans-serif;
-    font-size: 15px;
+    font-size: var(--adm-text-md);
     font-weight: 700;
     letter-spacing: 0.4px;
     color: var(--adm-ink);
@@ -185,7 +192,7 @@ const currentPath = Astro.url.pathname;
     padding: 10px 12px;
     border-radius: var(--adm-radius-control);
     font-family: 'Barlow', sans-serif;
-    font-size: 14px;
+    font-size: var(--adm-text-md);
     font-weight: 600;
     color: var(--adm-text);
     text-decoration: none;
@@ -215,7 +222,7 @@ const currentPath = Astro.url.pathname;
     color: var(--adm-muted);
     border-radius: var(--adm-radius-pill);
     padding: 3px 8px;
-    font-size: 10px;
+    font-size: var(--adm-text-xs);
     font-weight: 700;
     letter-spacing: 0.4px;
     text-transform: uppercase;
@@ -294,3 +301,28 @@ const currentPath = Astro.url.pathname;
     }
   }
 </style>
+
+<script>
+  // Re-sincroniza el estado que `AdminShell.astro` congela al persistir este
+  // componente entre navegaciones SPA (ver el comentario del `<aside>` más
+  // arriba): qué `.nav-item` está activo, y el checkbox del drawer mobile.
+  function syncSidebar() {
+    const path = window.location.pathname;
+    for (const link of document.querySelectorAll<HTMLAnchorElement>('.nav-item')) {
+      const href = link.getAttribute('href') ?? '';
+      // Misma regla que el cálculo original en el frontmatter: `/admin` es
+      // match exacto (si no, cualquier ruta `/admin/*` lo marcaría activo
+      // también), el resto es prefijo.
+      const isActive = href === '/admin' ? path === '/admin' : path.startsWith(href);
+      link.dataset.active = String(isActive);
+    }
+    // El drawer es un checkbox pensado para full reload (cada link recargaba
+    // la página entera, así que "cerrarse" era gratis). Con el nodo
+    // persistido, el checkbox sobrevive a la navegación — sin este reset
+    // quedaría abierto en mobile después de tocar un link.
+    const toggle = document.getElementById('admin-nav-toggle');
+    if (toggle instanceof HTMLInputElement) toggle.checked = false;
+  }
+
+  document.addEventListener('astro:page-load', syncSidebar);
+</script>

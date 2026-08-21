@@ -11,18 +11,37 @@
 // los dos hace su propio fetch. Sin barra de cupos, tarjeta de pagos, tabs de
 // "requiere tu atención" ni indicador de sincronización (spec "Dashboard
 // omits unbuilt widgets" — no hay fuente de datos verificada para ninguno).
+//
+// Resumen de reportes: solo timeline (agregado, "todas las carreras"). Tallas
+// y canal de adquisición se sacaron del dashboard (decisión de Amir,
+// 2026-08-16): esos dos son datos por carrera y `/admin/reportes` ya los
+// resuelve mejor, con selector propio — una versión agregada acá era
+// redundante. El timeline SÍ tiene sentido agregado (pulso rápido del
+// negocio), así que se queda, ahora sobre ApexCharts (ver
+// `features/reports/render/timeline-chart.ts`).
 import AdminShell from '@admin/components/AdminShell.astro';
 import UpcomingRacesBlock from '@admin/features/dashboard/components/UpcomingRacesBlock.astro';
 import DeadlinesBlock from '@admin/features/dashboard/components/DeadlinesBlock.astro';
+import TimelineSummaryCard from '@admin/features/dashboard/components/TimelineSummaryCard.astro';
 import { safeBlock } from '@admin/lib/safe-block';
 import { getEvents } from '@shared/lib/content/events';
+import { getRegistrationsTimeline } from '@admin/features/reports/api';
 
 export const prerender = false;
 
 const eventsResult = await safeBlock(() => getEvents());
+
+const sessionToken = Astro.cookies.get('session')?.value;
+const timelineResult = sessionToken
+  ? await getRegistrationsTimeline(undefined, sessionToken)
+  : ({ ok: false, status: 401 } as const);
 ---
 
 <AdminShell title="Dashboard">
+  <div class="reports-summary">
+    <TimelineSummaryCard result={timelineResult} />
+  </div>
+
   <div class="dashboard-grid">
     <UpcomingRacesBlock result={eventsResult} />
     <DeadlinesBlock result={eventsResult} />
@@ -30,6 +49,9 @@ const eventsResult = await safeBlock(() => getEvents());
 </AdminShell>
 
 <style>
+  .reports-summary {
+    margin-bottom: 20px;
+  }
   .dashboard-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));

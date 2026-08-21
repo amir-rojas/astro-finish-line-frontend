@@ -10,6 +10,7 @@
 // se maneja donde se muestra (el header). Si `session` falta o `me()` falla
 // por cualquier motivo (red, timeout, 401, contrato roto), `name` queda
 // `undefined` y `AdminHeader` saluda genérico — nunca un nombre inventado.
+import { ClientRouter } from 'astro:transitions';
 import AdminLayout from '@admin/layouts/AdminLayout.astro';
 import AdminSidebar from '@admin/components/AdminSidebar.astro';
 import AdminHeader from '@admin/components/AdminHeader.astro';
@@ -36,8 +37,20 @@ if (sessionToken) {
 ---
 
 <AdminLayout title={`${title} · Panel administrativo`}>
+  <Fragment slot="head">
+    {/* Solo las pantallas autenticadas (todas pasan por acá) navegan tipo SPA
+        entre sí; `login.astro` importa `AdminLayout` directo y nunca la recibe
+        (ver el comentario de `AdminLayout.astro`). */}
+    <ClientRouter />
+  </Fragment>
   <div class="shell">
-    <AdminSidebar>
+    {/* `transition:persist` sin nombre alcanza: sidebar y header están en la
+        MISMA posición del árbol en cada página que usa `AdminShell` (crítica
+        `/impeccable`, hallazgo P2 "ClientRouter desvanece todo el shell") —
+        el matching por posición de Astro los empareja solo. Sin esto, el
+        crossfade por defecto de `<ClientRouter/>` los desvanecía junto con
+        el contenido en cada navegación, aunque no cambian entre pantallas. */}
+    <AdminSidebar transition:persist>
       <div slot="footer" class="user-footer">
         <p class="user-name">{adminName ?? 'Cuenta'}</p>
         <a href="/admin/configuracion" class="user-link">Configuración</a>
@@ -45,7 +58,7 @@ if (sessionToken) {
     </AdminSidebar>
 
     <div class="content-column">
-      <AdminHeader name={adminName} />
+      <AdminHeader name={adminName} transition:persist />
       <main class="content">
         <slot />
       </main>
@@ -76,7 +89,7 @@ if (sessionToken) {
   }
   .user-name {
     font-family: 'Barlow', sans-serif;
-    font-size: 13px;
+    font-size: var(--adm-text-sm);
     font-weight: 700;
     color: var(--adm-ink);
     margin: 0;
@@ -86,7 +99,7 @@ if (sessionToken) {
   }
   .user-link {
     font-family: 'Barlow', sans-serif;
-    font-size: 12px;
+    font-size: var(--adm-text-sm);
     font-weight: 600;
     color: var(--adm-muted);
     text-decoration: none;

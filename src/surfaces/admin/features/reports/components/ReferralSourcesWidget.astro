@@ -28,7 +28,7 @@
       <button type="button" class="rsw__retry" data-state-retry hidden></button>
     </div>
 
-    <ul class="rsw__list" data-rsw-list hidden></ul>
+    <div class="rsw__chart" data-rsw-chart hidden></div>
   </div>
 </div>
 
@@ -50,7 +50,7 @@
   }
   .rsw__title {
     font-family: 'Barlow', sans-serif;
-    font-size: 15px;
+    font-size: var(--adm-text-md);
     font-weight: 700;
     color: var(--adm-ink);
     margin: 0;
@@ -62,7 +62,7 @@
   }
   .rsw__select-label {
     font-family: 'Barlow', sans-serif;
-    font-size: 13px;
+    font-size: var(--adm-text-sm);
     font-weight: 700;
     color: var(--adm-ink);
   }
@@ -70,7 +70,7 @@
     min-width: 200px;
     padding: 8px 12px;
     font-family: 'Barlow', sans-serif;
-    font-size: 13px;
+    font-size: var(--adm-text-sm);
     font-weight: 600;
     color: var(--adm-ink);
     background: #ffffff;
@@ -101,7 +101,7 @@
   .rsw__state-text {
     margin: 0;
     font-family: 'Barlow', sans-serif;
-    font-size: 14px;
+    font-size: var(--adm-text-md);
     font-weight: 600;
     color: var(--adm-text);
   }
@@ -109,7 +109,7 @@
     padding: 8px 16px;
     min-height: 44px;
     font-family: 'Barlow', sans-serif;
-    font-size: 13px;
+    font-size: var(--adm-text-sm);
     font-weight: 700;
     color: var(--adm-accent);
     background: none;
@@ -124,55 +124,31 @@
     background: color-mix(in srgb, var(--adm-accent) 10%, transparent);
   }
 
-  .rsw__list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
+  .rsw__chart {
+    width: 100%;
   }
-  .rsw__list[hidden] {
+  .rsw__chart[hidden] {
     display: none;
   }
-  .rsw__row {
-    display: grid;
-    grid-template-columns: 140px 1fr 40px;
-    align-items: center;
-    gap: 12px;
-  }
-  .rsw__row-label {
-    font-family: 'Barlow', sans-serif;
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--adm-ink);
+  /* ApexCharts mounts its own SVG tree at runtime — styled via JS options
+     (`chart-tokens.ts`), not CSS. */
+  .rsw__chart :global(.category-pie-chart__sr-only) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
     overflow: hidden;
-    text-overflow: ellipsis;
+    clip: rect(0, 0, 0, 0);
     white-space: nowrap;
-  }
-  .rsw__row-track {
-    height: 10px;
-    background: var(--adm-bg);
-    border-radius: 999px;
-    overflow: hidden;
-  }
-  .rsw__row-bar {
-    height: 100%;
-    background: var(--adm-accent);
-    border-radius: 999px;
-  }
-  .rsw__row-count {
-    font-family: 'Barlow', sans-serif;
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--adm-ink);
-    text-align: right;
+    border: 0;
   }
 </style>
 
 <script>
   import { createStateView } from '@admin/lib/island-state';
   import { getRaceOptions } from '@admin/lib/race-options';
+  import { renderCategoryPieChart } from '../render/category-pie-chart';
 
   // Contratos duplicados de `features/reports/types.ts` a propósito (mismo
   // criterio que `ShirtSizesWidget.astro`).
@@ -186,47 +162,21 @@
 
   function initWidget(root: HTMLElement) {
     const select = root.querySelector<HTMLSelectElement>('[data-rsw-select]');
-    const listEl = root.querySelector<HTMLUListElement>('[data-rsw-list]');
-    if (!select || !listEl) return;
+    const chartEl = root.querySelector<HTMLElement>('[data-rsw-chart]');
+    if (!select || !chartEl) return;
 
-    const view = createStateView(root);
+    // 320 = el `height` real del pastel en `render/category-pie-chart.ts`
+    // (la leyenda debajo agrega un poco más, pero esto ya evita el salto
+    // grande al llegar el dato).
+    const view = createStateView(root, { loadingHeight: 320 });
     if (!view) return;
 
     let requestId = 0;
 
-    const renderRows = (items: ReferralSource[]) => {
-      listEl.innerHTML = '';
-      const max = Math.max(1, ...items.map((item) => item.count));
-      const fragment = document.createDocumentFragment();
-      for (const item of items) {
-        const li = document.createElement('li');
-        li.className = 'rsw__row';
-
-        const label = document.createElement('span');
-        label.className = 'rsw__row-label';
-        label.textContent = item.label;
-
-        const track = document.createElement('div');
-        track.className = 'rsw__row-track';
-        const bar = document.createElement('div');
-        bar.className = 'rsw__row-bar';
-        bar.style.width = `${Math.round((item.count / max) * 100)}%`;
-        track.appendChild(bar);
-
-        const count = document.createElement('span');
-        count.className = 'rsw__row-count';
-        count.textContent = String(item.count);
-
-        li.append(label, track, count);
-        fragment.appendChild(li);
-      }
-      listEl.appendChild(fragment);
-    };
-
     const load = async (raceId: string) => {
       const id = ++requestId;
       view.loading();
-      listEl.hidden = true;
+      chartEl.hidden = true;
 
       let res: Response;
       try {
@@ -265,8 +215,11 @@
       }
 
       view.ready();
-      renderRows(body.data);
-      listEl.hidden = false;
+      renderCategoryPieChart(
+        chartEl,
+        body.data.map((item) => ({ label: item.label, count: item.count })),
+      );
+      chartEl.hidden = false;
     };
 
     select.addEventListener('change', () => void load(select.value));
@@ -292,6 +245,12 @@
     void load('');
   }
 
-  const root = document.querySelector<HTMLElement>('[data-referral-sources-widget]');
-  if (root) initWidget(root);
+  // `astro:page-load` fires on first load AND after every ClientRouter
+  // navigation (`AdminShell.astro` now carries it) — a bundled module
+  // script otherwise runs only once ever, so without this the widget would
+  // go dead on a second visit to `/admin/reportes` in the same tab.
+  document.addEventListener('astro:page-load', () => {
+    const root = document.querySelector<HTMLElement>('[data-referral-sources-widget]');
+    if (root) initWidget(root);
+  });
 </script>
