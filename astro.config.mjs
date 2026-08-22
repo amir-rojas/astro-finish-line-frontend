@@ -8,7 +8,15 @@ export default defineConfig({
   site: 'https://www.finishlinebolivia.com',
   output: 'static',
   adapter: vercel(),
-  integrations: [sitemap()],
+  integrations: [
+    sitemap({
+      // `/tienda` existe pero no se indexa: vitrina sin entrada en el nav y con
+      // `noindex,nofollow` (ver `src/pages/tienda.astro`). OJO: `filter` recibe la
+      // URL ABSOLUTA y con barra final (`https://…/tienda/`), así que comparar
+      // contra `'/tienda'` no matchearía nunca y la ruta se colaría igual.
+      filter: (page) => new URL(page).pathname.replace(/\/$/, '') !== '/tienda',
+    }),
+  ],
   image: {
     // Autoriza a `<Image>`/`getImage()` a descargar y optimizar assets servidos
     // por el CDN de imágenes de Sanity (ver `content/events.ts`: los campos de

@@ -1,0 +1,216 @@
+---
+// ProductCard — tarjeta pequeña de la grilla de la Tienda (todo excepto el
+// destacado, que vive en `FeaturedProduct`). No es un `variant` del destacado:
+// no tiene selector de talla ni barra de stock, así que compartir un componente
+// con un prop-switch dejaría dos cuerpos disjuntos en un solo archivo.
+//
+// Variante agotada DERIVADA de `stock.remaining === 0` (no hay campo `status`
+// en `Product`, ver `products.ts`): AGOTADO + "AVÍSAME" en vez de precio + "PEDIR →".
+import type { Product } from '../products';
+import { formatPrice, orderMessage, waitlistMessage } from '../format';
+import { whatsappLink } from '@shared/config/site';
+import ProductPlaceholder from './ProductPlaceholder.astro';
+
+interface Props {
+  product: Product;
+  /** Posición en la grilla: escalona la entrada, mismo criterio que RaceCard. */
+  index?: number;
+  /** Ocupa 2 columnas en vez de 1 en el grid de 4 (≥1024px) — ver `ProductGrid`. */
+  wide?: boolean;
+}
+const { product, index = 0, wide = false } = Astro.props;
+const delay = Math.min(index + 1, 4);
+
+const soldOut = product.stock.remaining === 0;
+
+// Cada CTA arma su propio link y se guarda bajo `{wa && (...)}` local — mismo
+// idioma que `SiteFooter.astro:149`, no un booleano `hasWhatsapp` prop-driven,
+// así los tres call sites de la página no pueden desincronizarse.
+const orderWa = !soldOut ? whatsappLink(orderMessage(product)) : null;
+const waitlistWa = soldOut ? whatsappLink(waitlistMessage(product)) : null;
+---
+
+<li class:list={['pc', wide && 'pc--wide']} data-reveal data-delay={delay}>
+  <div class="pc__frame">
+    <ProductPlaceholder placeholder={product.placeholder} imageAlt={product.imageAlt} />
+    {soldOut && <span class="pc__badge pc__badge--soldout">Agotado</span>}
+  </div>
+
+  <div class="pc__body">
+    <h2 class="pc__name">{product.name}</h2>
+    {product.edition && <p class="pc__edition">{product.edition}</p>}
+
+    <div class="pc__foot">
+      {
+        soldOut ? (
+          <>
+            {product.soldOutNote && <p class="pc__note">{product.soldOutNote}</p>}
+            {waitlistWa && (
+              <a
+                class="pc__cta pc__cta--ghost"
+                href={waitlistWa.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Avísame cuando vuelva a haber ${product.name}`}
+              >
+                Avísame
+              </a>
+            )}
+          </>
+        ) : (
+          <>
+            <span class="pc__price">{formatPrice(product.price)}</span>
+            {orderWa && (
+              <a
+                class="pc__cta"
+                href={orderWa.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Pedir ${product.name} por WhatsApp`}
+              >
+                Pedir <span aria-hidden="true">→</span>
+              </a>
+            )}
+          </>
+        )
+      }
+    </div>
+  </div>
+</li>
+
+<style>
+  .pc {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    background: var(--fl-surface);
+    border: 1px solid var(--fl-hairline-ink);
+  }
+  @media (min-width: 1024px) {
+    /* Solo en el grid de 4 columnas: a 2 columnas (640-1023px) cada tarjeta
+       regular ya ocupa su propia fila de a pares, no hay hueco que llenar. */
+    .pc--wide {
+      grid-column: span 2;
+    }
+    /* El 4:5 vertical al doble de ancho da una imagen gigante y descompensa
+       la fila contra las tarjetas normales de arriba — panorámica en vez de
+       retrato para esta variante. */
+    .pc--wide .pc__frame {
+      aspect-ratio: 16 / 9;
+    }
+  }
+  .pc__frame {
+    position: relative;
+    aspect-ratio: 4 / 5;
+  }
+  .pc__badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 1;
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 4px 7px;
+    color: #fff;
+  }
+  .pc__badge--soldout {
+    background: var(--fl-status-closed);
+  }
+
+  .pc__body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    padding: clamp(14px, 2vw, 18px);
+    gap: 4px;
+  }
+  .pc__name {
+    margin: 0;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(15px, 1.7vw, 18px);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    color: var(--fl-ink);
+  }
+  .pc__edition {
+    margin: 0;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    color: var(--fl-on-cream-faint);
+  }
+
+  .pc__foot {
+    margin-top: auto;
+    padding-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .pc__note {
+    margin: 0;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    color: var(--fl-on-cream-faint);
+  }
+  .pc__price {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(22px, 2.6vw, 30px);
+    line-height: 1;
+    color: var(--fl-ink);
+  }
+
+  .pc__cta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 14px 18px;
+    background: var(--fl-orange-strong);
+    color: #fff;
+    text-decoration: none;
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    transition:
+      background-color 160ms var(--ease-out),
+      transform 160ms var(--ease-out);
+  }
+  @media (hover: hover) {
+    .pc__cta:hover {
+      background: var(--fl-orange-hover);
+    }
+  }
+  .pc__cta:active {
+    transform: scale(0.98);
+  }
+  .pc__cta--ghost {
+    background: transparent;
+    border: 1px solid var(--fl-hairline-ink);
+    color: var(--fl-on-cream-muted);
+  }
+  @media (hover: hover) {
+    .pc__cta--ghost:hover {
+      border-color: var(--fl-orange-ink);
+      color: var(--fl-orange-ink);
+    }
+  }
+  .pc__cta:focus-visible {
+    outline: 3px solid var(--fl-orange);
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pc__cta {
+      transition: none;
+    }
+  }
+</style>

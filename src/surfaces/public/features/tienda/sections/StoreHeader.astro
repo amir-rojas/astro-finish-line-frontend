@@ -1,0 +1,107 @@
+---
+// StoreHeader — banda navy de apertura de /tienda: eyebrow, H1, párrafo y una
+// fila de chips de categoría. Mismo motivo de franja diagonal naranja que
+// `ListHeader` (calendario) — lenguaje visual compartido del surface público.
+//
+// Los chips son visual-only (TODO/POLERAS/MEDALLAS/ACCESORIOS): no filtran la
+// grilla, así que NO son <button>/<a> — ver nota en ".sh__chip" abajo. Nada
+// reemplaza al ticker recortado del mockup (ver design "Decision: Qué
+// reemplaza al ticker cortado"): el padding inferior de esta banda absorbe
+// ese espacio y ProductGrid abre directo en crema.
+const chips = ['Todo', 'Poleras', 'Medallas', 'Accesorios'];
+---
+
+<section class="sh">
+  <div class="sh__stripe" aria-hidden="true"></div>
+  <div class="sh__inner">
+    <p class="sh__eyebrow">// Tienda</p>
+    <h1 class="sh__title">Lleva un pedazo de la carrera</h1>
+    <p class="sh__body">
+      Poleras, medallas y accesorios de nuestras ediciones. Estos productos no
+      se venden en el sitio: se piden por WhatsApp y coordinamos la entrega.
+    </p>
+
+    {/* Div plano, no <nav>/<ul>: no son controles, son etiquetas que un lector
+        de pantalla debe leer como texto, no como una lista de opciones. */}
+    <div class="sh__chips">
+      {chips.map((chip) => <span class="sh__chip">{chip}</span>)}
+    </div>
+  </div>
+</section>
+
+<style>
+  .sh {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background: var(--fl-navy);
+  }
+  .sh__stripe {
+    position: absolute;
+    top: -20%;
+    right: -8%;
+    width: 46%;
+    height: 140%;
+    background: var(--fl-orange);
+    opacity: 0.12;
+    transform: skewX(-12deg);
+    z-index: 0;
+  }
+  .sh__inner {
+    position: relative;
+    z-index: 1;
+    max-width: var(--fl-container);
+    margin: 0 auto;
+    padding: clamp(48px, 8vw, 88px) clamp(20px, 5vw, 56px) clamp(28px, 4vw, 44px);
+  }
+  .sh__eyebrow {
+    margin: 0 0 14px;
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--fl-orange);
+  }
+  .sh__title {
+    margin: 0;
+    max-width: 14ch;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(32px, 4.4vw, 56px);
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    color: var(--fl-cream);
+  }
+  .sh__body {
+    margin: 18px 0 0;
+    max-width: 440px;
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--fl-on-navy-soft);
+  }
+
+  .sh__chips {
+    margin-top: clamp(24px, 3vw, 32px);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  /* Etiquetas visuales, NO controles: sin cursor:pointer, sin :hover, sin
+     :focus-visible, sin variante "activa". Un click o un hover no debe producir
+     ningún cambio visible — ver spec "Non-Interactive Category Chips".
+     Sin borde y con el tono apagado (no `--fl-cream` pleno): el peso visual de
+     un chip con borde + texto brillante se lee como control real, y ninguno de
+     estos filtra — ver hallazgo P2 de /impeccable critique 2026-08-21. */
+  .sh__chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 9px 16px;
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--fl-on-navy-muted);
+  }
+</style>

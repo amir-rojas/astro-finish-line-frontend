@@ -1,0 +1,70 @@
+---
+// StoreMobileCta — barra fija al pie, SOLO en móvil (<900px), mismo shell que
+// `calendar/sections/MobileCta.astro` menos su script de precio en vivo (acá no
+// hay ninguna combinación que sincronizar: un único mensaje genérico).
+//
+// Igual que MobileCta: si no hay WhatsApp configurado, NO renderiza nada — no
+// hay barra fija apuntando a un link muerto.
+import { whatsappLink } from '@shared/config/site';
+import { BROWSE_MESSAGE } from '../format';
+
+const wa = whatsappLink(BROWSE_MESSAGE);
+---
+
+{
+  wa && (
+    <div class="smc">
+      <a class="smc__cta" href={wa.href} target="_blank" rel="noopener noreferrer">
+        <span>Ver disponibilidad por WhatsApp</span>
+        <span class="smc__arrow" aria-hidden="true">→</span>
+      </a>
+    </div>
+  )
+}
+
+<style>
+  .smc {
+    display: none;
+  }
+
+  @media (max-width: 900px) {
+    .smc {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 40;
+      display: block;
+      padding: 12px clamp(16px, 5vw, 24px);
+      padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+      background: var(--fl-navy);
+      border-top: 1px solid var(--fl-hairline);
+    }
+    .smc__cta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      min-height: 44px;
+      padding: 16px;
+      background: var(--fl-orange-strong);
+      color: #fff;
+      text-decoration: none;
+      font-family: 'Space Mono', monospace;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+    }
+    .smc__arrow {
+      font-size: 16px;
+    }
+    .smc__cta:active {
+      background: var(--fl-orange-hover);
+    }
+    .smc__cta:focus-visible {
+      outline: 3px solid var(--fl-orange);
+      outline-offset: -3px;
+    }
+  }
+</style>

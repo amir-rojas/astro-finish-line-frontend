@@ -1,0 +1,71 @@
+---
+// ProductGrid — sección crema con la grilla de productos, fiel a la
+// disposición del mockup: en desktop es una grilla de 4 columnas donde el
+// destacado ocupa 2 y comparte la primera fila con 2 `ProductCard`; el resto
+// fluye a las filas siguientes. A diferencia de `RaceGrid` (auto-fill, conteo
+// variable) acá el número de columnas es fijo porque la composición
+// destacado+2 es editorial, no "lo que quepa".
+import type { Product } from '../products';
+import FeaturedProduct from './FeaturedProduct.astro';
+import ProductCard from './ProductCard.astro';
+
+interface Props {
+  featured?: Product;
+  products: Product[];
+}
+const { featured, products } = Astro.props;
+
+// El destacado absorbe 2 de las 4 columnas de la fila 1 junto a 2 tarjetas
+// regulares; el resto cae en filas de a 4. Con el conteo de hoy (4 regulares)
+// la última fila queda con exactamente 2 — huecos vacíos a la derecha, más
+// visibles todavía con el contenedor ancho (hallazgo P2 de /impeccable
+// critique 2026-08-21). Amir eligió agrandar esas 2 finales a 2 columnas cada
+// una en vez de dejar el hueco o inventar más productos. Solo cubre el caso
+// de un remanente de EXACTAMENTE 2 — con otro conteo (ej. al conectar Sanity)
+// esto puede necesitar revisarse.
+const trailingWide = products.length > 2 && (products.length - 2) % 4 === 2;
+---
+
+<section class="pg">
+  <div class="pg__inner">
+    <ul class="pg__grid">
+      {featured && <FeaturedProduct product={featured} />}
+      {
+        products.map((product, index) => (
+          <ProductCard product={product} index={index} wide={trailingWide && index >= products.length - 2} />
+        ))
+      }
+    </ul>
+  </div>
+</section>
+
+<style>
+  .pg {
+    background: var(--fl-cream);
+  }
+  .pg__inner {
+    max-width: var(--fl-container);
+    margin: 0 auto;
+    padding: clamp(44px, 6vw, 72px) clamp(20px, 5vw, 56px);
+  }
+  .pg__grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: clamp(18px, 2.4vw, 28px);
+  }
+
+  @media (min-width: 640px) {
+    .pg__grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .pg__grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+</style>
