@@ -144,6 +144,18 @@ Escala display (clamp, fiel a la referencia):
 - **Chip/badge:** borde 1px, Space Mono uppercase, padding ~9px/16px.
 - **Eyebrow:** Space Mono uppercase con prefijo `//` sobre fondos claros, o color
   naranja sobre navy.
+- **Badge DESTACADO** (Tienda): `background: var(--fl-orange-strong)`, texto blanco,
+  Space Mono 700 10px `letter-spacing:1px` uppercase, `padding:4px 7px`, esquinas
+  rectas. Misma geometría que el badge de estado de `RaceCard`, pero con relleno de
+  marca en vez de un relleno de estado. **No es estado** — no usa ni amplía
+  `--fl-status-*`.
+- **Barra de stock** (Tienda): track `var(--fl-cream-2)`, alto 6px, esquinas rectas;
+  relleno con el tono correspondiente (`open`/`warning`/`closed`), ancho
+  server-rendered inline `style="width:N%"`, sin transición (valor estático).
+  `aria-hidden="true"`: el valor lo carga siempre el label textual contiguo
+  ("Quedan 3 de 20"), nunca el color solo. No es `role="progressbar"` — no hay
+  ninguna tarea en curso. La barra reutiliza los tres tonos de estado ya
+  existentes; no agrega token.
 
 ## Motifs (segunda lectura)
 

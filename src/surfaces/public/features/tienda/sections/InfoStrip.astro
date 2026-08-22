@@ -1,0 +1,76 @@
+---
+// InfoStrip — franja de 3 columnas (PEDIDO / ENTREGA / PAGO) que responde las
+// preguntas obvias antes de que alguien tenga que escribir por WhatsApp a
+// preguntarlas. Copy propio de este archivo (contenido, no arquitectura — ver
+// design "Open Questions").
+const items = [
+  {
+    label: 'Pedido',
+    body: 'Elige el producto y, si aplica, la talla. El pedido se confirma por WhatsApp, no hay carrito en el sitio.',
+  },
+  {
+    label: 'Entrega',
+    body: 'Coordinamos el punto de entrega en La Paz o el envío a otra ciudad, según lo que te quede más cómodo.',
+  },
+  {
+    label: 'Pago',
+    body: 'Transferencia o QR al confirmar el pedido. Te mandamos los datos por el mismo chat de WhatsApp.',
+  },
+];
+---
+
+<section class="is">
+  <div class="is__inner">
+    <ul class="is__grid">
+      {
+        items.map((item) => (
+          <li class="is__item">
+            <p class="is__label">{item.label}</p>
+            <p class="is__body">{item.body}</p>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
+
+<style>
+  .is {
+    background: var(--fl-cream-2);
+  }
+  .is__inner {
+    max-width: var(--fl-container);
+    margin: 0 auto;
+    padding: clamp(44px, 6vw, 72px) clamp(20px, 5vw, 56px);
+  }
+  .is__grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    /* Tope de 360px, no 1fr: con el contenedor en 1440px, "1fr" estiraba cada
+       columna a ~440px+ mientras el texto está topado a 40ch (~380px) — aire
+       muerto a la derecha de cada bloque (hallazgo de /impeccable critique
+       2026-08-21). `justify-content:center` centra el set de columnas topadas
+       en vez de pegarlas a la izquierda. */
+    grid-template-columns: repeat(auto-fit, minmax(240px, 360px));
+    justify-content: center;
+    gap: clamp(24px, 3vw, 40px);
+  }
+  .is__label {
+    margin: 0 0 8px;
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--fl-orange-ink);
+  }
+  .is__body {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.5;
+    max-width: 40ch;
+    color: var(--fl-on-cream-muted);
+  }
+</style>

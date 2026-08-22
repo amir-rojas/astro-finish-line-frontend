@@ -1,0 +1,415 @@
+---
+// FeaturedProduct — la tarjeta grande que abre la grilla: imagen, badge
+// DESTACADO, nombre/edición/precio, selector de talla y barra de stock.
+//
+// El selector de talla es el ÚNICO control interactivo de la Tienda (los chips
+// de categoría en `StoreHeader` son decorativos a propósito). Progressive
+// enhancement real, mismo criterio que `ModalityPicker`: el HTML servido ya
+// trae el link de WhatsApp de la PRIMERA talla disponible — sin JS, el CTA
+// sigue siendo un link válido, el script solo lo vuelve interactivo.
+import type { Product } from '../products';
+import { formatPrice, stockLabel, stockTone, stockPercent, orderMessage, waitlistMessage } from '../format';
+import { whatsappLink } from '@shared/config/site';
+import ProductPlaceholder from './ProductPlaceholder.astro';
+
+interface Props {
+  product: Product;
+}
+const { product } = Astro.props;
+
+const tone = stockTone(product.stock);
+const percent = stockPercent(product.stock);
+const label = stockLabel(product.stock);
+
+// Misma derivación que `ProductCard`: el destacado es stock real y se agota
+// igual que cualquier otro producto — sin este resguardo se invita a pedir
+// algo que ya no existe.
+const soldOut = product.stock.remaining === 0;
+
+const hasSizes = !soldOut && product.sizes.length > 0;
+const firstAvailable = hasSizes ? (product.sizes.find((s) => s.available) ?? product.sizes[0]) : undefined;
+
+// Un href de WhatsApp por talla, armado server-side: el script cliente solo
+// LEE de este mapa, nunca reconstruye el número de teléfono en el DOM.
+const sizeHrefs: Record<string, string | null> = {};
+if (hasSizes) {
+  for (const size of product.sizes) {
+    const wa = whatsappLink(orderMessage(product, size.label));
+    sizeHrefs[size.label] = wa?.href ?? null;
+  }
+}
+
+const orderWa = !soldOut
+  ? hasSizes
+    ? firstAvailable
+      ? whatsappLink(orderMessage(product, firstAvailable.label))
+      : null
+    : whatsappLink(orderMessage(product))
+  : null;
+const waitlistWa = soldOut ? whatsappLink(waitlistMessage(product)) : null;
+---
+
+<li class="fp" data-reveal>
+  <div class="fp__frame">
+    <ProductPlaceholder placeholder={product.placeholder} imageAlt={product.imageAlt} />
+    <span class="fp__badge">Destacado</span>
+  </div>
+
+  <div class="fp__body">
+    <h2 class="fp__name">{product.name}</h2>
+    {product.edition && <p class="fp__edition">{product.edition}</p>}
+    {product.description && <p class="fp__desc">{product.description}</p>}
+
+    <span class="fp__price">{formatPrice(product.price)}</span>
+
+    {
+      hasSizes && (
+        <fieldset class="fp__sizes" data-fp-sizes data-wa-hrefs={JSON.stringify(sizeHrefs)}>
+          <legend class="fp__sizes-legend">Talla</legend>
+          <div class="fp__sizes-row">
+            {product.sizes.map((size) => (
+              <label class:list={['fp__size', !size.available && 'fp__size--unavailable']}>
+                <input
+                  type="radio"
+                  name={`size-${product.slug}`}
+                  value={size.label}
+                  checked={size.label === firstAvailable?.label}
+                  disabled={!size.available}
+                />
+                <span>{size.label}</span>
+                {!size.available && <span class="fp__sr">(agotada)</span>}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )
+    }
+
+    <div class="fp__stock">
+      <div class="fp__stock-track" aria-hidden="true">
+        <div class={`fp__stock-fill fp__stock-fill--${tone}`} style={`width:${percent}%`} />
+      </div>
+      <span class="fp__stock-label">{label}</span>
+    </div>
+
+    {soldOut && product.soldOutNote && <p class="fp__note">{product.soldOutNote}</p>}
+
+    {
+      soldOut
+        ? waitlistWa && (
+            <a
+              class="fp__cta fp__cta--ghost"
+              href={waitlistWa.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Avísame cuando vuelva a haber ${product.name}`}
+            >
+              Avísame
+            </a>
+          )
+        : orderWa && (
+            <a
+              class="fp__cta"
+              href={orderWa.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Pedir ${product.name} por WhatsApp`}
+              data-fp-cta
+            >
+              <span data-fp-cta-label>
+                {hasSizes ? `Pedir talla ${firstAvailable?.label} por WhatsApp` : 'Pedir por WhatsApp'}
+              </span>{' '}
+              <span aria-hidden="true">→</span>
+            </a>
+          )
+    }
+  </div>
+</li>
+
+<style>
+  .fp {
+    /* En el grid de 2 o 4 columnas de ProductGrid (≥640px) ocupa 2 y comparte
+       la primera fila con 2 ProductCard, igual que en el mockup. */
+    grid-column: span 2;
+    list-style: none;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    background: var(--fl-surface);
+    border: 1px solid var(--fl-hairline-ink);
+  }
+  @media (max-width: 639px) {
+    /* Grid de 1 sola columna acá abajo: `span 2` NO se recorta solo contra un
+       grid explícito de 1 columna — CSS Grid agrega una columna implícita
+       para satisfazer el span, partiendo el resto de las tarjetas en 2
+       columnas angostas y desparejas (hallazgo P1 de /impeccable critique
+       2026-08-21, confirmado en vivo). Hay que pedirlo explícito. */
+    .fp {
+      grid-column: span 1;
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .fp__frame {
+    position: relative;
+    aspect-ratio: 4 / 5;
+  }
+  @media (max-width: 640px) {
+    .fp__frame {
+      aspect-ratio: 16 / 10;
+    }
+  }
+  .fp__badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 1;
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 4px 7px;
+    /* Marca/jerarquía, NO estado: no usa ni amplía --fl-status-*. */
+    background: var(--fl-orange-strong);
+    color: #fff;
+  }
+
+  .fp__body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: clamp(24px, 3vw, 36px);
+  }
+  .fp__name {
+    margin: 0;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(24px, 3vw, 34px);
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    color: var(--fl-ink);
+  }
+  .fp__edition {
+    margin: -6px 0 0;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    color: var(--fl-on-cream-faint);
+  }
+  .fp__desc {
+    margin: 0;
+    max-width: 44ch;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--fl-on-cream-muted);
+  }
+  .fp__price {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(22px, 2.6vw, 30px);
+    line-height: 1;
+    color: var(--fl-ink);
+  }
+
+  /* --- Selector de talla --------------------------------------------------- */
+  .fp__sizes {
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .fp__sizes-legend {
+    padding: 0 0 8px;
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--fl-on-cream-faint);
+  }
+  .fp__sizes-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .fp__size {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 12px;
+    border: 1px solid var(--fl-hairline-ink);
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--fl-ink);
+    cursor: pointer;
+    transition:
+      border-color 140ms var(--ease-out),
+      background-color 140ms var(--ease-out),
+      color 140ms var(--ease-out);
+  }
+  .fp__size input {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .fp__size:has(input:checked) {
+    border-color: var(--fl-orange);
+    background: var(--fl-orange-strong);
+    color: #fff;
+  }
+  .fp__size:has(input:focus-visible) {
+    outline: 3px solid var(--fl-orange);
+    outline-offset: 2px;
+  }
+  .fp__size--unavailable {
+    color: var(--fl-on-cream-faint);
+    text-decoration: line-through;
+    cursor: not-allowed;
+  }
+  .fp__size--unavailable input {
+    cursor: not-allowed;
+  }
+  .fp__sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* --- Barra de stock -------------------------------------------------------
+     `aria-hidden`: el color/ancho nunca es la única fuente del dato — el label
+     textual de al lado siempre lo acompaña. No es role="progressbar": no hay
+     ninguna tarea en curso, es un valor estático server-rendered. */
+  .fp__stock {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .fp__stock-track {
+    height: 6px;
+    background: var(--fl-cream-2);
+  }
+  .fp__stock-fill {
+    height: 100%;
+  }
+  .fp__stock-fill--open {
+    background: var(--fl-status-open);
+  }
+  .fp__stock-fill--warning {
+    background: var(--fl-status-warning);
+  }
+  .fp__stock-fill--closed {
+    background: var(--fl-status-closed);
+  }
+  .fp__stock-label {
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--fl-on-cream-faint);
+  }
+
+  .fp__note {
+    margin: 0;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    color: var(--fl-on-cream-faint);
+  }
+
+  .fp__cta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 16px 26px;
+    margin-top: 4px;
+    background: var(--fl-orange-strong);
+    color: #fff;
+    text-decoration: none;
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    transition:
+      background-color 160ms var(--ease-out),
+      transform 160ms var(--ease-out);
+  }
+  @media (hover: hover) {
+    .fp__cta:hover {
+      background: var(--fl-orange-hover);
+    }
+  }
+  .fp__cta:active {
+    transform: scale(0.98);
+  }
+  .fp__cta:focus-visible {
+    outline: 3px solid var(--fl-orange);
+    outline-offset: 3px;
+  }
+  .fp__cta--ghost {
+    background: transparent;
+    border: 1px solid var(--fl-hairline-ink);
+    color: var(--fl-on-cream-muted);
+  }
+  @media (hover: hover) {
+    .fp__cta--ghost:hover {
+      border-color: var(--fl-orange-ink);
+      color: var(--fl-orange-ink);
+      background: transparent;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .fp__size,
+    .fp__cta {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  // Selector de talla: swap del `href` Y del texto del CTA según la talla
+  // elegida — antes solo cambiaba el link, y el pedido de WhatsApp llegaba
+  // con una talla que la pantalla nunca confirmó (hallazgo P3 de
+  // /impeccable critique 2026-08-21). El mapa talla -> href ya viene armado
+  // desde el servidor (`data-wa-hrefs`); el script no construye ningún link
+  // nuevo, solo lee.
+  function initFeatured(root: HTMLElement) {
+    const fieldset = root.querySelector<HTMLElement>('[data-fp-sizes]');
+    const cta = root.querySelector<HTMLAnchorElement>('[data-fp-cta]');
+    const label = root.querySelector<HTMLElement>('[data-fp-cta-label]');
+    if (!fieldset || !cta) return;
+
+    const raw = fieldset.dataset.waHrefs;
+    if (!raw) return;
+    const hrefs: Record<string, string | null> = JSON.parse(raw);
+
+    const inputs = Array.from(fieldset.querySelectorAll<HTMLInputElement>('input[type="radio"]'));
+    for (const input of inputs) {
+      input.addEventListener('change', () => {
+        const href = hrefs[input.value];
+        if (href) cta.href = href;
+        if (label) label.textContent = `Pedir talla ${input.value} por WhatsApp`;
+      });
+    }
+  }
+
+  document.addEventListener('astro:page-load', () => {
+    document.querySelectorAll<HTMLElement>('.fp').forEach(initFeatured);
+  });
+</script>

@@ -1,0 +1,47 @@
+---
+// ProductPlaceholder — motivo de color neutro para un producto sin foto real
+// todavía (`product.image` está ausente en v1: ver `products.ts`). Es el ÚNICO
+// lugar donde entra un `<Image>` real más adelante: cuando `mapProducto()`
+// empiece a traer fotos de Sanity, esta es la costura que cambia, no cada card.
+//
+// Tres variantes de bloque (`block-a/b/c`) para que la grilla no se vea como
+// cinco copias del mismo rectángulo — un desacuerdo tonal sutil, no un patrón
+// decorativo nuevo: los tres se derivan de los tokens navy/orange existentes.
+interface Props {
+  placeholder: 'block-a' | 'block-b' | 'block-c';
+  imageAlt: string;
+}
+const { placeholder, imageAlt } = Astro.props;
+---
+
+<div class={`pp pp--${placeholder}`} role="img" aria-label={imageAlt}></div>
+
+<style>
+  .pp {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+  }
+  .pp::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      135deg,
+      rgba(246, 240, 228, 0.06) 0px,
+      rgba(246, 240, 228, 0.06) 2px,
+      transparent 2px,
+      transparent 14px
+    );
+  }
+  .pp--block-a {
+    background: var(--fl-navy);
+  }
+  .pp--block-b {
+    background: var(--fl-navy-2);
+  }
+  .pp--block-c {
+    background: var(--fl-navy-3);
+  }
+</style>

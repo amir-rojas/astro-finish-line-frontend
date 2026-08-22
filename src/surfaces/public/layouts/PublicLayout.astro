@@ -167,7 +167,11 @@ const { title, description, ogImage, ogUrl, canonical } = Astro.props;
     --fl-status-closed: #52525b; /* blanco encima: 7.73:1 */
     --fl-status-open-ink: #8ee0ac; /* tinta/borde sobre navy: 10.92:1 */
 
-    --fl-container: 1180px;
+    /* 1180 → 1440: en pantallas grandes dejaba demasiado espacio muerto a los
+       lados y apretaba las grillas (ej. ProductGrid de Tienda) más de lo que
+       hacía falta. 1440 es también el ancho real del canvas del mockup de
+       referencia — dueño de producto lo comparó y prefirió ese aire. */
+    --fl-container: 1440px;
 
     background: var(--fl-navy);
     color: var(--fl-cream);

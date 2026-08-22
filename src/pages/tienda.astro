@@ -1,0 +1,70 @@
+---
+// Ruta pública "/tienda" — vitrina de merchandising con datos placeholder.
+// THIN: carga los productos y orquesta las secciones del feature `tienda`.
+//
+// Ruta DELIBERADAMENTE no enlazada desde SiteHeader/SiteFooter y excluida del
+// sitemap (ver `astro.config.mjs`): es una pantalla en construcción sobre datos
+// de muestra, no lista para índices ni para navegación pública todavía. El
+// `noindex,nofollow` va ACÁ, no en `PublicLayout` (que sí se comparte con toda
+// página pública indexable) — mismo criterio que `AdminLayout.astro`.
+import PublicLayout from '@public/layouts/PublicLayout.astro';
+import SiteHeader from '@public/components/SiteHeader.astro';
+import SiteFooter from '@public/components/SiteFooter.astro';
+import StoreHeader from '@public/features/tienda/sections/StoreHeader.astro';
+import ProductGrid from '@public/features/tienda/sections/ProductGrid.astro';
+import InfoStrip from '@public/features/tienda/sections/InfoStrip.astro';
+import StoreMobileCta from '@public/features/tienda/sections/StoreMobileCta.astro';
+import { getProducts } from '@public/features/tienda/products';
+import { whatsappLink } from '@shared/config/site';
+import { BROWSE_MESSAGE } from '@public/features/tienda/format';
+
+const products = await getProducts();
+const featured = products.find((p) => p.featured);
+const rest = products.filter((p) => p !== featured);
+
+// Mismo `wa` que decide si `StoreMobileCta` renderiza algo: si no hay
+// WhatsApp configurado la barra no existe, y el spacer de abajo tampoco debe
+// reservarle un hueco muerto. Duplicado a propósito — mismo criterio que
+// `calendario/[slug].astro` con su `MobileCta`.
+const wa = whatsappLink(BROWSE_MESSAGE);
+---
+
+<PublicLayout
+  title="Tienda"
+  description="Poleras, medallas y accesorios de nuestras carreras. Pedidos por WhatsApp."
+>
+  <Fragment slot="head">
+    {/* Ver nota de cabecera: byte-idéntico a AdminLayout.astro. */}
+    <meta name="robots" content="noindex,nofollow" />
+  </Fragment>
+  <SiteHeader />
+  <main id="contenido">
+    <StoreHeader />
+    <ProductGrid featured={featured} products={rest} />
+    <InfoStrip />
+    <StoreMobileCta />
+  </main>
+  <SiteFooter />
+
+  {/* Reserva el alto de la barra fija móvil al final del documento para que
+      no tape el pie — sin esto, la última fila del footer queda inalcanzable
+      con scroll (hallazgo P1 de /impeccable critique 2026-08-21). Solo cuando
+      la barra realmente se muestra. */}
+  {wa && <div class="smc-gap" aria-hidden="true" />}
+</PublicLayout>
+
+<style>
+  .smc-gap {
+    display: none;
+  }
+  @media (max-width: 900px) {
+    .smc-gap {
+      display: block;
+      /* Medido en vivo: la barra real ronda 80.57px (12+12 de padding + botón
+         de 44px min-height que crece a ~48 con su propio padding). 84px deja
+         margen real, no al límite — ver hallazgo de /impeccable critique
+         2026-08-21 (spacer quedaba 4.4px corto). */
+      height: calc(84px + env(safe-area-inset-bottom, 0px));
+    }
+  }
+</style>
