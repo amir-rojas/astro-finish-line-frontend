@@ -58,14 +58,14 @@ const greeting = name ? `Hola, ${name}` : 'Panel administrativo';
   }
   .greeting {
     font-family: 'Barlow', sans-serif;
-    font-size: 20px;
+    font-size: var(--adm-text-lg);
     font-weight: 700;
     color: var(--adm-ink);
     margin: 0;
   }
   .date {
     font-family: 'Barlow', sans-serif;
-    font-size: 13px;
+    font-size: var(--adm-text-sm);
     font-weight: 500;
     color: var(--adm-muted);
     margin: 0;
@@ -79,7 +79,7 @@ const greeting = name ? `Hola, ${name}` : 'Panel administrativo';
     border: 1px solid var(--adm-border);
     border-radius: var(--adm-radius-control);
     font-family: 'Barlow', sans-serif;
-    font-size: 13px;
+    font-size: var(--adm-text-sm);
     font-weight: 600;
     color: var(--adm-text);
     text-decoration: none;

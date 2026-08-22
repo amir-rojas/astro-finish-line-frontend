@@ -1,0 +1,794 @@
+---
+// ParticipantsBrowser — la isla de `/admin/participantes` (PR1 de
+// `sdd/admin-reportes`, design "Technical Approach" + "Participants Table +
+// Pager"; restyle posterior contra el mock "Pestaña Participantes" de
+// claude.ai/design — alcance recortado a "solo lo real": badge
+// recurrente/nueva y link de WhatsApp por fila, ambos derivados de campos ya
+// existentes en `ParticipantDto`. El buscador, los filtros con contador
+// global, la ficha con historial/pagos/talla y la difusión masiva del mock
+// NO se construyen — el contrato de Go no tiene esos datos). Global roster
+// server-paginado, sin selector de carrera en v1 (spec "Aggregate Roster, No
+// Race Filter UI"). Mismo patrón que `RegistrationsBrowser.astro`:
+// `<script type="module">` + `data-*`, sin `client:*` (este repo no tiene
+// ningún framework de componentes instalado).
+//
+// El teléfono ya no se muestra como texto plano: se linkea a wa.me, mismo
+// criterio de "quitar todo lo que no sea dígito" que `shared/config/site.ts`
+// usa para el WhatsApp de la organización (el número ya viene con "+591"
+// compuesto desde el formulario de inscripción, ver `pages/api/inscripciones.ts`).
+// Esa columna se sigue ocultando bajo 768px (`.pb__col-phone`) — nunca se
+// deja de pedir el dato, solo se oculta visualmente.
+---
+
+<div class="pb" data-participants-browser>
+  <div class="pb__toolbar">
+    <div class="pb__search">
+      <label for="pb-search" class="pb__search-label">Buscar participante</label>
+      <input
+        type="search"
+        id="pb-search"
+        class="pb__search-input"
+        data-pb-search
+        placeholder="Buscar por nombre, email, CI o teléfono…"
+        autocomplete="off"
+      />
+    </div>
+    <p class="pb__count" data-pb-count hidden aria-live="polite"></p>
+  </div>
+
+  <div class="pb__body">
+    <div class="pb__state" data-state hidden aria-live="polite">
+      <p class="pb__state-text" data-state-text></p>
+      <button type="button" class="pb__retry" data-state-retry hidden></button>
+    </div>
+
+    <div class="pb__table-wrap" data-pb-table-wrap hidden>
+      <table class="pb__table">
+        <thead>
+          <tr>
+            <th scope="col">Corredor</th>
+            <th scope="col">Email</th>
+            <th scope="col" class="pb__col-phone">WhatsApp</th>
+            <th scope="col">Género</th>
+            <th scope="col">Edad</th>
+            <th scope="col">Carreras</th>
+          </tr>
+        </thead>
+        <tbody data-pb-tbody></tbody>
+      </table>
+    </div>
+
+    <div class="pb__pager" data-pb-pager hidden>
+      <button type="button" class="pb__pager-btn" data-pb-prev>« Anterior</button>
+      <p class="pb__pager-info" data-pb-pager-info></p>
+      <button type="button" class="pb__pager-btn" data-pb-next>Siguiente »</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .pb {
+    background: var(--adm-surface);
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius-card);
+    padding: 24px;
+  }
+
+  .pb__toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 12px;
+  }
+  .pb__count {
+    margin: 0;
+    flex: none;
+    font-family: 'Barlow', sans-serif;
+    font-size: var(--adm-text-sm);
+    font-weight: 700;
+    color: var(--adm-ink);
+  }
+
+  /* Buscador: sin endpoint de búsqueda en Go (`/participants` solo acepta
+     `page`/`page_size`/`race_id`), se resuelve 100% en el cliente sobre el
+     roster completo — ver el `<script>` para el porqué del fetch perezoso.
+     `<label>`/`<input>` son markup estático del archivo: no necesitan
+     `:global()`, a diferencia de las filas de la tabla de abajo. */
+  .pb__search {
+    flex: 1;
+    max-width: 360px;
+  }
+  .pb__search-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .pb__search-input {
+    width: 100%;
+    padding: 9px 14px;
+    font-family: 'Barlow', sans-serif;
+    font-size: var(--adm-text-sm);
+    font-weight: 500;
+    color: var(--adm-ink);
+    background: #ffffff;
+    border: 1.5px solid var(--adm-border);
+    border-radius: var(--adm-radius-control);
+    outline: none;
+  }
+  .pb__search-input::placeholder {
+    color: var(--adm-muted);
+  }
+  .pb__search-input:focus-visible {
+    border-color: var(--adm-accent);
+  }
+
+  .pb__state {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 28px 20px;
+    background: var(--adm-bg);
+    border-radius: var(--adm-radius-control);
+  }
+  .pb__state[hidden] {
+    display: none;
+  }
+  .pb__state-text {
+    margin: 0;
+    font-family: 'Barlow', sans-serif;
+    font-size: var(--adm-text-sm);
+    font-weight: 600;
+    color: var(--adm-text);
+  }
+  .pb__retry {
+    padding: 8px 16px;
+    min-height: 44px;
+    font-family: 'Barlow', sans-serif;
+    font-size: var(--adm-text-sm);
+    font-weight: 700;
+    color: var(--adm-accent);
+    background: none;
+    border: 1.5px solid var(--adm-accent);
+    border-radius: var(--adm-radius-control);
+    cursor: pointer;
+  }
+  .pb__retry[hidden] {
+    display: none;
+  }
+  .pb__retry:hover {
+    background: color-mix(in srgb, var(--adm-accent) 10%, transparent);
+  }
+
+  .pb__table-wrap[hidden] {
+    display: none;
+  }
+  .pb__table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-family: 'Barlow', sans-serif;
+    font-size: var(--adm-text-sm);
+  }
+  /* Anchos fijos por columna (crítica `/impeccable`: sin esto, las columnas
+     se corrían levemente entre páginas según el largo del contenido —
+     `table-layout:fixed` toma los anchos de la fila del `<thead>`, así que
+     alcanza con declararlos acá, sin `<colgroup>`). Los 6 valores suman
+     100%. */
+  .pb__table th:nth-child(1) {
+    width: 30%;
+  }
+  .pb__table th:nth-child(2) {
+    width: 22%;
+  }
+  .pb__table th.pb__col-phone {
+    width: 18%;
+  }
+  .pb__table th:nth-child(4) {
+    width: 10%;
+  }
+  .pb__table th:nth-child(5) {
+    width: 8%;
+  }
+  .pb__table th:nth-child(6) {
+    width: 12%;
+  }
+  .pb__table th {
+    padding: 10px 12px;
+    text-align: left;
+    font-size: var(--adm-text-xs);
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--adm-muted);
+    border-bottom: 1.5px solid var(--adm-border);
+  }
+  /* :global() en TODO lo de acá para abajo que vive dentro de <tbody>: esas
+     filas las arma `renderRows()` con `document.createElement` en el
+     navegador, nunca pasan por el compilador de Astro, así que jamás reciben
+     el atributo `data-astro-cid-*` que el scoping de `<style>` exige — un
+     selector sin `:global()` acá compila a algo como `.pb__avatar[data-astro-cid-x]`
+     y nunca matchea. Confirmado en vivo con `getComputedStyle` (border-radius
+     0px, fondo transparente, display:block) antes de este fix — mismo hueco
+     que ya se había anotado como riesgo latente para este patrón hace
+     varias sesiones, nunca verificado hasta ahora. `.pb__table th` NO
+     necesita esto: el `<thead>` es markup estático del archivo, sí recibe
+     el atributo. */
+  :global(.pb__table td) {
+    padding: 10px 12px;
+    color: var(--adm-ink);
+    border-bottom: 1px solid var(--adm-border);
+    vertical-align: middle;
+  }
+  :global(.pb__table tbody tr:last-child td) {
+    border-bottom: none;
+  }
+  /* Hover neutro para anclar el ojo al escanear — a propósito NO usa el
+     naranja/acento ni un borde lateral: ese lenguaje visual del mock queda
+     reservado para un estado "seleccionado" que esta tabla no tiene (sin
+     panel lateral), no para el simple paso del mouse. */
+  :global(.pb__table tbody tr:hover td) {
+    background: var(--adm-bg);
+  }
+
+  /* Celda "Corredor": avatar neutro (iniciales) + nombre/CI en dos líneas —
+     reemplaza las columnas separadas Nombre/Documento del v1, tomando la
+     jerarquía de dos líneas del mock de diseño. */
+  :global(.pb__runner) {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  :global(.pb__avatar) {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--adm-border);
+    color: var(--adm-text);
+    font-weight: 700;
+    font-size: var(--adm-text-xs);
+  }
+  :global(.pb__runner-name) {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  :global(.pb__runner-fullname) {
+    font-weight: 700;
+    color: var(--adm-ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  :global(.pb__runner-doc) {
+    font-size: var(--adm-text-xs);
+    color: var(--adm-muted);
+  }
+
+  /* `--adm-accent-ink`, no `--adm-accent`: el acento puro falla AA como
+     color de texto (3.40:1) — ver el comentario del token en
+     `AdminLayout.astro`. */
+  :global(.pb__whatsapp) {
+    color: var(--adm-accent-ink);
+    font-weight: 700;
+    text-decoration: none;
+  }
+  :global(.pb__whatsapp:hover) {
+    text-decoration: underline;
+  }
+
+  /* Carreras: cantidad + badge "★ Recurrente"/"Nueva", derivados de
+     `racesCount` — nunca un tercer estado inventado para 0 (spec: un
+     participante listado siempre viene de al menos una inscripción, pero se
+     tolera el caso defensivo sin forzar una etiqueta que no aplica). */
+  :global(.pb__races) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  :global(.pb__races-count) {
+    font-weight: 800;
+  }
+  :global(.pb__badge) {
+    flex: none;
+    font-size: var(--adm-text-xs);
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    padding: 2px 8px;
+    border-radius: var(--adm-radius-pill);
+    white-space: nowrap;
+  }
+  :global(.pb__badge--recurrente) {
+    color: var(--adm-amber);
+    background: var(--adm-amber-soft);
+  }
+  :global(.pb__badge--nueva) {
+    color: var(--adm-success);
+    background: var(--adm-success-soft);
+  }
+
+  .pb__pager {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 18px;
+  }
+  .pb__pager[hidden] {
+    display: none;
+  }
+  .pb__pager-info {
+    margin: 0;
+    font-family: 'Barlow', sans-serif;
+    font-size: var(--adm-text-sm);
+    font-weight: 600;
+    color: var(--adm-muted);
+  }
+  .pb__pager-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 8px 16px;
+    font-family: 'Barlow', sans-serif;
+    font-size: var(--adm-text-sm);
+    font-weight: 700;
+    color: var(--adm-ink);
+    background: #ffffff;
+    border: 1.5px solid var(--adm-border);
+    border-radius: var(--adm-radius-control);
+    cursor: pointer;
+  }
+  .pb__pager-btn:disabled {
+    color: var(--adm-muted);
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+  .pb__pager-btn:not(:disabled):hover {
+    border-color: var(--adm-accent);
+    color: var(--adm-accent);
+  }
+  .pb__pager-btn:focus-visible {
+    outline: 2px solid var(--adm-accent);
+    outline-offset: 2px;
+  }
+
+  @media (max-width: 768px) {
+    /* `.pb__col-phone` vive tanto en el `<th>` estático como en el `<td>`
+       armado por JS — `:global()` cubre los dos sin duplicar la regla. */
+    :global(.pb__col-phone) {
+      display: none;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .pb__table-wrap {
+      overflow-x: auto;
+    }
+    .pb__table {
+      min-width: 460px;
+    }
+    :global(.pb__runner-fullname) {
+      max-width: 160px;
+    }
+  }
+</style>
+
+<script>
+  import { createStateView } from '@admin/lib/island-state';
+
+  // Contratos duplicados de `features/participants/types.ts` a propósito:
+  // este script se bundlea aparte para el navegador (mismo criterio que
+  // `RegistrationsBrowser.astro`).
+  type BffErrCode = 'unauthorized' | 'validation' | 'server';
+  interface Participant {
+    id: string;
+    fullName: string;
+    email: string;
+    phone: string;
+    documentId: string;
+    gender: string;
+    genderLabel: string;
+    birthDate: string;
+    age: number | null;
+    racesCount: number;
+  }
+  interface ParticipantsPage {
+    items: Participant[];
+    total: number;
+    page: number;
+    pageSize: number;
+  }
+  type ParticipantsResponse =
+    | { ok: true; data: ParticipantsPage }
+    | { ok: false; code: BffErrCode; message: string };
+
+  // Iniciales del avatar — primera letra de nombre(s) + primera de
+  // apellido(s), tolerante a nombres con un solo token.
+  function initials(fullName: string): string {
+    const parts = fullName.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return '—';
+    if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
+    return (parts[0]![0]! + parts[parts.length - 1]![0]!).toUpperCase();
+  }
+
+  // Mismo criterio de `shared/config/site.ts` (`whatsappLink`): el href de
+  // wa.me se arma quitando todo lo que no sea dígito. El teléfono ya viene
+  // con "+591" compuesto desde el formulario (`pages/api/inscripciones.ts`),
+  // así que nunca se antepone un código de país acá.
+  function whatsappHref(phone: string): string | null {
+    const digits = phone.replace(/\D/g, '');
+    return digits ? `https://wa.me/${digits}` : null;
+  }
+
+  // Sin ícono en ninguno de los dos estados (crítica `/impeccable`: la
+  // estrella solo en "Recurrente" era una asimetría sin motivo, y el glyph
+  // suelto podía leerse literal en un lector de pantalla) — el color + el
+  // texto ya distinguen el estado.
+  function badgeFor(racesCount: number): { label: string; variant: 'recurrente' | 'nueva' } | null {
+    if (racesCount > 1) return { label: 'Recurrente', variant: 'recurrente' };
+    if (racesCount === 1) return { label: 'Nueva', variant: 'nueva' };
+    return null;
+  }
+
+  function initBrowser(root: HTMLElement) {
+    const countEl = root.querySelector<HTMLElement>('[data-pb-count]');
+    const tableWrap = root.querySelector<HTMLElement>('[data-pb-table-wrap]');
+    const tbody = root.querySelector<HTMLElement>('[data-pb-tbody]');
+    const pagerEl = root.querySelector<HTMLElement>('[data-pb-pager]');
+    const pagerInfo = root.querySelector<HTMLElement>('[data-pb-pager-info]');
+    const prevBtn = root.querySelector<HTMLButtonElement>('[data-pb-prev]');
+    const nextBtn = root.querySelector<HTMLButtonElement>('[data-pb-next]');
+    const searchInput = root.querySelector<HTMLInputElement>('[data-pb-search]');
+    if (!countEl || !tableWrap || !tbody || !pagerEl || !pagerInfo || !prevBtn || !nextBtn || !searchInput) return;
+
+    const view = createStateView(root);
+    if (!view) return;
+
+    // Guard de secuencia: contador monotónico, no `AbortController` (mismo
+    // criterio que `RegistrationsBrowser.astro` — alcanza con descartar
+    // respuestas obsoletas comparando contra el id más reciente).
+    let requestId = 0;
+    let currentPage = 1;
+
+    const renderRows = (items: Participant[]) => {
+      tbody.innerHTML = '';
+      const fragment = document.createDocumentFragment();
+      for (const item of items) {
+        const tr = document.createElement('tr');
+
+        // Corredor: avatar + nombre/CI.
+        const runnerTd = document.createElement('td');
+        const runner = document.createElement('div');
+        runner.className = 'pb__runner';
+        const avatar = document.createElement('span');
+        avatar.className = 'pb__avatar';
+        avatar.setAttribute('aria-hidden', 'true');
+        avatar.textContent = initials(item.fullName);
+        const nameBlock = document.createElement('div');
+        nameBlock.className = 'pb__runner-name';
+        const fullnameEl = document.createElement('span');
+        fullnameEl.className = 'pb__runner-fullname';
+        fullnameEl.textContent = item.fullName || '—';
+        const docEl = document.createElement('span');
+        docEl.className = 'pb__runner-doc';
+        docEl.textContent = item.documentId ? `CI ${item.documentId}` : '—';
+        nameBlock.append(fullnameEl, docEl);
+        runner.append(avatar, nameBlock);
+        runnerTd.appendChild(runner);
+        tr.appendChild(runnerTd);
+
+        // Email — texto plano, igual que antes.
+        const emailTd = document.createElement('td');
+        emailTd.textContent = item.email || '—';
+        tr.appendChild(emailTd);
+
+        // WhatsApp — link si hay teléfono, texto tenue si no.
+        const phoneTd = document.createElement('td');
+        phoneTd.className = 'pb__col-phone';
+        const href = item.phone ? whatsappHref(item.phone) : null;
+        if (href) {
+          const link = document.createElement('a');
+          link.className = 'pb__whatsapp';
+          link.href = href;
+          link.target = '_blank';
+          link.rel = 'noopener';
+          link.textContent = `${item.phone} ↗`;
+          phoneTd.appendChild(link);
+        } else {
+          phoneTd.textContent = '—';
+        }
+        tr.appendChild(phoneTd);
+
+        // Género, edad — sin cambios.
+        const genderTd = document.createElement('td');
+        genderTd.textContent = item.genderLabel || '—';
+        tr.appendChild(genderTd);
+
+        const ageTd = document.createElement('td');
+        ageTd.textContent = item.age != null ? String(item.age) : '—';
+        tr.appendChild(ageTd);
+
+        // Carreras: cantidad + badge recurrente/nueva.
+        const racesTd = document.createElement('td');
+        const racesWrap = document.createElement('div');
+        racesWrap.className = 'pb__races';
+        const countSpan = document.createElement('span');
+        countSpan.className = 'pb__races-count';
+        countSpan.textContent = String(item.racesCount);
+        racesWrap.appendChild(countSpan);
+        const badge = badgeFor(item.racesCount);
+        if (badge) {
+          const badgeEl = document.createElement('span');
+          badgeEl.className = `pb__badge pb__badge--${badge.variant}`;
+          badgeEl.textContent = badge.label;
+          racesWrap.appendChild(badgeEl);
+        }
+        racesTd.appendChild(racesWrap);
+        tr.appendChild(racesTd);
+
+        fragment.appendChild(tr);
+      }
+      tbody.appendChild(fragment);
+    };
+
+    const setUrlPage = (page: number) => {
+      const url = new URL(window.location.href);
+      if (page > 1) url.searchParams.set('page', String(page));
+      else url.searchParams.delete('page');
+      window.history.replaceState({}, '', url);
+    };
+
+    const load = async (page: number) => {
+      const id = ++requestId;
+      view.loading();
+      tableWrap.hidden = true;
+      pagerEl.hidden = true;
+      countEl.hidden = true;
+      prevBtn.disabled = true;
+      nextBtn.disabled = true;
+
+      let res: Response;
+      try {
+        res = await fetch(`/api/admin/participants?page=${page}`);
+      } catch {
+        if (id !== requestId) return;
+        view.error('No pudimos conectar con el servidor.', () => void load(page));
+        return;
+      }
+
+      let body: ParticipantsResponse;
+      try {
+        body = await res.json();
+      } catch {
+        if (id !== requestId) return;
+        view.error('Ocurrió un error inesperado.', () => void load(page));
+        return;
+      }
+
+      if (id !== requestId) return;
+
+      if (!body.ok) {
+        if (body.code === 'unauthorized') {
+          view.unauthorized();
+          return;
+        }
+        view.error(body.message || 'No pudimos cargar los participantes.', () => void load(page));
+        return;
+      }
+
+      currentPage = body.data.page;
+      setUrlPage(currentPage);
+      countEl.hidden = false;
+      countEl.textContent = `${body.data.total} participantes`;
+
+      if (body.data.items.length === 0) {
+        // Página vacía: 0 participantes en total (roster vacío) vs. una
+        // página fuera de rango tras restaurar `?page=` (spec/design
+        // "Participants Table + Pager" — overshoot muestra una acción para
+        // volver, nunca un error).
+        if (currentPage > 1) {
+          view.empty('Esta página no tiene participantes.', {
+            label: 'Volver a la primera página',
+            run: () => void load(1),
+          });
+        } else {
+          view.empty('Todavía no hay participantes registrados.');
+        }
+        return;
+      }
+
+      view.ready();
+      renderRows(body.data.items);
+      tableWrap.hidden = false;
+
+      const totalPages = Math.max(1, Math.ceil(body.data.total / body.data.pageSize));
+      pagerEl.hidden = false;
+      pagerInfo.textContent = `Página ${currentPage} de ${totalPages}`;
+      prevBtn.disabled = currentPage <= 1;
+      nextBtn.disabled = currentPage >= totalPages;
+    };
+
+    // Buscador — sin endpoint de búsqueda en Go (`/participants` solo
+    // acepta `page`/`page_size`/`race_id`): se resuelve en el cliente sobre
+    // el roster COMPLETO, traído recién al primer uso del buscador, nunca
+    // al montar (la carga paginada de a 25 sigue igual de liviana para el
+    // uso normal — spec "Server-Side Pagination... Fixed en v1", no se
+    // toca). Se cachea en memoria mientras dure la visita a esta pantalla.
+    let fullRoster: Participant[] | null = null;
+    let fullRosterPromise: Promise<Participant[] | null> | null = null;
+    let fullRosterTruncated = false;
+    let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+    let lastQuery = '';
+
+    // Techo de seguridad: si el roster llegara a tener miles de filas, no
+    // queremos un loop sin fin ni todo en memoria — a los 2000 registros o
+    // 20 páginas (lo que llegue primero) se corta, y el conteo de
+    // resultados lo avisa explícitamente (nunca un recorte silencioso).
+    const FULL_ROSTER_MAX_REQUESTS = 20;
+    const FULL_ROSTER_SAFETY_CEILING = 2000;
+
+    // Quita tildes/diacríticos y pasa a minúsculas — "jose" debe encontrar
+    // "José". `NFD` separa la letra de su marca diacrítica, el regex la tira.
+    const normalize = (value: string): string =>
+      value
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase();
+
+    const matchesQuery = (item: Participant, normalizedQuery: string): boolean =>
+      [item.fullName, item.email, item.documentId, item.phone].some((field) =>
+        normalize(field || '').includes(normalizedQuery),
+      );
+
+    // No usa `page_size` grande a propósito: no está confirmado que Go lo
+    // respete (no se pudo probar en vivo contra el backend local), así que
+    // se prefiere loopear con el `page_size` que el servidor ya devuelve —
+    // más pedidos, pero nunca asume un contrato que no está verificado.
+    const fetchFullRoster = async (): Promise<Participant[] | null> => {
+      if (fullRoster) return fullRoster;
+      if (fullRosterPromise) return fullRosterPromise;
+
+      fullRosterPromise = (async () => {
+        const collected: Participant[] = [];
+        let page = 1;
+        let total = Number.POSITIVE_INFINITY;
+        let requests = 0;
+
+        while (
+          collected.length < total &&
+          requests < FULL_ROSTER_MAX_REQUESTS &&
+          collected.length < FULL_ROSTER_SAFETY_CEILING
+        ) {
+          requests += 1;
+          let res: Response;
+          try {
+            res = await fetch(`/api/admin/participants?page=${page}`);
+          } catch {
+            view.error('No pudimos conectar con el servidor.', () => void runSearch(lastQuery, true));
+            return null;
+          }
+
+          let body: ParticipantsResponse;
+          try {
+            body = await res.json();
+          } catch {
+            view.error('Ocurrió un error inesperado.', () => void runSearch(lastQuery, true));
+            return null;
+          }
+
+          if (!body.ok) {
+            if (body.code === 'unauthorized') {
+              view.unauthorized();
+              return null;
+            }
+            view.error(body.message || 'No pudimos cargar los participantes.', () => void runSearch(lastQuery, true));
+            return null;
+          }
+
+          total = body.data.total;
+          collected.push(...body.data.items);
+          if (body.data.items.length === 0) break;
+          page += 1;
+        }
+
+        fullRosterTruncated = collected.length < total;
+        fullRoster = collected;
+        return collected;
+      })();
+
+      try {
+        return await fullRosterPromise;
+      } finally {
+        fullRosterPromise = null;
+      }
+    };
+
+    const showSearchResults = (items: Participant[], query: string): void => {
+      view.ready();
+      pagerEl.hidden = true;
+      if (items.length === 0) {
+        tableWrap.hidden = true;
+        countEl.hidden = true;
+        view.empty(`No encontramos participantes para "${query}".`);
+        return;
+      }
+      renderRows(items);
+      tableWrap.hidden = false;
+      countEl.hidden = false;
+      const suffix = fullRosterTruncated ? ` (de los primeros ${fullRoster?.length ?? 0} participantes)` : '';
+      countEl.textContent = `${items.length} resultado${items.length === 1 ? '' : 's'}${suffix}`;
+    };
+
+    // `force`: reintento tras un error del fetch completo — descarta el
+    // cache (posiblemente vacío/parcial) y arranca de nuevo.
+    const runSearch = async (query: string, force = false): Promise<void> => {
+      lastQuery = query;
+      if (force) fullRoster = null;
+
+      if (!fullRoster) {
+        view.loading();
+        tableWrap.hidden = true;
+        pagerEl.hidden = true;
+        countEl.hidden = true;
+      }
+
+      const roster = await fetchFullRoster();
+      if (lastQuery !== query) return; // ya escribió otra cosa mientras esperaba
+      if (!roster) return; // error/401 ya mostrado por fetchFullRoster
+
+      const normalizedQuery = normalize(query);
+      const matches = roster.filter((item) => matchesQuery(item, normalizedQuery));
+      showSearchResults(matches, query);
+    };
+
+    searchInput.addEventListener('input', () => {
+      const query = searchInput.value.trim();
+      if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+
+      if (!query) {
+        // Buscador vacío: vuelve a la vista paginada normal, en la página
+        // en la que el usuario estaba antes de buscar.
+        lastQuery = '';
+        void load(currentPage);
+        return;
+      }
+
+      searchDebounceTimer = setTimeout(() => void runSearch(query), 130);
+    });
+
+    prevBtn.addEventListener('click', () => {
+      if (currentPage > 1) void load(currentPage - 1);
+    });
+    nextBtn.addEventListener('click', () => void load(currentPage + 1));
+
+    // `?page=` sobrevive al recargar (mismo criterio que `?carrera=` en
+    // `RegistrationsBrowser.astro`).
+    const params = new URLSearchParams(window.location.search);
+    const raw = params.get('page');
+    const parsedPage = raw ? Number.parseInt(raw, 10) : 1;
+    const initialPage = Number.isFinite(parsedPage) && parsedPage >= 1 ? parsedPage : 1;
+
+    void load(initialPage);
+  }
+
+  // `astro:page-load` fires on first load AND after every ClientRouter
+  // navigation (`AdminShell.astro` now carries it) — a bundled module
+  // script otherwise runs only once ever, so without this the browser would
+  // go dead on a second visit to `/admin/participantes` in the same tab.
+  document.addEventListener('astro:page-load', () => {
+    const root = document.querySelector<HTMLElement>('[data-participants-browser]');
+    if (root) initBrowser(root);
+  });
+</script>

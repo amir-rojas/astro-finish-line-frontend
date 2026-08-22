@@ -19,7 +19,13 @@ export interface RegistrationRow {
   createdAt: string;
 }
 
-export type BffErrCode = 'unauthorized' | 'validation' | 'server';
+// Movido a `@admin/lib/bff-types` (`sdd/admin-reportes`, design "Decision:
+// `BffErrCode` gets a single home") — evita dos uniones idénticas cuando
+// aparecieron las rutas BFF de participants/reports en este mismo change.
+// Re-exportado (no solo `export type {...} from`) para que siga usable
+// dentro de este mismo archivo, más abajo.
+import type { BffErrCode } from '@admin/lib/bff-types';
+export type { BffErrCode };
 
 export type RacesResponse = { ok: true; races: RaceOption[] } | { ok: false; code: BffErrCode; message: string };
 

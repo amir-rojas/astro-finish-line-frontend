@@ -1,0 +1,139 @@
+---
+// TimelineSummaryCard — mini "Inscripciones · últimos 14 días" del dashboard
+// (`/admin`), pariente reducido de `RegistrationsTimelineWidget.astro` en
+// `/admin/reportes`. A diferencia de ese widget, no tiene selector de carrera
+// (siempre "todas las carreras", spec "Aggregate 'All Races' Default"): el
+// fetch corre server-side en `pages/admin/index.astro` con el mismo
+// `getRegistrationsTimeline` que usa la ruta BFF. Ahora SÍ necesita un
+// `<script>` de cliente (antes no lo tenía) porque ApexCharts renderiza en
+// el navegador — reusa el mismo seam `renderTimelineChart` que el widget
+// completo, solo que acá lo alimenta con datos ya resueltos en SSR en vez de
+// hacer su propio fetch.
+import BlockError from '@admin/components/BlockError.astro';
+import type { GetRegistrationsTimelineResult } from '@admin/features/reports/api';
+
+interface Props {
+  result: GetRegistrationsTimelineResult;
+}
+const { result } = Astro.props;
+
+const points = result.ok ? result.points : [];
+// Mismo criterio que el widget de `/admin/reportes`: Go rellena huecos con
+// `count: 0` en la ventana fija de 14 días, así que "vacío" es "todo cero".
+const isEmpty = points.length === 0 || points.every((p) => p.count === 0);
+const total = points.reduce((sum, p) => sum + p.count, 0);
+const avgPerDay = points.length > 0 ? Math.round((total / points.length) * 10) / 10 : 0;
+const pointsJson = JSON.stringify(points);
+---
+
+<section class="tsc">
+  <div class="tsc__header">
+    <h2 class="tsc__title">Inscripciones · últimos 14 días</h2>
+    <a href="/admin/reportes" class="tsc__link">Ver reporte →</a>
+  </div>
+
+  {!result.ok && <BlockError variant="error" message="No pudimos cargar el timeline." />}
+  {result.ok && isEmpty && <BlockError variant="empty" message="Sin inscripciones en los últimos 14 días." />}
+
+  {
+    result.ok && !isEmpty && (
+      <Fragment>
+        <div class="tsc__chart" data-tsc-chart data-points={pointsJson} />
+        <p class="tsc__insight">
+          <strong>{total}</strong> en total · promedio <strong>{avgPerDay}</strong>/día
+        </p>
+      </Fragment>
+    )
+  }
+</section>
+
+<style>
+  .tsc {
+    background: var(--adm-surface);
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius-card);
+    padding: 20px 22px;
+  }
+  .tsc__header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .tsc__title {
+    font-family: 'Barlow', sans-serif;
+    font-size: var(--adm-text-md);
+    font-weight: 700;
+    color: var(--adm-ink);
+    margin: 0;
+  }
+  .tsc__link {
+    flex-shrink: 0;
+    font-family: 'Barlow', sans-serif;
+    font-size: var(--adm-text-sm);
+    font-weight: 600;
+    color: var(--adm-accent);
+    text-decoration: none;
+  }
+  .tsc__link:hover {
+    text-decoration: underline;
+  }
+
+  .tsc__chart {
+    width: 100%;
+  }
+  /* ApexCharts mounts its own SVG tree at runtime — styled via JS options
+     (`chart-tokens.ts` + `apex-defaults.ts`), not CSS. */
+  .tsc__chart :global(.timeline-chart__sr-only) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .tsc__insight {
+    margin: 12px 0 0;
+    font-family: 'Barlow', sans-serif;
+    font-size: var(--adm-text-sm);
+    color: var(--adm-text);
+  }
+  .tsc__insight strong {
+    color: var(--adm-ink);
+  }
+</style>
+
+<script>
+  import { renderTimelineChart } from '@admin/features/reports/render/timeline-chart';
+
+  interface TimelinePoint {
+    date: string;
+    count: number;
+  }
+
+  // Mismo formatter que `RegistrationsTimelineWidget.astro` — duplicado a
+  // propósito, mismo criterio ya usado ahí (script de cliente, no importa
+  // desde `@shared/*`).
+  const tickFormatter = new Intl.DateTimeFormat('es-BO', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+  function labelFor(iso: string): string {
+    const date = new Date(`${iso}T00:00:00Z`);
+    if (Number.isNaN(date.getTime())) return iso;
+    return tickFormatter.format(date).replace('.', '');
+  }
+
+  // `astro:page-load` fires on first load AND after every ClientRouter
+  // navigation (`AdminShell.astro` now carries it) — a bundled module
+  // script otherwise runs only once ever, so without this the chart would
+  // go dead on a second visit to `/admin` in the same tab.
+  document.addEventListener('astro:page-load', () => {
+    const chartEl = document.querySelector<HTMLElement>('[data-tsc-chart]');
+    if (chartEl) {
+      const points = JSON.parse(chartEl.dataset.points ?? '[]') as TimelinePoint[];
+      renderTimelineChart(chartEl, { points, labelFor });
+    }
+  });
+</script>

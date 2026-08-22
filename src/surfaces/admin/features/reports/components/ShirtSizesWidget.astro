@@ -1,0 +1,263 @@
+---
+// ShirtSizesWidget — "Tallas de polera" en `/admin/reportes` (PR2 de
+// `sdd/admin-reportes`, design "Technical Approach" + "Page Composition").
+// Isla autónoma: selector de carrera propio (vía `getRaceOptions()`), máquina
+// de estados propia (`loading|ready|empty|error|401`, `island-state.ts`),
+// guard de request-id propio — nada se comparte con `ReferralSourcesWidget`
+// salvo `lib/{island-state,race-options}.ts` (design "Technical Approach").
+//
+// Carga en modo "todas las carreras" al montar (spec "Aggregate 'All Races'
+// Default") — el selector se puebla en paralelo, sin bloquear ese primer
+// fetch (design "Data Flow"). El bucket "Sin polera" ya llega al final desde
+// `features/reports/api.ts` — este componente solo renderiza el orden que
+// recibe, nunca reordena (spec "Shirt-Size Empty Bucket Label").
+---
+
+<div class="ssw" data-shirt-sizes-widget>
+  <div class="ssw__header">
+    <h2 class="ssw__title">Tallas de polera</h2>
+    <div class="ssw__toolbar">
+      <label class="ssw__select-label" for="ssw-race-select">Carrera</label>
+      <select id="ssw-race-select" class="ssw__select" data-ssw-select disabled>
+        <option value="">Todas las carreras</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="ssw__body">
+    <div class="ssw__state" data-state hidden aria-live="polite">
+      <p class="ssw__state-text" data-state-text></p>
+      <button type="button" class="ssw__retry" data-state-retry hidden></button>
+    </div>
+
+    <div class="ssw__chart" data-ssw-chart hidden></div>
+  </div>
+</div>
+
+<style>
+  .ssw {
+    background: var(--adm-surface);
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius-card);
+    padding: 24px;
+  }
+
+  .ssw__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 20px;
+    margin-bottom: 20px;
+  }
+  .ssw__title {
+    font-family: 'Barlow', sans-serif;
+    font-size: var(--adm-text-md);
+    font-weight: 700;
+    color: var(--adm-ink);
+    margin: 0;
+  }
+  .ssw__toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .ssw__select-label {
+    font-family: 'Barlow', sans-serif;
+    font-size: var(--adm-text-sm);
+    font-weight: 700;
+    color: var(--adm-ink);
+  }
+  .ssw__select {
+    min-width: 200px;
+    padding: 8px 12px;
+    font-family: 'Barlow', sans-serif;
+    font-size: var(--adm-text-sm);
+    font-weight: 600;
+    color: var(--adm-ink);
+    background: #ffffff;
+    border: 1.5px solid var(--adm-border);
+    border-radius: var(--adm-radius-control);
+    outline: none;
+  }
+  .ssw__select:focus-visible {
+    border-color: var(--adm-accent);
+  }
+  .ssw__select:disabled {
+    color: var(--adm-muted);
+    cursor: not-allowed;
+  }
+
+  .ssw__state {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 28px 20px;
+    background: var(--adm-bg);
+    border-radius: var(--adm-radius-control);
+  }
+  .ssw__state[hidden] {
+    display: none;
+  }
+  .ssw__state-text {
+    margin: 0;
+    font-family: 'Barlow', sans-serif;
+    font-size: var(--adm-text-md);
+    font-weight: 600;
+    color: var(--adm-text);
+  }
+  .ssw__retry {
+    padding: 8px 16px;
+    min-height: 44px;
+    font-family: 'Barlow', sans-serif;
+    font-size: var(--adm-text-sm);
+    font-weight: 700;
+    color: var(--adm-accent);
+    background: none;
+    border: 1.5px solid var(--adm-accent);
+    border-radius: var(--adm-radius-control);
+    cursor: pointer;
+  }
+  .ssw__retry[hidden] {
+    display: none;
+  }
+  .ssw__retry:hover {
+    background: color-mix(in srgb, var(--adm-accent) 10%, transparent);
+  }
+
+  .ssw__chart {
+    width: 100%;
+  }
+  .ssw__chart[hidden] {
+    display: none;
+  }
+  /* ApexCharts mounts its own SVG tree at runtime — styled via JS options
+     (`chart-tokens.ts` + `apex-defaults.ts`), not CSS. */
+  .ssw__chart :global(.category-bar-chart__sr-only) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+</style>
+
+<script>
+  import { createStateView } from '@admin/lib/island-state';
+  import { getRaceOptions } from '@admin/lib/race-options';
+  import { renderCategoryBarChart } from '../render/category-bar-chart';
+
+  // Contratos duplicados de `features/reports/types.ts` a propósito (mismo
+  // criterio que `ParticipantsBrowser.astro` — este script se bundlea aparte
+  // para el navegador).
+  type BffErrCode = 'unauthorized' | 'validation' | 'server';
+  interface ShirtSize {
+    size: string;
+    label: string;
+    count: number;
+  }
+  type ShirtSizeResponse = { ok: true; data: ShirtSize[] } | { ok: false; code: BffErrCode; message: string };
+
+  function initWidget(root: HTMLElement) {
+    const select = root.querySelector<HTMLSelectElement>('[data-ssw-select]');
+    const chartEl = root.querySelector<HTMLElement>('[data-ssw-chart]');
+    if (!select || !chartEl) return;
+
+    // 240 ≈ altura típica del bar chart real (`Math.max(120, count*40)` en
+    // `render/category-bar-chart.ts` — con las ~6 tallas usuales da 240); no
+    // se puede saber el conteo exacto antes del fetch, así que el skeleton
+    // usa esta altura representativa en vez de una genérica.
+    const view = createStateView(root, { loadingHeight: 240 });
+    if (!view) return;
+
+    // Guard de secuencia: contador monotónico (mismo criterio que
+    // `ParticipantsBrowser.astro`/`RegistrationsBrowser.astro`) — descarta
+    // respuestas obsoletas si el admin cambia de carrera rápido.
+    let requestId = 0;
+
+    const load = async (raceId: string) => {
+      const id = ++requestId;
+      view.loading();
+      chartEl.hidden = true;
+
+      let res: Response;
+      try {
+        res = await fetch(`/api/admin/reports-shirt-sizes${raceId ? `?raceId=${encodeURIComponent(raceId)}` : ''}`);
+      } catch {
+        if (id !== requestId) return;
+        view.error('No pudimos conectar con el servidor.', () => void load(raceId));
+        return;
+      }
+
+      let body: ShirtSizeResponse;
+      try {
+        body = await res.json();
+      } catch {
+        if (id !== requestId) return;
+        view.error('Ocurrió un error inesperado.', () => void load(raceId));
+        return;
+      }
+
+      if (id !== requestId) return;
+
+      if (!body.ok) {
+        if (body.code === 'unauthorized') {
+          view.unauthorized();
+          return;
+        }
+        view.error(body.message || 'No pudimos cargar las tallas.', () => void load(raceId));
+        return;
+      }
+
+      if (body.data.length === 0) {
+        view.empty('No hay tallas registradas para esta carrera.');
+        return;
+      }
+
+      view.ready();
+      renderCategoryBarChart(
+        chartEl,
+        body.data.map((item) => ({ label: item.label, count: item.count })),
+      );
+      chartEl.hidden = false;
+    };
+
+    select.addEventListener('change', () => void load(select.value));
+
+    // El selector se puebla en paralelo, sin bloquear la carga agregada
+    // (design "Data Flow" — "no forced race pick first").
+    void (async () => {
+      const result = await getRaceOptions();
+      if (result.ok) {
+        select.innerHTML = '';
+        const allOption = document.createElement('option');
+        allOption.value = '';
+        allOption.textContent = 'Todas las carreras';
+        select.appendChild(allOption);
+        for (const race of result.races) {
+          const option = document.createElement('option');
+          option.value = race.id;
+          option.textContent = race.label;
+          select.appendChild(option);
+        }
+      }
+      select.disabled = false;
+    })();
+
+    void load('');
+  }
+
+  // `astro:page-load` fires on first load AND after every ClientRouter
+  // navigation (`AdminShell.astro` now carries it) — a bundled module
+  // script otherwise runs only once ever, so without this the widget would
+  // go dead on a second visit to `/admin/reportes` in the same tab.
+  document.addEventListener('astro:page-load', () => {
+    const root = document.querySelector<HTMLElement>('[data-shirt-sizes-widget]');
+    if (root) initWidget(root);
+  });
+</script>

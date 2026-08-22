@@ -1,9 +1,18 @@
 ---
-// Ruta "/admin/reportes" — placeholder (ver `sdd/admin-dashboard`, design D6
-// + spec "Placeholder routes"). Ver `carreras.astro` para el comentario
-// completo del patrón thin compartido por las 4 rutas placeholder.
+// Ruta "/admin/reportes" — los tres widgets de reportes completos (PR3 de
+// `sdd/admin-reportes`, spec "admin-reports" + design "Page Composition").
+// Reemplaza el placeholder de `sdd/admin-dashboard` (D6) ahora que hay
+// pantalla real. Thin: `AdminShell` (SSR, sin JS) + tres islas autónomas —
+// mismo patrón que `participantes.astro`.
+//
+// El timeline ("Inscripciones por día") va full-width, primero en la pila
+// (design "Page Composition": orden 1. timeline, 2. tallas, 3. canal). Con
+// los 3 widgets ya en la página, `nav.ts` flipea `reportes.status` a
+// `'ready'` en este mismo PR (ver tasks "Nav flip timing").
 import AdminShell from '@admin/components/AdminShell.astro';
-import ComingSoon from '@admin/components/ComingSoon.astro';
+import RegistrationsTimelineWidget from '@admin/features/reports/components/RegistrationsTimelineWidget.astro';
+import ShirtSizesWidget from '@admin/features/reports/components/ShirtSizesWidget.astro';
+import ReferralSourcesWidget from '@admin/features/reports/components/ReferralSourcesWidget.astro';
 import { ADMIN_NAV } from '@admin/components/nav';
 
 export const prerender = false;
@@ -12,5 +21,55 @@ const label = ADMIN_NAV.find((item) => item.href === '/admin/reportes')!.label;
 ---
 
 <AdminShell title={label}>
-  <ComingSoon label={label} />
+  <div class="page">
+    <h1 class="page-title">{label}</h1>
+    <p class="page-hint">Datos agregados de todas las carreras por defecto.</p>
+    <div class="reports-timeline">
+      <RegistrationsTimelineWidget />
+    </div>
+    <div class="reports-grid">
+      <ShirtSizesWidget />
+      <ReferralSourcesWidget />
+    </div>
+  </div>
 </AdminShell>
+
+<style>
+  .page {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .page-title {
+    font-family: 'Barlow', sans-serif;
+    font-size: var(--adm-text-xl);
+    font-weight: 800;
+    color: var(--adm-ink);
+    margin: 0;
+  }
+  .page-hint {
+    font-family: 'Barlow', sans-serif;
+    font-size: var(--adm-text-sm);
+    font-weight: 500;
+    color: var(--adm-muted);
+    margin: 0 0 20px;
+  }
+
+  .reports-timeline {
+    margin-bottom: 20px;
+  }
+
+  .reports-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  @media (min-width: 1024px) {
+    .reports-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: start;
+    }
+  }
+</style>
