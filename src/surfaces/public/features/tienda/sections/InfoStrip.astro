@@ -41,7 +41,9 @@ const items = [
   .is__inner {
     max-width: var(--fl-container);
     margin: 0 auto;
-    padding: clamp(44px, 6vw, 72px) clamp(20px, 5vw, 56px);
+    /* Techo bajado de 56px a 40px, mismo hallazgo que ProductGrid — ver ese
+       comentario. */
+    padding: clamp(44px, 6vw, 72px) clamp(20px, 5vw, 40px);
   }
   .is__grid {
     list-style: none;

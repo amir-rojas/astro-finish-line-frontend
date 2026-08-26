@@ -14,32 +14,11 @@
  * Firmas idénticas a las versiones anteriores a propósito: ningún consumidor
  * cambia su lógica ni su import path (18 consumidores, ver design ADR-1).
  */
-import { createClient } from '@sanity/client';
 import { z } from 'zod';
 import { upcomingRaces } from '@shared/lib/race-date';
-
-// --- Cliente Sanity ----------------------------------------------------------
-// Dataset público (plan free), sin token de lectura: `projectId`/`dataset` son
-// constantes públicas en código, no secretos — no hace falta env var.
-
-const SANITY_PROJECT_ID = '34shscw3';
-const SANITY_DATASET = 'production';
-// Pineada a una fecha fija: fija la forma de la API contra futuros cambios de
-// default en Sanity, para que este adaptador no se rompa por una actualización
-// silenciosa del lado del proveedor.
-const SANITY_API_VERSION = '2024-01-01';
-
-const client = createClient({
-  projectId: SANITY_PROJECT_ID,
-  dataset: SANITY_DATASET,
-  apiVersion: SANITY_API_VERSION,
-  // NO NEGOCIABLE: el CDN de Sanity tiene ~10 min de retraso tras un publish en
-  // Studio. Un build disparado por el webhook de Sanity justo después de
-  // publicar tiene que leer el estado YA publicado, no una copia vieja cacheada
-  // — reintroducir ese retraso es exactamente el problema de staleness que este
-  // cambio vino a resolver (ver `useCdn: false` en design ADR).
-  useCdn: false,
-});
+// Cliente Sanity compartido — extraído a su propio módulo cuando apareció el
+// segundo consumidor (`tienda/products.ts`). Ver `sanity-client.ts`.
+import { sanityClient as client, SANITY_PROJECT_ID, SANITY_DATASET } from '@shared/lib/server/sanity-client';
 
 // --- Tipos limpios expuestos al resto de la app -----------------------------
 

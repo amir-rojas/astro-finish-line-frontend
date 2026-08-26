@@ -98,7 +98,7 @@ resuelve con un **webhook de Sanity apuntando a un Vercel Deploy Hook**
 1. **Vercel**: Project Settings → Git → Deploy Hooks → crear un hook **solo
    para la rama `develop`**. Copiar la URL generada.
 2. **Sanity Studio**: Project → API → Webhooks → crear un webhook con esa URL,
-   disparado `on publish`/`on delete` del tipo `race`.
+   disparado `on publish`/`on delete`, filtrado por tipo de documento.
 
 **A propósito, NO se conecta un Deploy Hook de `main`.** Que César publique
 una carrera dispara el rebuild de staging, no de producción — así hay
@@ -108,3 +108,19 @@ igual que cualquier otro cambio.
 
 Sin este webhook, un cambio publicado en Studio queda invisible en staging
 hasta el próximo deploy manual.
+
+**El webhook `vercel-staging-rebuild` cubre `race` y `producto`.** Filtro
+actual:
+
+```
+(_type == "race" || _type == "producto") && !(_id in path("drafts.**"))
+```
+
+Se amplió el 26/ago para incluir `producto` (antes solo cubría `race`, así que
+publicar un producto de la tienda no disparaba rebuild). Se editó el filtro del
+webhook existente en vez de crear uno nuevo: **el plan free de Sanity solo
+permite 2 webhooks por proyecto**, y los otros dos slots ya están ocupados
+(`vercel-staging-rebuild` y `go-backend-race-sync`, este último filtrado solo a
+`race` a propósito — sincroniza carreras al backend Go, no debe dispararse por
+productos). Si en el futuro hace falta un tercer trigger, hay que ampliar este
+mismo filtro de nuevo, no crear un webhook nuevo, salvo que se suba de plan.
