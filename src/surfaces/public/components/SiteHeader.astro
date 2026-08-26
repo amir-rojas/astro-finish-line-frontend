@@ -28,10 +28,17 @@ import BrandIsotype from './BrandIsotype.astro';
 const path = Astro.url.pathname;
 /** Ruta actual: `/calendario` y `/calendario/lo-que-sea` marcan el mismo ítem. */
 const isCalendar = path === '/calendario' || path.startsWith('/calendario/');
+const isTienda = path === '/tienda';
 
+// `Tienda` entra como link plano (cta:false), ANTES de Calendario: sigue
+// siendo /calendario el único ítem con cuerpo de botón — la jerarquía de la
+// nota de cabecera no cambia, solo se agrega un cuarto destino. Todavía
+// noindex/fuera del sitemap (ver tienda.astro): visible en el nav para que
+// César la pruebe en staging, no lista para búsqueda pública.
 const nav = [
   { href: '/#run-tour', label: 'Run Tour', current: false, cta: false },
   { href: '/#recaps', label: 'Así se vivió', current: false, cta: false },
+  { href: '/tienda', label: 'Tienda', current: isTienda, cta: false },
   { href: '/calendario', label: 'Calendario', current: isCalendar, cta: true },
 ];
 ---

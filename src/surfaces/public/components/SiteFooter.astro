@@ -44,6 +44,9 @@ const explore = [
   // Anclas root-relative: desde el detalle de una carrera navegan a la home y bajan.
   { href: '/#run-tour', label: 'Run Tour' },
   { href: '/#recaps', label: 'Así se vivió' },
+  // Todavía noindex/fuera del sitemap (ver tienda.astro) — visible acá para
+  // que César la pruebe en staging, no lista para búsqueda pública.
+  { href: '/tienda', label: 'Tienda' },
 ];
 
 const whatsapp = whatsappLink(`Hola, tengo una consulta sobre las carreras de ${site.organizer}.`);
