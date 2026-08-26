@@ -46,7 +46,11 @@ const trailingWide = products.length > 2 && (products.length - 2) % 4 === 2;
   .pg__inner {
     max-width: var(--fl-container);
     margin: 0 auto;
-    padding: clamp(44px, 6vw, 72px) clamp(20px, 5vw, 56px);
+    /* Techo bajado de 56px a 40px (hallazgo /impeccable critique 2026-08-26): a
+       partir de 1120px de ancho el 5vw ya tocaba el techo en CUALQUIER pantalla
+       de escritorio real (1280-2560px) — o sea, un padding fijo disfrazado de
+       fluido. Local a Tienda, no toca `--fl-container` ni el resto del sitio. */
+    padding: clamp(44px, 6vw, 72px) clamp(20px, 5vw, 40px);
   }
   .pg__grid {
     list-style: none;

@@ -32,7 +32,7 @@ const waitlistWa = soldOut ? whatsappLink(waitlistMessage(product)) : null;
 
 <li class:list={['pc', wide && 'pc--wide']} data-reveal data-delay={delay}>
   <div class="pc__frame">
-    <ProductPlaceholder placeholder={product.placeholder} imageAlt={product.imageAlt} />
+    <ProductPlaceholder placeholder={product.placeholder} imageAlt={product.imageAlt} image={product.image} />
     {soldOut && <span class="pc__badge pc__badge--soldout">Agotado</span>}
   </div>
 

@@ -1,20 +1,35 @@
 ---
-// ProductPlaceholder — motivo de color neutro para un producto sin foto real
-// todavía (`product.image` está ausente en v1: ver `products.ts`). Es el ÚNICO
-// lugar donde entra un `<Image>` real más adelante: cuando `mapProducto()`
-// empiece a traer fotos de Sanity, esta es la costura que cambia, no cada card.
+// ProductPlaceholder — foto real cuando `producto.image` está cargada en
+// Sanity; si no, motivo de color neutro. Costura única: ningún card decide
+// esto por su cuenta, todos delegan acá.
 //
 // Tres variantes de bloque (`block-a/b/c`) para que la grilla no se vea como
 // cinco copias del mismo rectángulo — un desacuerdo tonal sutil, no un patrón
 // decorativo nuevo: los tres se derivan de los tokens navy/orange existentes.
+import { Image } from 'astro:assets';
+
 interface Props {
   placeholder: 'block-a' | 'block-b' | 'block-c';
   imageAlt: string;
+  image?: ImageMetadata;
 }
-const { placeholder, imageAlt } = Astro.props;
+const { placeholder, imageAlt, image } = Astro.props;
 ---
 
-<div class={`pp pp--${placeholder}`} role="img" aria-label={imageAlt}></div>
+{
+  image ? (
+    <Image
+      class="pp pp--photo"
+      src={image}
+      alt={imageAlt}
+      widths={[400, 800]}
+      sizes="(min-width: 1024px) 400px, 50vw"
+      loading="lazy"
+    />
+  ) : (
+    <div class={`pp pp--${placeholder}`} role="img" aria-label={imageAlt} />
+  )
+}
 
 <style>
   .pp {
@@ -22,6 +37,19 @@ const { placeholder, imageAlt } = Astro.props;
     height: 100%;
     position: relative;
     overflow: hidden;
+  }
+  /* `position: absolute; inset: 0` en vez de heredar el `width/height: 100%`
+     relativo de `.pp`: mismo patrón que `.rc__img`/`.reward__img` para una foto
+     dentro de un frame `aspect-ratio` — evita cualquier ambigüedad de alto
+     porcentual y es lo que de verdad hace que `object-fit: cover` recorte en
+     vez de deformar. */
+  .pp--photo {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
   .pp::after {
     content: '';
