@@ -2,9 +2,10 @@
 // Ruta pública "/tienda" — vitrina de merchandising con datos placeholder.
 // THIN: carga los productos y orquesta las secciones del feature `tienda`.
 //
-// Ruta DELIBERADAMENTE no enlazada desde SiteHeader/SiteFooter y excluida del
-// sitemap (ver `astro.config.mjs`): es una pantalla en construcción sobre datos
-// de muestra, no lista para índices ni para navegación pública todavía. El
+// Ya enlazada desde SiteHeader/SiteFooter (26/ago, a pedido de Amir, para que
+// César la pruebe con el catálogo real de Sanity en staging) pero TODAVÍA
+// excluida del sitemap y con `noindex,nofollow` (ver `astro.config.mjs`): no
+// lista para búsqueda pública, decisión aparte y posterior. El
 // `noindex,nofollow` va ACÁ, no en `PublicLayout` (que sí se comparte con toda
 // página pública indexable) — mismo criterio que `AdminLayout.astro`.
 import PublicLayout from '@public/layouts/PublicLayout.astro';
